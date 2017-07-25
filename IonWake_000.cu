@@ -6,14 +6,13 @@
 * Git location: IonWake
 *
 * Created: 6/13/2017
-* Original Project: PK4
 *
 * Edits
-*	Last Modified: 7/14/2017
+*	Last Modified: 7/25/2017
 *	Contributor(s):
 *		Name: Dustin Sanford
 *		Contact: Dustin_Sanford@baylor.edu
-*		Last Contribution: 7/19/2017
+*		Last Contribution: 7/25/2017
 *
 * Description:
 *	Handles the execution of the IonWake simulation. Provides a user interface in 
@@ -67,6 +66,8 @@
 *	intTestVal: holds temporary copies of device constants
 *	INV_DEBYE: inverse of the debye length
 *	ION_ION_ACC_MULT: a constant multiplier for acceleration due to Ion Ion forces
+*	ionPosTrace: the file that the ion positions are printed to for the single
+*		ion position trace.
 *	MACH: ???
 *	MASS_DUST: dust particle mass
 *	MASS_ION: ion mass (Kg)
@@ -97,6 +98,8 @@
 *		are printed to the debugging file.
 *	showParameters: a Boolean value that determines if the input parameters are 
 *		uprinted to the debugging file.
+*	singleIonTraceMode: a Boolean value that determines if the posisitions 
+*		of a single ion are printed to a text file every time step
 *	SOFT_RAD: a softening radius used in r^-2 calculations 
 *	SOFT_RAD_SQRD: SOFT_RAD squared 
 *	SOUND_SPEED: the sound speed of the plasma 
@@ -168,7 +171,7 @@ int main()
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_DEBUG_PARAMS = 6;
+	const int NUM_DEBUG_PARAMS = 8;
 
 	// allocate memory for user parameters
 	int* intParams = (int*)malloc(NUM_DEBUG_PARAMS * sizeof(int));
@@ -178,19 +181,24 @@ int main()
 		"/home/sanfordd/IonWake/paramListDebug.txt");
 
 	// assign user defined parameters
-	const bool debugMode = intParams[0];
-	const bool showParameters = intParams[1];
-	const bool showConstants = intParams[2];
+	const bool debugMode            = intParams[0];
+	const bool showParameters       = intParams[1];
+	const bool showConstants        = intParams[2];
 	const bool showOutputParameters = intParams[3];
-	const bool showInitHostVars = intParams[4];
-	const bool showFinalHostVars = intParams[5];
+	const bool showInitHostVars     = intParams[4];
+	const bool showFinalHostVars    = intParams[5];
+	const bool singleIonTraceMode   = intParams[6];
+	const int  ionTraceIndex        = intParams[7];
 
 	// free memory allocated for user parameters
 	free(intParams);
 
-	// create an output text file
+	// create an output debugging text file
 	std::ofstream debugFile;
+	//create an output ion trace file
+	std::ofstream ionPosTrace;
 
+	// if debuging mode is set to true (on)
 	if (debugMode)
 	{
 		// open the output text file
@@ -200,6 +208,13 @@ int main()
 		// 5 digits the right of the decimal 
 		debugFile.precision(11);
 		debugFile << std::showpoint;
+
+		// if sing ion trace is set to true (on)
+		if (singleIonTraceMode)
+		{
+			// open the ion trace file
+			ionPosTrace.open("IonWakeData/ionPosTrace.txt");
+		}
 	}
 
 	/************************* 
@@ -859,7 +874,7 @@ int main()
 
 		statusFile << " d";
 		
-		/*
+		
 		// calculate the forces between all ions
 		calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK, DIM_BLOCK * sizeof(float3) >>> 
 			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
@@ -878,8 +893,6 @@ int main()
 			fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
 			fprintf(stderr, "Location: after calcIonIonForce on timestep %d\n\n", i);
 		}
-
-		*/
 
 		statusFile << " f";
 		
@@ -912,8 +925,35 @@ int main()
 
 		statusFile << " h |" << std::endl;
 		
+		// if the program is in debuging mode and set to trace the position
+		// of a single ion
+		if (debugMode && singleIonTraceMode)
+		{
+
+			// copy ion possitions to host
+			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
+			}
+
+			// print the positionof of the specified ion to the ion trace file
+			ionPosTrace << posIon[ionTraceIndex].x;
+			ionPosTrace << ", " << posIon[ionTraceIndex].y;
+			ionPosTrace << ", " << posIon[ionTraceIndex].z << std::endl;
+
+		}
+
 	} // end time step
 	
+	if (debugMode && singleIonTraceMode)
+	{
+		// print the index of the traced ion to the debuging file
+		debugFile << "Single ion trace index: " << ionTraceIndex << std::endl << std::endl;
+
+		// close the ion trace file
+		ionPosTrace.close();
+	}
+
 	// copy ion positions to host
 	cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
 	if (cudaStatus != cudaSuccess) {
