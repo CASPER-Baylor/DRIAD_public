@@ -209,7 +209,7 @@ int main()
 		debugFile.precision(11);
 		debugFile << std::showpoint;
 
-		// if sing ion trace is set to true (on)
+		// if single ion trace is set to true (on)
 		if (singleIonTraceMode)
 		{
 			// open the ion trace file
@@ -222,7 +222,7 @@ int main()
 	*************************/
 
 	// electron charge (Q)
-	const float CHARGE_ELC = -1.602177e-12; 
+	const float CHARGE_ELC = -1.602177e-19; 
 
 	// permittivity of free pace in a vacuum (F/m)
 	const float PERM_FREE_SPACE = 8.854e-12;
@@ -339,7 +339,11 @@ int main()
 	const float HALF_TIME_STEP = TIME_STEP / 2;
 
 	// a constant multiplier for acceleration due to Ion Ion forces
-	const float ION_ION_ACC_MULT = (CHARGE_ELC * CHARGE_ELC) /
+	const float ION_ION_ACC_MULT = (CHARGE_ION * CHARGE_ION) /
+		(4 * PI * PERM_FREE_SPACE * MASS_ION);
+
+	// a constant multiplier for acceleration due to Ion Dust forces
+	const float ION_DUST_ACC_MULT = (CHARGE_ION * CHARGE_DUST) /
 		(4 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// dust radius squared
@@ -373,6 +377,7 @@ int main()
 		debugFile << "RAD_SIM_SQRD: " << RAD_SIM_SQRD << std::endl;
 		debugFile << "HALF_TIME_STEP: " << HALF_TIME_STEP << std::endl;
 		debugFile << "ION_ION_ACC_MULT: " << ION_ION_ACC_MULT << std::endl;
+		debugFile << "ION_DUST_ACC_MULT: " << ION_ION_ACC_MULT << std::endl;
 		debugFile << "RAD_DUST_SQRD: " << RAD_DUST_SQRD << std::endl;
 		debugFile << std::endl;
 	}  // DEBUGGING //
@@ -567,10 +572,10 @@ int main()
 		{
 			int ID = NUM_ION - i;
 
-			debugFile << "X: " << posIon[ID].x
-				<< " Y: " << posIon[ID].y
-				<< " Z: " << posIon[ID].z
-				<< std::endl;
+			debugFile << "X: "  << posIon[ID].x
+					  << " Y: " << posIon[ID].y
+				      << " Z: " << posIon[ID].z
+				      << std::endl;
 		}
 		debugFile << std::endl;
 	} // DEBUGGING //
@@ -597,6 +602,7 @@ int main()
 	float* d_RAD_SIM_SQRD;
 	float* d_HALF_TIME_STEP;
 	float* d_ION_ION_ACC_MULT;
+	float* d_ION_DUST_ACC_MULT;
 	unsigned int* d_NUM_ION;
 	unsigned int* d_NUM_DUST;
 
@@ -652,6 +658,12 @@ int main()
 	cudaStatus = cudaMalloc(&d_ION_ION_ACC_MULT, sizeof(float));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed: d_ION_ION_ACC_MULT\n");
+	}
+
+	// allocate GPU memory for the ion ion acceleration multiplier 
+	cudaStatus = cudaMalloc(&d_ION_DUST_ACC_MULT, sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed: d_ION_DUST_ACC_MULT\n");
 	}
 
 	// allocate GPU memory for the dust positions
@@ -736,6 +748,13 @@ int main()
 		sizeof(float), cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed: d_ION_ION_ACC_MULT\n");
+	}
+
+	// copy ion ion acceleration multiplier value to the GPU
+	cudaStatus = cudaMemcpy(d_ION_DUST_ACC_MULT, &ION_DUST_ACC_MULT,
+		sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy failed: d_ION_DUST_ACC_MULT\n");
 	}
 
 	// copy the number of dust particles to the GPU
@@ -852,7 +871,7 @@ int main()
 
 		statusFile << " b";
 		
-
+		
 		calcIonDustForces <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD,
 				d_INV_DEBYE, d_NUM_DUST, d_posDust);
@@ -862,7 +881,7 @@ int main()
 			fprintf(stderr, "calcIonDustForce launch failed: %s\n\n",
 				cudaGetErrorString(cudaStatus));
 		}
-
+		
 		statusFile << " c";
 
 		// Syncronize threads and check for errors
@@ -884,7 +903,7 @@ int main()
 			fprintf(stderr, "calcIonIonForce launch failed: %s\n\n", 
 				cudaGetErrorString(cudaStatus));
 		}
-
+		
 		statusFile << " e";
 
 		// Syncronize threads and check for errors
@@ -903,7 +922,6 @@ int main()
 			fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
 		}
 
-		
 		// use the new accelerations to update the positions and velocities
 		// of all the ions
 		stepForward <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -930,13 +948,20 @@ int main()
 		if (debugMode && singleIonTraceMode)
 		{
 
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: in singleIonTrace %d\n\n", i);
+			}
+
 			// copy ion possitions to host
 			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
 			}
 
-			// print the positionof of the specified ion to the ion trace file
+			// print the position of of the specified ion to the ion trace file
 			ionPosTrace << posIon[ionTraceIndex].x;
 			ionPosTrace << ", " << posIon[ionTraceIndex].y;
 			ionPosTrace << ", " << posIon[ionTraceIndex].z << std::endl;
@@ -1107,6 +1132,21 @@ int main()
 		fprintf(stderr, " to %f\n", *intTestVal);
 	}
 
+	// copy the ion dust acceleration multiplier to the host
+	cudaStatus = cudaMemcpy(testVal, d_ION_DUST_ACC_MULT,
+		sizeof(float), cudaMemcpyDeviceToHost);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy failed: d_ION_DUST_ACC_MULT\n");
+	}
+	// check if the host and device ion ion acceleration
+	// multipliers are the same
+	if ((*testVal - ION_DUST_ACC_MULT) != 0)
+	{
+		fprintf(stderr, "Const Device Value Changed: ION_DUST_ACC_MULT\n");
+		fprintf(stderr, "from %f", ION_DUST_ACC_MULT);
+		fprintf(stderr, " to %f\n", *intTestVal);
+	}
+
 	// copy the half time step to the host
 	cudaStatus = cudaMemcpy(testVal, d_HALF_TIME_STEP, 
 		sizeof(float), cudaMemcpyDeviceToHost);
@@ -1189,6 +1229,7 @@ int main()
 
 	// close the debugging file
 	debugFile.close();
+	statusFile.close();
 
 	return 0;
 } 
