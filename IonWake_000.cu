@@ -846,17 +846,16 @@ int main()
 	{
 		
 		statusFile << std::setw(3) << i << " | ";
-		
 
 		// check for ions that have left the simulation region
 		// and give them a new position and velocity
-		replaceOutOfBoundsIons <<< blocksPerGridIon, DIM_BLOCK >>>
+		replaceOutOfBoundsIons << < blocksPerGridIon, DIM_BLOCK >> >
 			(d_posIon, d_velIon, d_statesThread, d_statesBlock, d_RAD_SIM_SQRD, d_RAD_SIM,
 				d_NUM_ION, d_NUM_DUST, d_posDust, d_RAD_DUST_SQRD);
 		// Check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
 		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n", 
+			fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n",
 				cudaGetErrorString(cudaStatus));
 		}
 
@@ -871,7 +870,7 @@ int main()
 
 		statusFile << " b";
 		
-		
+		/*
 		calcIonDustForces <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD,
 				d_INV_DEBYE, d_NUM_DUST, d_posDust);
@@ -892,10 +891,10 @@ int main()
 		}
 
 		statusFile << " d";
-		
+		*/
 		
 		// calculate the forces between all ions
-		calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK, DIM_BLOCK * sizeof(float3) >>> 
+		calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK>>> 
 			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
 		// Check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
@@ -921,7 +920,7 @@ int main()
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
 		}
-
+		
 		// use the new accelerations to update the positions and velocities
 		// of all the ions
 		stepForward <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -931,7 +930,7 @@ int main()
 		if (cudaStatus != cudaSuccess) {
 			fprintf(stderr, "stepForward launch failed: %s\n\n", cudaGetErrorString(cudaStatus));
 		}
-
+		
 		statusFile << " g";
 
 		// Syncronize threads and check for errors
@@ -942,7 +941,7 @@ int main()
 		}
 
 		statusFile << " h |" << std::endl;
-		
+
 		// if the program is in debuging mode and set to trace the position
 		// of a single ion
 		if (debugMode && singleIonTraceMode)
