@@ -9,6 +9,8 @@
  [3]  showOutputParameters  1
  [4]  showInitHostVars      1
  [5]  showFinalHostVars     1
+ [6]  singleIonTraceMode    1
+ [7]  traceIonIndex         60
 
 	   
  ******************************   
@@ -58,6 +60,21 @@
 	 the time step are printed to the debugging file.  
    - 0 for off
    - 1 for on
+
+ [6] singleIonTraceMode (bool)
+ --------------------------------
+   - determines if the positions of a single ion for each
+	time step are printed to the unique file 
+	ionPosTrace.txt.
+   - designed to be used with the MATLAB script
+	plotIonPosTrace.m which plots the ion trace.	   
+   - 0 for off
+   - 1 for on
+
+ [7] traceIonIndex (int)
+ --------------------------------
+   - index of the ion to be traced if singleIonTraceMode
+ 	is set to true (1)
 
  ******************************   
 	   Notes    

@@ -2,6 +2,10 @@
 #define IONWAKE_107_PLOTBMP
 
 #include <string>
+#include <string>
+#include <iostream>
+#include "EasyBMP.h"
+#include "IonWake_106_Utilities.h"
 
 int getGreen(int Ival, int numColor);
 

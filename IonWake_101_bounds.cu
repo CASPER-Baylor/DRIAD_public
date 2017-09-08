@@ -1,35 +1,84 @@
+/*
+* Project: IonWake
+* File Type: function library implemtation
+* File Name: IonWake_101_bounds.cu
+*
+* Created: 6/20/2017
+* Last Modified: 8/26/2017
+*
+* Description:
+*	Functions for handeling ions that leave the simulation region
+*
+* Functions:
+*	replaceOutOfBoundsIons()
+*	init()
+*
+*/
 
+// header file
 #include "IonWake_101_bounds.h"
 
 /*
 * Name: replaceOutOfBoundsIons
 * Created: 6/20/2017
-* last edit: 7/19/2017
+* last edit: 8/26/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 7/19/2017
+*	last edit: 8/26/2017
 *
 * Description:
+*	Checks if an ion has left the simulation radius.
+*	If the ion has left the simulation then it is given
+*	a new random position on the surface of the upper 
+*	hemisphere of the simulation shpere. The ion is then given
+*	a new random velocity with the x and y components ranging 
+*	from -150 m/s to 150 m/s and the x component ranging from
+*	0 m/s to 300 m/s.
 *
 * Input:
+*	d_posIon: ion positions
+*	d_velIon: ion velocities
+*	statesThread: a set of random states for use with curand.
+*		There are as many states as the maximum number of threads
+*		per block
+*	statesBlock: a set of random states for use with curand.
+*		There are as many states as the maximum number of blocks
+*	d_RAD_SIM_SQRD: simulation radius squared
+*	d_RAD_SIM: simulation radius
+*	d_NUM_ION: the number of ions
+*	d_NUM_DUST: the number of dust particles
+*	d_posDust: the positions of the dust particles
+*	d_RAD_DUST_SQRD: dust radius squared
 *
-* Output:
-*
-* Data Abstraction:
+* Output (void):
+*	d_posIon: out of bounds ions are given a new position
+*		on the surface of the upper hemisphere of the 
+*		simulation.
+*	d_velIon: out of bounds ions are given a new random velocity 
+*		with the x and y components ranging from -150 m/s to 150 m/s 
+*		and the x component ranging from 0 m/s to 300 m/s.
 *
 * Asumptions:
+*	There are at least as many random states as threads per block
+*		number of blocks for statesThread and statesBlock respectivly 
+*	All numerical inputs are real numbers 
 *
 * Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*	curand_kernel.h
 *
 */
-__global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon, 
-	curandState_t* statesThread, curandState_t* statesBlock, 
-	float* const d_RAD_SIM_SQRD, float* const d_RAD_SIM, unsigned int* const d_NUM_ION,
-	unsigned int* const d_NUM_DUST, float3* d_posDust, float* const d_RAD_DUST_SQRD)
+__global__ void replaceOutOfBoundsIons
+	(float3* d_posIon, float3* d_velIon, curandState_t* statesThread, 
+	 curandState_t* statesBlock, float* const d_RAD_SIM_SQRD, 
+	 float* const d_RAD_SIM, unsigned int* const d_NUM_ION, 
+	 unsigned int* const d_NUM_DUST, float3* d_posDust, 
+	 float* const d_RAD_DUST_SQRD)
 {
-	// holds distances 
+	// distance
 	float dist;
 
 	// used in generating random values
@@ -42,8 +91,11 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 	// random values
 	int newVal;
 	float newVal2;
+	float theta;
+	float phi;
 
-	// check if 
+	// check if the thread ID is in the 
+	// bounds of the number of ions
 	if (IDion <= *d_NUM_ION)
 	{
 		// position of the current ion
@@ -51,8 +103,6 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 
 		// a random offset value
 		int offset;
-		// if the position of the current ion has been reset
-		bool reset = false;
 		// if the current ion is out of bounds
 		bool outOfBounds = false;
 		// temporary distance holders
@@ -68,8 +118,7 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 		{
 			outOfBounds = true;
 		}
-
-		
+				
 		// loop over all of the dust particles
 		for (int i = 0; i < *d_NUM_DUST; i++)
 		{
@@ -93,20 +142,14 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 		}
 		
 
-		// reset the position untill it is in bounds
+		// If the ion is out of bounds reset its poition 
+		// and velocity 
 		if (outOfBounds)
 		{
-			// random value that is the same for each thread ID within
-			// each block
-			offset = curand(&statesThread[threadIdx.x]);
-			// add the offset to a random value that is the same for each 
-			// thread block. Then change the range of the number to 
-			// between 0 and numSections.
-			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
-			// change the range of the number to -numsections to +numsections
-			newVal2 = (newVal * 2) - numSections;
-			// change the range of the number to -d_RAD_SIM to d_RAD_SIM
-			posCrntIon.x = *d_RAD_SIM * newVal2 / numSections;
+
+			/*************************
+				  Reset Position
+			*************************/
 
 			// random value that is the same for each thread ID within
 			// each block
@@ -117,8 +160,28 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
 			// change the range of the number to -numsections to +numsections
 			newVal2 = (newVal * 2) - numSections;
-			// change the range of the number to -d_RAD_SIM to d_RAD_SIM
-			posCrntIon.y = *d_RAD_SIM * newVal2 / numSections;
+			// change the range of the number to -PI to PI
+			theta = (3.14159 * newVal2) / numSections;
+
+			// random value that is the same for each thread ID within
+			// each block
+			offset = curand(&statesThread[threadIdx.x]);
+			// add the offset to a random value that is the same for each 
+			// thread block. Then change the range of the number to 
+			// between 0 and numSections.
+			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
+			// change the range of the number to -PI/2 to 0
+			phi = -(3.14159 * newVal) / numSections;
+
+			// set the ion position to a random position on the 
+			// the upper hemisphere of the simulation sphere
+			posCrntIon.x = *d_RAD_SIM * sinf(theta) * cosf(phi);
+			posCrntIon.y = *d_RAD_SIM * sinf(theta) * sinf(phi);
+			posCrntIon.z = *d_RAD_SIM * cosf(theta);
+	
+			/*************************
+				  Reset Velocity
+			*************************/
 
 			// random value that is the same for each thread ID within
 			// each block
@@ -129,16 +192,9 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
 			// change the range of the number to -numsections to +numsections
 			newVal2 = (newVal * 2) - numSections;
-			// change the range of the number to -d_RAD_SIM to d_RAD_SIM
-			posCrntIon.z = *d_RAD_SIM * newVal2 / numSections;
+			// change the range of the number to -300 to 300
+			d_velIon[IDion].x = 300 * newVal2 / numSections;
 
-			// set the position reset flag to true
-			reset = true;
-		}
-
-		// check if the position has been reset
-		if(reset)
-		{
 			// random value that is the same for each thread ID within
 			// each block
 			offset = curand(&statesThread[threadIdx.x]);
@@ -146,12 +202,20 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 			// thread block. Then change the range of the number to 
 			// between 0 and numSections.
 			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
-			// change the range of the number to -d_RAD_SIM/50 to d_RAD_SIM/50
-			d_velIon[IDion].x = *d_RAD_SIM * newVal / (numSections * 50);
+			// change the range of the number to -300 to 0
+			d_velIon[IDion].y =  (-300 * newVal2 / numSections);
 
-			// set the x and y velocities to 0
-			d_velIon[IDion].y = 0;
-			d_velIon[IDion].z = 0;
+			// random value that is the same for each thread ID within
+			// each block
+			offset = curand(&statesThread[threadIdx.x]);
+			// add the offset to a random value that is the same for each 
+			// thread block. Then change the range of the number to 
+			// between 0 and numSections.
+			newVal = (curand(&statesBlock[blockIdx.x]) + offset) % numSections;
+			// change the range of the number to -numsections to +numsections
+			newVal2 = (newVal * 2) - numSections;
+			// change the range of the number to -300 to 300
+			d_velIon[IDion].z = 300 * newVal2 / numSections;
 		}	
 
 		// save the ion position
@@ -159,14 +223,48 @@ __global__ void replaceOutOfBoundsIons(float3* d_posIon, float3* d_velIon,
 	}
 }
 
+/*
+* Name: init
+* Created: 8/26/2017
+* last edit: 8/26/2017
+*
+* Editors
+*	Name: Dustin Sanford
+*	Contact: Dustin_Sanford@baylor.edu
+*	last edit: 8/26/2017
+*
+* Description:
+*	Initializes an array of random states for use
+*	with curand.
+*
+* Input:
+*	seed: a random unsigned int used to seed
+*		the random states generator 
+*	states: an array to save the random states to
+*
+* Output (void):
+*	states: sates is populated with random states
+*
+* Asumptions:
+*	The seed is diferent for each call
+*	Each block has one thread
+*	The are many blocks as the length of the 
+*		states array
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*	curand_kernel.h
+*
+*/
 
-// this GPU kernel function is used to initialize the random states 
 __global__ void init(unsigned int seed, curandState_t* states) 
 {
-	// we have to initialize the state 
-	curand_init(seed,      // the seed can be the same for each core, here we pass the time in from the CPU 
-		blockIdx.x, // the sequence number should be different for each core (unless you want all
-					//  cores to get the same sequence of numbers for some reason - use thread id! 
-		1,          // the offset is how much extra we advance in the sequence for each call, can be 0 
-		&states[blockIdx.x]);
+	// initialize the states
+	curand_init(seed, // seed for the random states generator
+		blockIdx.x, // number of random states to generate
+		1,          // number of random states that is advanced for each
+					// subsequent random state in states
+		&states[blockIdx.x] // array to save the states to
+	);
 }

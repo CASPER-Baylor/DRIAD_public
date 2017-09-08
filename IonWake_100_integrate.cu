@@ -1,28 +1,96 @@
+/*
+* Project: IonWake
+* File Type: function library implemtation
+* File Name: IonWake_100_integrate.cu
+*
+* Created: 6/13/2017
+* Last Modified: 8/26/2017
+*
+* Description:
+*	Includes time step integrators
+*
+* Functions:
+*	stepForward()
+*
+*/
+
+// header file
 #include "IonWake_100_integrate.h"
 
-__global__ void stepForward(float3* d_posIon, float3* d_velIon, float3* d_accIon, float* const d_HALF_TIME_STEP)
+/*
+* Name: stepForward
+* Created: 6/13/2017
+* last edit: 8/26/2017
+*
+* Editors
+*	Name: Dustin Sanford
+*	Contact: Dustin_Sanford@baylor.edu
+*	last edit: 8/26/2017
+*
+* Description:
+*	Performs a leapfrog integration
+*
+* Input:
+*	pos: positions
+*	vel: velocities
+*	acc: accelerations
+*	d_HALF_TIME_STEP: half of a time step
+*
+* Output (void):
+*	pos: updated position from the integration
+*	vel: updated velocitiy from the integration
+*	acc: set to zero.
+*
+* Asumptions:
+*	All inputs are real values
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+__global__ void stepForward(float3* pos, float3* vel, float3* acc, 
+	float* const d_HALF_TIME_STEP)
 {
-	int IDion = blockIdx.x * blockDim.x + threadIdx.x;
+	// thread ID
+	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// calculate velocity
-	d_velIon[IDion].x += ((*d_HALF_TIME_STEP) * d_accIon[IDion].x);
-	d_velIon[IDion].y += ((*d_HALF_TIME_STEP) * d_accIon[IDion].y);
-	d_velIon[IDion].z += ((*d_HALF_TIME_STEP) * d_accIon[IDion].z);
+	/* calculate velocity
+	* v = v0 + (1/2) * dT * a
+	*******************
+	* v  - velocity
+	* v0 - initial velocity
+	* dT - time step
+	* a  - acceleration
+	*******************/
+	vel[threadID].x += ((*d_HALF_TIME_STEP) * acc[threadID].x);
+	vel[threadID].y += ((*d_HALF_TIME_STEP) * acc[threadID].y);
+	vel[threadID].z += ((*d_HALF_TIME_STEP) * acc[threadID].z);
 
+	// wait for all threads to finish the calculation
 	__syncthreads();
 
-	// calculate position
-	d_accIon[IDion].x += ((*d_HALF_TIME_STEP) * d_velIon[IDion].x);
-	d_accIon[IDion].y += ((*d_HALF_TIME_STEP) * d_velIon[IDion].y);
-	d_accIon[IDion].z += ((*d_HALF_TIME_STEP) * d_velIon[IDion].z);
+	/* calculate position
+	* x = x0 + (1/2) * dT * v
+	*******************
+	* x  - position
+	* x0 - initial position
+	* dT - time step
+	* v  - velocity
+	*******************/
+	pos[threadID].x += ((*d_HALF_TIME_STEP) * vel[threadID].x);
+	pos[threadID].y += ((*d_HALF_TIME_STEP) * vel[threadID].y);
+	pos[threadID].z += ((*d_HALF_TIME_STEP) * vel[threadID].z);
 	
+	// wait for all threads to finish the calculation
 	__syncthreads();
 
 	// reset acceleration
-	d_accIon[IDion].x = 0;
-	d_accIon[IDion].y = 0;
-	d_accIon[IDion].z = 0;
+	acc[threadID].x = 0;
+	acc[threadID].y = 0;
+	acc[threadID].z = 0;
 
+	// wait for all threads to finish the calculation
 	__syncthreads();
 
 }

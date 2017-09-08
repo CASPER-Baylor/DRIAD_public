@@ -3,23 +3,22 @@
 * Project: IonWake
 * File Type: script - main 
 * File Name: IonWake_000.cu
-* Git location: IonWake
 *
 * Created: 6/13/2017
 *
-* Edits
-*	Last Modified: 7/25/2017
+* Editors
+*	Last Modified: 8/26/2017
 *	Contributor(s):
 *		Name: Dustin Sanford
 *		Contact: Dustin_Sanford@baylor.edu
-*		Last Contribution: 7/25/2017
+*		Last Contribution: 8/26/2017
 *
 * Description:
 *	Handles the execution of the IonWake simulation. Provides a user interface in 
 *	the form of input and output files.  Handles memory allocation and declaration 
 *	for non-function specific variables on both the CPU host and GPU device. Includes 
 *	a modular time-step for rapid development and testing of various time step 
-*	schemes. For descriptions of the scope of the IonWake simulation, user interface, 
+*	schemes. For descriptions of the scope of the IonWake simulation as well as user interface, 
 *	program input and output, and time-step options please see the respective 
 *	sections of the README file. 
 *
@@ -30,88 +29,6 @@
 * Input:
 *	Determined by user settings. For a complete description of all available program
 *	input please see the README file.
-*
-* Data Abstractions:
-*	accIon: ion accelerations 
-*	blocksPerGridIon: number of blocks per grid for Ion calculations 
-*	BOLTZMANN: Boltzmann Constant (Kgm^2)/(K*s^2)
-*	CHARGE_DUST: charge on the dust grain 
-*	CHARGE_ELC: electron charge (Q)
-*	CHARGE_ION: charge on the ions
-*	cudaStatus: holds CUDA status errors 
-*	debugFile: the file that debugging output is printed to.
-*	debugMode: A Boolean value that turns on and off debugging features in the code  
-*	DEBYE: the debye length.
-*	DEN_DUST: dust particle density (Kg/m^3)
-*	DEN_FAR_PLASMA: unperturbed plasma number density far from dust particle
-*	DIM_BLOCK: number of threads per block
-*	d_accIon: ion accelerations 
-*	d_HALF_TIME_STEP: half of a time step
-*	d_INV_DEBYE: inverse debye length 
-*	d_ION_ION_ACC_MULT: a constant multiplier for acceleration due to Ion Ion forces
-*	d_NUM_ION: number of ions in the simulation
-*	d_posIon: ion positions
-*	d_RAD_SIM: radius of the simulation sphere 
-*	d_RAD_SIM_SQRD: squared radius of the simulation sphere
-*	d_SOFT_RAD_SQRD: SOFT_RAD squared 
-*	d_statesBlock: states for curand number generator with as many entries as the 
-*		maximum blocks per grid used by the program
-*	d_statesThread: states for curand number generator with as many entries as 
-*		threads per block
-*	d_velIon: ion velocities 
-*	GRID_RES: the number of grid cells along each side of output statistics such as 
-*		ion density and electric potential. Each grid cell can be represented as 
-*		a pixel.
-*	HALF_TIME_STEP: half of the length of the time step
-*	intTestVal: holds temporary copies of device constants
-*	INV_DEBYE: inverse of the debye length
-*	ION_ION_ACC_MULT: a constant multiplier for acceleration due to Ion Ion forces
-*	ionPosTrace: the file that the ion positions are printed to for the single
-*		ion position trace.
-*	MACH: ???
-*	MASS_DUST: dust particle mass
-*	MASS_ION: ion mass (Kg)
-*	memFloat3Ion: memory size for float3 type ion data
-*	memFloatIon: memory size for float type ion data
-*	numDenIon: hold a 2D number density plot for ions
-*	NUM_BLOCKS_IONS: number of blocks of ions.
-*	NUM_DUST: number of dust particles in the simulation.
-*	NUM_ION: number of ions in simulation
-*	NUM_TIME_STEP: number of time steps in the simulation 
-*	NUM_USSER_PARAMS: the number of user input parameters 
-*	Params: an array to temporarily hold user input parameters 
-*	PERM_FREE_SPACE: permittivity of free pace in a vacuum (F/m)
-*	PI: 3.141593
-*	posIon: ion positions 
-*	RAD_DUST: radius of dust particle.
-*	RAD_SIM: the radius of the simulation sphere in meters.
-*	RAD_SIM_DEBYE: the radius of the simulation sphere in debye lengths 
-*	RAD_SIM_SQRD: RAD_SIM squared 
-*	showConstants: a Boolean value that determines if the constants that are hard 
-*		coded into the program are printed to the debugging file.
-*	showFinalPositions: a Boolean value that determines if the final values 
-*		calculated in the time step are printed to the debugging file.  
-*	showInitHostVars: a Boolean value that determines if the initial values for the 
-*		host variables created in “Initialize Initial Host Variables” are printed 
-*		to the debugging file.
-*	showOutputParameters: a Boolean value that determines if the output parameters 
-*		are printed to the debugging file.
-*	showParameters: a Boolean value that determines if the input parameters are 
-*		uprinted to the debugging file.
-*	singleIonTraceMode: a Boolean value that determines if the posisitions 
-*		of a single ion are printed to a text file every time step
-*	SOFT_RAD: a softening radius used in r^-2 calculations 
-*	SOFT_RAD_SQRD: SOFT_RAD squared 
-*	SOUND_SPEED: the sound speed of the plasma 
-*	statusFile: file that status updates are printed to
-*	TEMP_ELC: electron temperature (K)
-*	TEMP_ION: ion temperature (K)
-*	testVal: holds temporary copies of device constants
-*	TIME_STEP: length of the time step
-*	velIon; ion velocities 
-*	WARP_SIZE: number of threads in a warp
-*	xPosIon: a holder for ion x-positions 
-*	yPosIon: a holder for ion y-positions 
 *
 * Implementation :
 *	User input parameters are read in from input text files.  Each parameter file 
@@ -142,7 +59,7 @@
 *	runtime as there are no memory transfer latencies, but any data that needs to 
 *	be handled on the host during the time-step needs to be specifically transferred 
 *	from the device to the host.  Threads are synchronized between time-step 
-*	calculations that need to be calculated synchronously.  After the time-step 
+*	calculations that need to be calculated synchronously.  After the time-step, 
 *	device data is copied to the host to be processed for output.  The precise 
 *	processing and output is determined by the user output settings. Though each 
 *	output generally follows the structure of: data selection, data processing, data 
@@ -163,8 +80,30 @@
 // header file
 #include "IonWake_000.h"
 
-int main()
+int main(int argc, char* argv[])
 {
+
+	/*************************
+	       File Names
+	*************************/
+
+	// directory name where data ouput is saved
+	std::string dataDirName = "/home/sanfordd/IonWakeData/";
+	// directory name where program inputs are read from
+	std::string inputDirName = "/home/sanfordd/IonWake/";
+	// read in comand line argument for the run name
+	std::string runName = argv[1];
+
+	// create file names for input files
+	std::string paramListDebugFileName = inputDirName + "param-list-debug.txt";
+	std::string paramListFileName = inputDirName + "param-list.txt";
+	std::string dustPosFileName = inputDirName + "dust-pos.txt";
+
+	// create file names for output files
+	std::string debugFileName = dataDirName + runName +"_debug-file.txt";
+	std::string ionPosTraceName = dataDirName + "ionPosTrace.txt";
+	std::string statusFileName = dataDirName + runName + "_status-file.txt";
+	std::string numDenPlotName = dataDirName + runName + "_num-den-plot.bmp";
 
 	/*************************
 			Debugging
@@ -177,8 +116,7 @@ int main()
 	int* intParams = (int*)malloc(NUM_DEBUG_PARAMS * sizeof(int));
 
 	// get user defined parameters
-	getUsserParams(intParams, NUM_DEBUG_PARAMS, 
-		"/home/sanfordd/IonWake/paramListDebug.txt");
+	getUsserParams(intParams, NUM_DEBUG_PARAMS, paramListDebugFileName.c_str());
 
 	// assign user defined parameters
 	const bool debugMode            = intParams[0];
@@ -202,21 +140,49 @@ int main()
 	if (debugMode)
 	{
 		// open the output text file
-		debugFile.open("IonWakeData/debugFile.txt");
+		debugFile.open(debugFileName.c_str());
 
 		// set the output file to display 
 		// 5 digits the right of the decimal 
-		debugFile.precision(11);
+		debugFile.precision(5);
 		debugFile << std::showpoint;
 
 		// if single ion trace is set to true (on)
 		if (singleIonTraceMode)
 		{
 			// open the ion trace file
-			ionPosTrace.open("IonWakeData/ionPosTrace.txt");
+			ionPosTrace.open(ionPosTraceName.c_str());
 		}
-	}
 
+		// holds GPU device properties 
+		cudaDeviceProp prop;
+		// get GPU device properties
+		cudaGetDeviceProperties(&prop, 0);
+
+		// display GPU device properties
+		debugFile << "-- Debugging: GPU Properties --" << std::endl;
+		debugFile << "sharedMemPerBlock: " << prop.sharedMemPerBlock << std::endl;
+		debugFile << "totalGlobalMem: " << prop.totalGlobalMem << std::endl;
+		debugFile << "regsPerBlock: " << prop.regsPerBlock << std::endl;
+		debugFile << "warpSize: " << prop.warpSize << std::endl;
+		debugFile << "maxThreadsPerBlock: " << prop.maxThreadsPerBlock << std::endl;
+		debugFile << "maxGridSize: " << prop.maxGridSize[0] << ", "
+			                         << prop.maxGridSize[1] << ", "
+			                         << prop.maxGridSize[2] << std::endl;
+		debugFile << "clockRate: " << prop.clockRate << std::endl;
+		debugFile << "deviceOverlap: " << prop.deviceOverlap << std::endl;
+		debugFile << "multiProcessorCount: " << prop.multiProcessorCount << std::endl;
+		debugFile << "kernelExecTimeoutEnabled: " << prop.kernelExecTimeoutEnabled << std::endl;
+		debugFile << "integrated: " << prop.integrated << std::endl;
+		debugFile << "canMapHostMemory: " << prop.canMapHostMemory << std::endl;
+		debugFile << "computeMode: " << prop.computeMode << std::endl;
+		debugFile << "concurrentKernels: " << prop.concurrentKernels << std::endl;
+		debugFile << "ECCEnabled: " << prop.ECCEnabled << std::endl;
+		debugFile << "pciBusID: " << prop.pciBusID << std::endl;
+		debugFile << "pciDeviceID: " << prop.pciDeviceID << std::endl;
+		debugFile << "tccDriver: " << prop.tccDriver << std::endl << std::endl;
+	}
+	
 	/************************* 
 			Constants  
 	*************************/
@@ -286,10 +252,10 @@ int main()
 
 	// get user defined parameters
 	getUsserParams(floatParams, NUM_USSER_PARAMS,
-		"/home/sanfordd/IonWake/paramList.txt");
+		paramListFileName.c_str());
 
 	// assign user defined parameters
-	const unsigned int  NUM_ION       = ((floatParams[0] / DIM_BLOCK) + 1) * DIM_BLOCK ;
+	const unsigned int  NUM_ION       = static_cast<int>(floatParams[0] / DIM_BLOCK) * DIM_BLOCK ;
 	const float DEN_FAR_PLASMA        = floatParams[1];
 	const unsigned short int TEMP_ELC = floatParams[2];
 	const short int TEMP_ION          = floatParams[3];
@@ -298,7 +264,7 @@ int main()
 	const float MACH                  = floatParams[6];
 	const float SOFT_RAD              = floatParams[7];
 	const float RAD_DUST              = floatParams[8];
-	const float CHARGE_DUST           = floatParams[9]  * CHARGE_ELC;
+	const float CHARGE_DUST           = floatParams[9] * CHARGE_ELC;
 	const float CHARGE_ION            = floatParams[10] * CHARGE_ELC;
 	const float TIME_STEP             = floatParams[11];
 	const short int NUM_TIME_STEP     = floatParams[12];
@@ -349,6 +315,14 @@ int main()
 	// dust radius squared
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
 
+	// a constant multiplier for acceleration due to the 
+	// electric field due to plasma outside of the simulation
+	const float EXTERN_ELC_MULT = 
+		((RAD_SIM/DEBYE)+1)*
+		exp(-RAD_SIM/DEBYE)*
+		(CHARGE_ION * CHARGE_ION * DEN_FAR_PLASMA * DEBYE * DEBYE)/
+		(PERM_FREE_SPACE * MASS_ION);
+
 	// DEBUGGING //
 	if (debugMode && showParameters)
 	{  
@@ -379,6 +353,7 @@ int main()
 		debugFile << "ION_ION_ACC_MULT: " << ION_ION_ACC_MULT << std::endl;
 		debugFile << "ION_DUST_ACC_MULT: " << ION_ION_ACC_MULT << std::endl;
 		debugFile << "RAD_DUST_SQRD: " << RAD_DUST_SQRD << std::endl;
+		debugFile << "EXTERN_ELC_MULT: " << EXTERN_ELC_MULT << std::endl;
 		debugFile << std::endl;
 	}  // DEBUGGING //
 
@@ -389,7 +364,7 @@ int main()
 	// pointer for dust positions
 	float3* posDust = NULL;
 
-	// number of lines in a file
+	// counts the number of dust particles
 	int tempNumDust = 0;
 
 	// amount of memory required for the dust positions 
@@ -397,7 +372,7 @@ int main()
 
 	// open the file containing dust positions 
 	std::ifstream dustPosFile;
-	dustPosFile.open("/home/sanfordd/IonWake/dustPos.txt");
+	dustPosFile.open(dustPosFileName.c_str());
 	
 	// check if the file opened 
 	if (!dustPosFile)
@@ -424,12 +399,12 @@ int main()
 		// close and re-open the file so as to start pulling 
 		// data from the top of the file
 		dustPosFile.close();
-		dustPosFile.open("/home/sanfordd/IonWake/dustPos.txt");
+		dustPosFile.open(dustPosFileName.c_str());
 
 		// check if the file was re-opened
 		if (!dustPosFile)
 		{
-			fprintf(stderr, "ERROR: file not open (IonWake_000.cu) [2]\n");
+			fprintf(stderr, "ERROR: file not open in IonWake.000 - %d\n", dustPosFileName.c_str());
 		}
 		else
 		{
@@ -489,10 +464,11 @@ int main()
 	// outside of the simulation buble
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		if (
-			(   posDust[i].x*posDust[i].x 
+		if  (
+			  ( posDust[i].x*posDust[i].x 
 		      + posDust[i].y*posDust[i].y 
-			  + posDust[i].z*posDust[i].z) > RAD_SIM_SQRD)
+			  + posDust[i].z*posDust[i].z) > RAD_SIM_SQRD
+		    )
 		{
 			fprintf(stderr, "ERROR: Dust out of simulation\n");
 		}
@@ -518,7 +494,7 @@ int main()
 	*************************/
 
 	// number of blocks per grid for Ions
-	int blocksPerGridIon = (NUM_ION + DIM_BLOCK - 1) / DIM_BLOCK;
+	int blocksPerGridIon = (NUM_ION + 1) / DIM_BLOCK;
 
 	// memory size for float type ion data arrays 
 	unsigned long long int memFloatIon = NUM_ION * sizeof(float);
@@ -539,8 +515,8 @@ int main()
 		// the time step all of the ions are 
 		// given a new position
 		posIon[i].x = RAD_SIM + 1;
-		posIon[i].y = 0;
-		posIon[i].z = 0;
+		posIon[i].y = RAD_SIM + 1;
+		posIon[i].z = RAD_SIM + 1;
 
 		// set an initial velocity
 		velIon[i].x = 0;
@@ -559,6 +535,7 @@ int main()
 		debugFile << "-- Initial Host Variables --" << std::endl;
 		debugFile << "memFloatIon: " << memFloatIon << std::endl;
 		debugFile << "memFloat3Ion: " << memFloat3Ion << std::endl;
+		debugFile << "shared memory: " << sizeof(float3) << std::endl;
 		debugFile << std::endl;
 		debugFile << "First 20 ion poisitions: " << std::endl;
 		for (int i = 0; i < 20; i++)
@@ -603,9 +580,18 @@ int main()
 	float* d_HALF_TIME_STEP;
 	float* d_ION_ION_ACC_MULT;
 	float* d_ION_DUST_ACC_MULT;
+	float* d_EXTERN_ELC_MULT;
 	unsigned int* d_NUM_ION;
 	unsigned int* d_NUM_DUST;
 
+
+	// allocate GPU memory for the external electric field 
+	// multiplier for calculating the acceleration
+	cudaStatus = cudaMalloc(&d_EXTERN_ELC_MULT, sizeof(float));
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMalloc failed: d_EXTERN_ELC_MULT\n");
+	}
+	
 	// allocate GPU memory for the dust particle radii squared
 	cudaStatus = cudaMalloc(&d_RAD_DUST_SQRD, sizeof(float));
 	if (cudaStatus != cudaSuccess) {
@@ -700,6 +686,14 @@ int main()
 	cudaStatus = cudaMalloc(&d_statesThread, DIM_BLOCK * sizeof(curandState_t));
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMalloc failed: d_statesThread\n");
+	}
+
+	// copy the external electric acceleration multiplier 
+	// value to the GPU
+	cudaStatus = cudaMemcpy(d_EXTERN_ELC_MULT, &EXTERN_ELC_MULT,
+		sizeof(float), cudaMemcpyHostToDevice);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy failed: d_EXTERN_ELC_MULT\n");
 	}
 
 	// copy dust radii squared value to the GPU
@@ -822,7 +816,7 @@ int main()
 
 	// create and open an output text file
 	std::ofstream statusFile;
-	statusFile.open("IonWakeData/statusFile.txt");
+	statusFile.open(statusFileName.c_str());
 
 	// Syncronize threads and check for errors before entering timestep
 	cudaStatus = cudaDeviceSynchronize();
@@ -831,6 +825,24 @@ int main()
 			cudaGetErrorString(cudaStatus));
 	}
 
+
+	// Parameters that turn on and off
+	// parts of the timestep for debuging.
+	// Should be removed before a production 
+	// release
+	bool checkBounds  = true,
+		ionIonForce   = true,
+		ionDustForce  = true,
+		extrnElcForce = false,
+		integrate     = true;
+
+	statusFile << "-- Time Step Parameters --" << std::endl;
+	statusFile << "checkBounds: " << checkBounds << std::endl;
+	statusFile << "ionIonForce: " << ionIonForce << std::endl;
+	statusFile << "ionDustForce: " << ionDustForce << std::endl;
+	statusFile << "extrnElcForce: " << extrnElcForce << std::endl;
+	statusFile << "integrate: " << integrate << std::endl << std::endl;
+	statusFile << "-- Time Step --" << std::endl;
 	/*
 		Durring timestep all calculations are 
 		completed on the device so no memory 
@@ -846,101 +858,140 @@ int main()
 	{
 		
 		statusFile << std::setw(3) << i << " | ";
-
-		// check for ions that have left the simulation region
-		// and give them a new position and velocity
-		replaceOutOfBoundsIons << < blocksPerGridIon, DIM_BLOCK >> >
-			(d_posIon, d_velIon, d_statesThread, d_statesBlock, d_RAD_SIM_SQRD, d_RAD_SIM,
-				d_NUM_ION, d_NUM_DUST, d_posDust, d_RAD_DUST_SQRD);
-		// Check for any errors launching the kernel
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n",
-				cudaGetErrorString(cudaStatus));
-		}
-
-		statusFile << "a";
-
-		// Syncronize threads and check for errors
-		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-			fprintf(stderr, "Location: after replaceOutOfBoundsIons on timestep %d\n\n", i);
-		}
-
-		statusFile << " b";
 		
-		/*
-		calcIonDustForces <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD,
-				d_INV_DEBYE, d_NUM_DUST, d_posDust);
+		if (checkBounds)
+		{
+			// check for ions that have left the simulation region
+			// and give them a new position and velocity
+			replaceOutOfBoundsIons << < blocksPerGridIon, DIM_BLOCK >> >
+				(d_posIon, d_velIon, d_statesThread, d_statesBlock, d_RAD_SIM_SQRD, d_RAD_SIM,
+					d_NUM_ION, d_NUM_DUST, d_posDust, d_RAD_DUST_SQRD);
 			// Check for any errors launching the kernel
 			cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "calcIonDustForce launch failed: %s\n\n",
-				cudaGetErrorString(cudaStatus));
-		}
-		
-		statusFile << " c";
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n",
+					cudaGetErrorString(cudaStatus));
+			}
 
-		// Syncronize threads and check for errors
-		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-			fprintf(stderr, "Location: after calcIonDustForce on timestep %d\n\n", i);
-		}
 
-		statusFile << " d";
-		*/
-		
-		// calculate the forces between all ions
-		calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK>>> 
-			(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
-		// Check for any errors launching the kernel
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "calcIonIonForce launch failed: %s\n\n", 
-				cudaGetErrorString(cudaStatus));
-		}
-		
-		statusFile << " e";
+			statusFile << "a";
 
-		// Syncronize threads and check for errors
-		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-			fprintf(stderr, "Location: after calcIonIonForce on timestep %d\n\n", i);
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: after replaceOutOfBoundsIons on timestep %d\n\n", i);
+			}
+
+			statusFile << " b";
 		}
 
-		statusFile << " f";
-		
+		if (ionDustForce)
+		{
+			calcIonDustForces <<< blocksPerGridIon, DIM_BLOCK >>> (d_posIon, d_accIon, 
+				d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT, d_INV_DEBYE, 
+				d_NUM_DUST, d_posDust);
+			// Check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "calcIonDustForce launch failed: %s\n\n",
+					cudaGetErrorString(cudaStatus));
+			}
 
-		// copy ion accelerations to host
-		cudaStatus = cudaMemcpy(accIon, d_accIon, memFloat3Ion, cudaMemcpyDeviceToHost);
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
-		}
-		
-		// use the new accelerations to update the positions and velocities
-		// of all the ions
-		stepForward <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon, d_velIon, d_accIon, d_HALF_TIME_STEP);
-		// Check for any errors launching the kernel
-		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "stepForward launch failed: %s\n\n", cudaGetErrorString(cudaStatus));
-		}
-		
-		statusFile << " g";
+			statusFile << " c";
 
-		// Syncronize threads and check for errors
-		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-			fprintf(stderr, "Location: after stepForward on timestep %d\n\n", i);
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: after calcIonDustForce on timestep %d\n\n", i);
+			}
+
+			statusFile << " d";
 		}
 
-		statusFile << " h |" << std::endl;
+		if (ionIonForce)
+		{
+			// calculate the forces between all ions
+			calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK >>>
+				(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
+			// Check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "calcIonIonForce launch failed: %s\n\n",
+					cudaGetErrorString(cudaStatus));
+			}
+			
+				statusFile << " e";
+
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: after calcIonIonForce on timestep %d\n\n", i);
+			}
+
+			statusFile << " f";
+		}
+
+		if (extrnElcForce)
+		{
+			// calculate the forces between all ions
+			calcExtrnElcForce <<< blocksPerGridIon, DIM_BLOCK >>>
+				(d_accIon, d_posIon, d_EXTERN_ELC_MULT, d_INV_DEBYE);
+			// Check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "calcExtrnForce launch failed: %s\n\n",
+					cudaGetErrorString(cudaStatus));
+			}
+
+			statusFile << " e";
+
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: after calcExtrnElcForce on timestep %d\n\n", i);
+			}
+
+			statusFile << " f";
+		}
+
+		if (integrate)
+		{
+			// copy ion accelerations to host
+			cudaStatus = cudaMemcpy(accIon, d_accIon, memFloat3Ion, cudaMemcpyDeviceToHost);
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
+			}
+
+			// copy ion possitions to host
+			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
+			}
+
+			// use the new accelerations to update the positions and velocities
+			// of all the ions
+			stepForward <<< blocksPerGridIon, DIM_BLOCK >> >
+				(d_posIon, d_velIon, d_accIon, d_HALF_TIME_STEP);
+			// Check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "stepForward launch failed: %s\n\n", cudaGetErrorString(cudaStatus));
+			}
+
+			statusFile << " g";
+
+			// Syncronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+				fprintf(stderr, "Location: after stepForward on timestep %d\n\n", i);
+			}
+
+		}
 
 		// if the program is in debuging mode and set to trace the position
 		// of a single ion
@@ -954,21 +1005,27 @@ int main()
 				fprintf(stderr, "Location: in singleIonTrace %d\n\n", i);
 			}
 
+			/*
 			// copy ion possitions to host
 			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
 			if (cudaStatus != cudaSuccess) {
 				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
 			}
-
+			*/
+			
+			
 			// print the position of of the specified ion to the ion trace file
 			ionPosTrace << posIon[ionTraceIndex].x;
 			ionPosTrace << ", " << posIon[ionTraceIndex].y;
 			ionPosTrace << ", " << posIon[ionTraceIndex].z << std::endl;
-
+			
 		}
+
+		statusFile << " |" << std::endl;
 
 	} // end time step
 	
+
 	if (debugMode && singleIonTraceMode)
 	{
 		// print the index of the traced ion to the debuging file
@@ -1000,6 +1057,7 @@ int main()
 	// DEBUGGING //
 	if (debugFile && showFinalHostVars)
 	{
+
 		debugFile << "-- Final Ion Positions: First 20 Ions --" << std::endl;
 		for (int i = 0; i < 20; i++)
 		{
@@ -1069,8 +1127,8 @@ int main()
 	*************************/
 
 	// temporary host pointers to copy device constants to
-	float* testVal    = (float*)malloc(sizeof(float));
-	unsigned int*   intTestVal = (unsigned int*)malloc(sizeof(unsigned int));
+	float* testVal = (float*)malloc(sizeof(float));
+	unsigned int* intTestVal = (unsigned int*)malloc(sizeof(unsigned int));
 
 	// copy the number of ions to the host
 	cudaStatus = cudaMemcpy(intTestVal, d_NUM_ION, 
@@ -1113,6 +1171,21 @@ int main()
 	{
 		fprintf(stderr, "Const Device Value Changed: RAD_DUST_SQRD\n");
 		fprintf(stderr, "from %f", RAD_DUST_SQRD);
+		fprintf(stderr, " to %f\n", *intTestVal);
+	}
+
+	// copy the dust radii squared to the host
+	cudaStatus = cudaMemcpy(testVal, d_EXTERN_ELC_MULT,
+		sizeof(float), cudaMemcpyDeviceToHost);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaMemcpy failed: d_EXTERN_ELC_MULT\n");
+	}
+	// check if the host and device dust radii squared
+	// are the same
+	if ((*testVal - EXTERN_ELC_MULT) != 0)
+	{
+		fprintf(stderr, "Const Device Value Changed: EXTERN_ELC_MULT\n");
+		fprintf(stderr, "from %f", EXTERN_ELC_MULT);
 		fprintf(stderr, " to %f\n", *intTestVal);
 	}
 
@@ -1213,19 +1286,19 @@ int main()
 	float* xPosIon = (float*)malloc(memFloat3Ion);
 	float* yPosIon = (float*)malloc(memFloat3Ion);
 
-	// Declaire matricies for the x and y positions
+	// Declaire matricies for the x and y positions 
 	for (int i = 0; i < NUM_ION; i++)
 	{
 		*(xPosIon + i) = posIon[i].x;
-		*(yPosIon + i) = posIon[i].y;
+		*(yPosIon + i) = -posIon[i].y;
 	}
 
 	// calculate the number density
 	int* numDenIon = getNumDen(GRID_RES, NUM_ION, xPosIon, yPosIon);
 
 	// create a number density graphic
-	 createBmp(GRID_RES, GRID_RES, numDenIon, "IonWakeData/NumDenPlot.bmp");
-
+	 createBmp(GRID_RES, GRID_RES, numDenIon, numDenPlotName.c_str());
+	 
 	// close the debugging file
 	debugFile.close();
 	statusFile.close();

@@ -248,7 +248,7 @@ endif
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h IonWake_102_ionIonAcc.h \
 	IonWake_103_getUsserParams.h IonWake_104_plotIonData.h IonWake_105_2DAnalysis.h IonWake_106_Utilities.h \
-	IonWake_107_PlotBMP.h EasyBMP.h IonWake_108_ionDustAcc.h
+	IonWake_107_PlotBMP.h EasyBMP.h IonWake_108_ionDustAcc.h IonWake_109_extrnElcField.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
@@ -284,13 +284,17 @@ IonWake_108_ionDustAcc.o: IonWake_108_ionDustAcc.cu IonWake_108_ionDustAcc.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
+IonWake_109_extrnElcField.o: IonWake_109_extrnElcField.cu IonWake_109_extrnElcField.h
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
+	@echo " "
+	
 EasyBMP.o: EasyBMP.cpp EasyBMP.h EasyBMP_BMP.h EasyBMP_DataStructures.h EasyBMP_VariousBMPutilities.h 
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
 IonWake_000: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o IonWake_102_ionIonAcc.o \
 	IonWake_104_plotIonData.o IonWake_105_2DAnalysis.o IonWake_106_Utilities.o \
-	IonWake_107_PlotBMP.o IonWake_108_ionDustAcc.o EasyBMP.o
+	IonWake_107_PlotBMP.o IonWake_108_ionDustAcc.o EasyBMP.o IonWake_109_extrnElcField.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES) -Wno-deprecated-gpu-targets
 	@echo " "
 

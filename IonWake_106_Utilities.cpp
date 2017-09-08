@@ -1,9 +1,10 @@
 /*
-*
-* File Name: IonWake_106_Utilities.cpp
+* Project: IonWake
 * File Type: function library implemtation
+* File Name: IonWake_106_Utilities.cpp
+*
 * Created: 6/20/2017
-* Last Edit: 6/21/2017
+* Last Modified: 8/29/2017
 *
 * Description:
 *	Includes general purpose algorythms 
