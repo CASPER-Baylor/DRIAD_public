@@ -80,27 +80,32 @@
 // header file
 #include "IonWake_000.h"
 
+void fatalError() {
+	exit(-1);
+}
+
 int main(int argc, char* argv[])
 {
 
 	/*************************
-	       File Names
+		   File Names
 	*************************/
 
 	// directory name where data ouput is saved
-	std::string dataDirName = "/home/sanfordd/IonWakeData/";
+	std::string dataDirName = argv[2];
 	// directory name where program inputs are read from
-	std::string inputDirName = "/home/sanfordd/IonWake/";
+	std::string inputDirName = argv[1];
 	// read in comand line argument for the run name
-	std::string runName = argv[1];
+	std::string runName = argv[3];
 
 	// create file names for input files
 	std::string paramListDebugFileName = inputDirName + "param-list-debug.txt";
 	std::string paramListFileName = inputDirName + "param-list.txt";
 	std::string dustPosFileName = inputDirName + "dust-pos.txt";
+	std::string timestepFileName = inputDirName + "timestep.txt";
 
 	// create file names for output files
-	std::string debugFileName = dataDirName + runName +"_debug-file.txt";
+	std::string debugFileName = dataDirName + runName + "_debug-file.txt";
 	std::string ionPosTraceName = dataDirName + "ionPosTrace.txt";
 	std::string statusFileName = dataDirName + runName + "_status-file.txt";
 	std::string numDenPlotName = dataDirName + runName + "_num-den-plot.bmp";
@@ -119,14 +124,14 @@ int main(int argc, char* argv[])
 	getUsserParams(intParams, NUM_DEBUG_PARAMS, paramListDebugFileName.c_str());
 
 	// assign user defined parameters
-	const bool debugMode            = intParams[0];
-	const bool showParameters       = intParams[1];
-	const bool showConstants        = intParams[2];
+	const bool debugMode = intParams[0];
+	const bool showParameters = intParams[1];
+	const bool showConstants = intParams[2];
 	const bool showOutputParameters = intParams[3];
-	const bool showInitHostVars     = intParams[4];
-	const bool showFinalHostVars    = intParams[5];
-	const bool singleIonTraceMode   = intParams[6];
-	const int  ionTraceIndex        = intParams[7];
+	const bool showInitHostVars = intParams[4];
+	const bool showFinalHostVars = intParams[5];
+	const bool singleIonTraceMode = intParams[6];
+	const int  ionTraceIndex = intParams[7];
 
 	// free memory allocated for user parameters
 	free(intParams);
@@ -167,8 +172,8 @@ int main(int argc, char* argv[])
 		debugFile << "warpSize: " << prop.warpSize << std::endl;
 		debugFile << "maxThreadsPerBlock: " << prop.maxThreadsPerBlock << std::endl;
 		debugFile << "maxGridSize: " << prop.maxGridSize[0] << ", "
-			                         << prop.maxGridSize[1] << ", "
-			                         << prop.maxGridSize[2] << std::endl;
+			<< prop.maxGridSize[1] << ", "
+			<< prop.maxGridSize[2] << std::endl;
 		debugFile << "clockRate: " << prop.clockRate << std::endl;
 		debugFile << "deviceOverlap: " << prop.deviceOverlap << std::endl;
 		debugFile << "multiProcessorCount: " << prop.multiProcessorCount << std::endl;
@@ -182,13 +187,13 @@ int main(int argc, char* argv[])
 		debugFile << "pciDeviceID: " << prop.pciDeviceID << std::endl;
 		debugFile << "tccDriver: " << prop.tccDriver << std::endl << std::endl;
 	}
-	
-	/************************* 
-			Constants  
+
+	/*************************
+			Constants
 	*************************/
 
 	// electron charge (Q)
-	const float CHARGE_ELC = -1.602177e-19; 
+	const float CHARGE_ELC = -1.602177e-19;
 
 	// permittivity of free pace in a vacuum (F/m)
 	const float PERM_FREE_SPACE = 8.854e-12;
@@ -198,7 +203,7 @@ int main(int argc, char* argv[])
 
 	// Pi
 	const float PI = 3.141593;
-		
+
 	// Number of threads oer block
 	// has a limit of 1024 and should be 
 	// a multiple of warp size
@@ -255,20 +260,20 @@ int main(int argc, char* argv[])
 		paramListFileName.c_str());
 
 	// assign user defined parameters
-	const unsigned int  NUM_ION       = static_cast<int>(floatParams[0] / DIM_BLOCK) * DIM_BLOCK ;
-	const float DEN_FAR_PLASMA        = floatParams[1];
+	const unsigned int  NUM_ION = static_cast<int>(floatParams[0] / DIM_BLOCK) * DIM_BLOCK;
+	const float DEN_FAR_PLASMA = floatParams[1];
 	const unsigned short int TEMP_ELC = floatParams[2];
-	const short int TEMP_ION          = floatParams[3];
-	const short int DEN_DUST          = floatParams[4];
-	const float MASS_ION              = floatParams[5];
-	const float MACH                  = floatParams[6];
-	const float SOFT_RAD              = floatParams[7];
-	const float RAD_DUST              = floatParams[8];
-	const float CHARGE_DUST           = floatParams[9] * CHARGE_ELC;
-	const float CHARGE_ION            = floatParams[10] * CHARGE_ELC;
-	const float TIME_STEP             = floatParams[11];
-	const short int NUM_TIME_STEP     = floatParams[12];
-	const float RAD_SIM_DEBYE         = floatParams[13];
+	const short int TEMP_ION = floatParams[3];
+	const short int DEN_DUST = floatParams[4];
+	const float MASS_ION = floatParams[5];
+	const float MACH = floatParams[6];
+	const float SOFT_RAD = floatParams[7];
+	const float RAD_DUST = floatParams[8];
+	const float CHARGE_DUST = floatParams[9] * CHARGE_ELC;
+	const float CHARGE_ION = floatParams[10] * CHARGE_ELC;
+	const float TIME_STEP = floatParams[11];
+	const short int NUM_TIME_STEP = floatParams[12];
+	const float RAD_SIM_DEBYE = floatParams[13];
 
 	// free memory allocated for user parameters
 	free(floatParams);
@@ -317,15 +322,15 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to the 
 	// electric field due to plasma outside of the simulation
-	const float EXTERN_ELC_MULT = 
-		((RAD_SIM/DEBYE)+1)*
-		exp(-RAD_SIM/DEBYE)*
-		(CHARGE_ION * CHARGE_ION * DEN_FAR_PLASMA * DEBYE * DEBYE)/
+	const float EXTERN_ELC_MULT =
+		((RAD_SIM / DEBYE) + 1)*
+		exp(-RAD_SIM / DEBYE)*
+		(CHARGE_ION * CHARGE_ION * DEN_FAR_PLASMA * DEBYE * DEBYE) /
 		(PERM_FREE_SPACE * MASS_ION);
 
 	// DEBUGGING //
 	if (debugMode && showParameters)
-	{  
+	{
 		debugFile << "-- Debugging: Parameters --" << std::endl;
 		debugFile << "NUM_ION: " << NUM_ION << std::endl;
 		debugFile << "DEN_FAR_PLASMA: " << DEN_FAR_PLASMA << std::endl;
@@ -373,7 +378,7 @@ int main(int argc, char* argv[])
 	// open the file containing dust positions 
 	std::ifstream dustPosFile;
 	dustPosFile.open(dustPosFileName.c_str());
-	
+
 	// check if the file opened 
 	if (!dustPosFile)
 	{
@@ -419,7 +424,7 @@ int main(int argc, char* argv[])
 			for (int i = 0; i < tempNumDust; i++)
 			{
 				// skip the first entry in each line
-				dustPosFile >> line; 
+				dustPosFile >> line;
 				// save the dust positions
 				dustPosFile >> posDust[i].x;
 				dustPosFile >> posDust[i].y;
@@ -441,7 +446,7 @@ int main(int argc, char* argv[])
 
 		// alocate memory for dust position
 		posDust = (float3*)malloc(memFloat3Dust);
-	
+
 		// set dust position to (0,0,0)
 		posDust[0].x = 0;
 		posDust[0].y = 0;
@@ -459,21 +464,21 @@ int main(int argc, char* argv[])
 		posDust[i].y *= DEBYE;
 		posDust[i].z *= DEBYE;
 	}
-	
+
 	// check if any of the dust particles are 
 	// outside of the simulation buble
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		if  (
-			  ( posDust[i].x*posDust[i].x 
-		      + posDust[i].y*posDust[i].y 
-			  + posDust[i].z*posDust[i].z) > RAD_SIM_SQRD
-		    )
+		if (
+			(posDust[i].x*posDust[i].x
+				+ posDust[i].y*posDust[i].y
+				+ posDust[i].z*posDust[i].z) > RAD_SIM_SQRD
+			)
 		{
 			fprintf(stderr, "ERROR: Dust out of simulation\n");
 		}
 	}
-	
+
 	// DEBUGGING //
 	if (debugMode)
 	{
@@ -481,11 +486,113 @@ int main(int argc, char* argv[])
 		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
 		for (int i = 0; i < NUM_DUST; i++)
 		{
-			debugFile << "X: "  << posDust[i].x <<
-					     " Y: " << posDust[i].y <<
-				         " Z: " << posDust[i].z << std::endl;
+			debugFile << "X: " << posDust[i].x <<
+				" Y: " << posDust[i].y <<
+				" Z: " << posDust[i].z << std::endl;
 		}
 		debugFile << std::endl;
+	} // DEBUGGING //
+
+	/*************************
+		 Get Time Step
+		  Parameters
+	*************************/
+
+	// open the file containing instructions for the 
+	// structure of the time step
+	std::ifstream timestepFile(timestepFileName.c_str());
+
+	// the number of commands in the file
+	int numCommands = 0;
+
+	// array for holding the time step commands
+	int* commands;
+
+	// check if the file opened 
+	if (!timestepFile) {
+
+		// output an error message
+		fprintf(stderr, "ERROR on line number %d in file %s\n", __LINE__, __FILE__);
+		fprintf(stderr, "File not open\n\n");
+
+		// terminate the program 
+		fatalError();
+
+	}
+	else {
+
+		// a holder for lines from the file
+		std::string line;
+
+		// loop over all of the commands in the file
+		// to find the number of commands
+		while (getline(timestepFile, line)) {
+			numCommands++;
+		}
+
+		// close the file
+		timestepFile.close();
+
+		// allocate memory for the commands
+		commands = (int*)malloc(numCommands * sizeof(int));
+
+		// re-open the file
+		timestepFile.open(timestepFileName.c_str());
+
+		// loop over all of the commands and save 
+		// them to the commands array
+		for (int i = 0; i < numCommands; i++) {
+
+			// get the next command
+			timestepFile >> line;
+
+			// convert the command to an int
+			if (line == "leapfrog") {
+				commands[i] = 1;
+			} else if (line == "ion-ion-acc") {
+				commands[i] = 2;
+			} else if (line == "ion-dust-acc") {
+				commands[i] = 3;
+			} else if (line == "sphere-ion-bounds") {
+				commands[i] = 4;
+			} else if (line == "extrn-elc-acc") {
+				commands[i] = 5;
+			} else if (line == "copy-ion-pos") {
+				commands[i] = 6;
+			} else if (line == "save-pos-trace") {
+				commands[i] = 7;
+			} else {
+				// if the command does not exist give an error message
+				fprintf(stderr, "ERROR on line number %d in file %s\n", __LINE__, __FILE__);
+				fprintf(stderr, "Command \"%s\" does not exist\n\n", line.c_str());
+
+				// terminate the program 
+				fatalError();
+			}
+		}
+	}
+
+	// DEBUGGING //
+	if (debugMode) {
+
+		debugFile << "-- Time Step Commands --" << std::endl;
+
+		debugFile << "Commands: " << std::endl;
+		debugFile << "1: leapfrog" << std::endl;
+		debugFile << "2: ion-ion-acc" << std::endl;
+		debugFile << "3: ion-dust-acc" << std::endl;
+		debugFile << "4: sphere-ion-bounds" << std::endl;
+
+		debugFile << "--------------------" << std::endl;
+
+		debugFile << "Number of commands: " << numCommands << std::endl;
+
+		for (int i = 0; i < numCommands; i++) {
+			debugFile << commands[i] << std::endl;
+		}
+
+		debugFile << "--------------------" << std::endl;
+
 	} // DEBUGGING //
 
 	/*************************
@@ -856,172 +963,174 @@ int main(int argc, char* argv[])
 	*/
 	for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-		
-		statusFile << std::setw(3) << i << " | ";
-		
-		if (checkBounds)
-		{
-			// check for ions that have left the simulation region
-			// and give them a new position and velocity
-			replaceOutOfBoundsIons << < blocksPerGridIon, DIM_BLOCK >> >
-				(d_posIon, d_velIon, d_statesThread, d_statesBlock, d_RAD_SIM_SQRD, d_RAD_SIM,
-					d_NUM_ION, d_NUM_DUST, d_posDust, d_RAD_DUST_SQRD);
-			// Check for any errors launching the kernel
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n",
-					cudaGetErrorString(cudaStatus));
+
+		statusFile << i << ": ";
+
+		for (int j = 0; j < numCommands; j++) {
+			
+			// perform a leapfrog integration
+			if (commands[j] == 1)
+			{
+				statusFile << "1 ";
+
+				// use the new accelerations to update the positions and velocities
+				// of all the ions
+				stepForward << < blocksPerGridIon, DIM_BLOCK >> >
+					(d_posIon, d_velIon, d_accIon, d_HALF_TIME_STEP);
+
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "stepForward launch failed: %s\n\n", cudaGetErrorString(cudaStatus));
+				}
+
+				// Syncronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+					fprintf(stderr, "Location: after stepForward on timestep %d\n\n", i);
+				}
+
 			}
 
+			// calculate the acceleration due to ion-ion interactions
+			else if (commands[j] == 2)
+			{
+				statusFile << "2 ";
 
-			statusFile << "a";
+				// calculate the forces between all ions
+				calcIonIonForces << < blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK >> >
+					(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
 
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: after replaceOutOfBoundsIons on timestep %d\n\n", i);
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "calcIonIonForce launch failed: %s\n\n",
+						cudaGetErrorString(cudaStatus));
+				}
+
+				// Syncronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+					fprintf(stderr, "Location: after calcIonIonForce on timestep %d\n\n", i);
+				}
 			}
 
-			statusFile << " b";
-		}
+			// calculate the acceleration due to ion-dust interactions
+			else if (commands[j] == 3)
+			{
+				statusFile << "3 ";
 
-		if (ionDustForce)
-		{
-			calcIonDustForces <<< blocksPerGridIon, DIM_BLOCK >>> (d_posIon, d_accIon, 
-				d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT, d_INV_DEBYE, 
-				d_NUM_DUST, d_posDust);
-			// Check for any errors launching the kernel
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "calcIonDustForce launch failed: %s\n\n",
-					cudaGetErrorString(cudaStatus));
+				// calculate ion dust accelerations
+				calcIonDustForces << < blocksPerGridIon, DIM_BLOCK >> > (d_posIon, d_accIon,
+					d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT, d_INV_DEBYE,
+					d_NUM_DUST, d_posDust);
+
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "calcIonDustForce launch failed: %s\n\n",
+						cudaGetErrorString(cudaStatus));
+				}
+
+				// Syncronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+					fprintf(stderr, "Location: after calcIonDustForce on timestep %d\n\n", i);
+				}
 			}
 
-			statusFile << " c";
+			// check ion bounds for spherical simulation region
+			else if (commands[j] == 4)
+			{
+				statusFile << "4 ";
 
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: after calcIonDustForce on timestep %d\n\n", i);
-			}
+				// check for ions that have left the simulation region
+				// and give them a new position and velocity
+				replaceOutOfBoundsIons << < blocksPerGridIon, DIM_BLOCK >> >
+					(d_posIon, d_velIon, d_statesThread, d_statesBlock, d_RAD_SIM_SQRD, d_RAD_SIM,
+						d_NUM_ION, d_NUM_DUST, d_posDust, d_RAD_DUST_SQRD);
 
-			statusFile << " d";
-		}
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "replaceOutOfBoundsIons launch failed: %s\n\n",
+						cudaGetErrorString(cudaStatus));
+				}
 
-		if (ionIonForce)
-		{
-			// calculate the forces between all ions
-			calcIonIonForces <<< blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK >>>
-				(d_posIon, d_accIon, d_NUM_ION, d_SOFT_RAD_SQRD, d_ION_ION_ACC_MULT, d_INV_DEBYE);
-			// Check for any errors launching the kernel
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "calcIonIonForce launch failed: %s\n\n",
-					cudaGetErrorString(cudaStatus));
+				// Syncronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+					fprintf(stderr, "Location: after replaceOutOfBoundsIons on timestep %d\n\n", i);
+				}	
 			}
 			
-				statusFile << " e";
+			// calculate the ion accelerations due to the electric field 
+			// outside of the simulation sphere
+			else if (commands[j] == 5)
+			{
+				statusFile << "5 ";
 
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: after calcIonIonForce on timestep %d\n\n", i);
+				// calculate the forces between all ions
+				calcExtrnElcForce << < blocksPerGridIon, DIM_BLOCK >> >
+					(d_accIon, d_posIon, d_EXTERN_ELC_MULT, d_INV_DEBYE);
+
+				// Check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "calcExtrnForce launch failed: %s\n\n",
+						cudaGetErrorString(cudaStatus));
+				}
+				
+				// Syncronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
+					fprintf(stderr, "Location: after calcExtrnElcForce on timestep %d\n\n", i);
+				}				
 			}
-
-			statusFile << " f";
-		}
-
-		if (extrnElcForce)
-		{
-			// calculate the forces between all ions
-			calcExtrnElcForce <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_accIon, d_posIon, d_EXTERN_ELC_MULT, d_INV_DEBYE);
-			// Check for any errors launching the kernel
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "calcExtrnForce launch failed: %s\n\n",
-					cudaGetErrorString(cudaStatus));
-			}
-
-			statusFile << " e";
-
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: after calcExtrnElcForce on timestep %d\n\n", i);
-			}
-
-			statusFile << " f";
-		}
-
-		if (integrate)
-		{
-			// copy ion accelerations to host
-			cudaStatus = cudaMemcpy(accIon, d_accIon, memFloat3Ion, cudaMemcpyDeviceToHost);
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
-			}
-
-			// copy ion possitions to host
-			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
-			}
-
-			// use the new accelerations to update the positions and velocities
-			// of all the ions
-			stepForward <<< blocksPerGridIon, DIM_BLOCK >> >
-				(d_posIon, d_velIon, d_accIon, d_HALF_TIME_STEP);
-			// Check for any errors launching the kernel
-			cudaStatus = cudaGetLastError();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "stepForward launch failed: %s\n\n", cudaGetErrorString(cudaStatus));
-			}
-
-			statusFile << " g";
-
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: after stepForward on timestep %d\n\n", i);
-			}
-
-		}
-
-		// if the program is in debuging mode and set to trace the position
-		// of a single ion
-		if (debugMode && singleIonTraceMode)
-		{
-
-			// Syncronize threads and check for errors
-			cudaStatus = cudaDeviceSynchronize();
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaDeviceSynchronize returned error code: %d\n", cudaStatus);
-				fprintf(stderr, "Location: in singleIonTrace %d\n\n", i);
-			}
-
-			/*
-			// copy ion possitions to host
-			cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
-			if (cudaStatus != cudaSuccess) {
-				fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
-			}
-			*/
 			
-			
-			// print the position of of the specified ion to the ion trace file
-			ionPosTrace << posIon[ionTraceIndex].x;
-			ionPosTrace << ", " << posIon[ionTraceIndex].y;
-			ionPosTrace << ", " << posIon[ionTraceIndex].z << std::endl;
-			
+			// copy ion possitions to the host
+			else if (commands[j] == 6)
+			{
+				statusFile << "6 ";
+
+				// copy ion possitions to host
+				cudaStatus = cudaMemcpy(posIon, d_posIon, memFloat3Ion, cudaMemcpyDeviceToHost);
+				if (cudaStatus != cudaSuccess) {
+					fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
+				}
+			}
+
+			// if the program is in debuging mode and set to trace the position
+			// of a single ion then save the position of a single ion to 
+			// the ionPosTrace file
+			else if (debugMode && singleIonTraceMode && commands[j] == 7)
+			{
+				statusFile << "7 ";
+
+				// print the position of of the specified ion to the ion trace file
+				ionPosTrace << posIon[ionTraceIndex].x;
+				ionPosTrace << ", " << posIon[ionTraceIndex].y;
+				ionPosTrace << ", " << posIon[ionTraceIndex].z << std::endl;
+			}
+
+			// if the command number does not exist throw an error
+			else
+			{
+				// output an error message
+				fprintf(stderr, "ERROR on line number %d in file %s\n", __LINE__, __FILE__);
+				fprintf(stderr, "Command number %d does not exist\n\n", commands[j]);
+
+				// terminate the program 
+				fatalError();
+			}
 		}
 
-		statusFile << " |" << std::endl;
+		statusFile << "|" << std::endl;
 
 	} // end time step
 	
