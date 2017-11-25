@@ -7,7 +7,7 @@
 * Last Modified: 8/29/2017
 * 
 * Description:
-*	Includes general purpose algorythms
+*	Includes general purpose algorithms
 *
 * Functions:
 *	findMax()
@@ -37,7 +37,7 @@
 	* Output:
 	*	max: the maximum value in the array
 	*
-	* Asumptions:
+	* Assumptions:
 	*	val is 1D and contains ints or floats
 	*
 	* Includes:
@@ -64,7 +64,7 @@
 	* Output:
 	*	max: the minimum value in the array
 	*
-	* Asumptions:
+	* Assumptions:
 	*	val is 1D and contains ints or floats
 	*
 	* Includes:

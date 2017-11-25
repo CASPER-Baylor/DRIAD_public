@@ -4,16 +4,16 @@
 * File Name: IonWake_100_integrate.h
 *
 * Created: 6/13/2017
-* Last Modified: 8/26/2017
+* Last Modified: 10/22/2017
 *
 * Description:
 *	Includes time step integrators
 *
 * Functions:
-*	stepForward()
+*	leapfrog()
 *
 * Includes:
-*	stepForward()
+*	leapfrog()
 *		cuda_runtime.h
 *		device_launch_parameters.h
 *
@@ -24,7 +24,7 @@
 
 	/*
 	* Required By:
-	*	stepForward()
+	*	leapfrog()
 	* For:
 	*	CUDA
 	*/
@@ -32,14 +32,14 @@
 
 	/*
 	* Required By:
-	*	stepForward()
+	*	leapfrog()
 	* For:
 	*	CUDA
 	*/
 	#include "device_launch_parameters.h"
 
 	/*
-	* Name: stepForward
+	* Name: leapfrog
 	*
 	* Editors
 	*	Dustin Sanford
@@ -55,16 +55,20 @@
 	*
 	* Output (void):
 	*	pos: updated position from the integration
-	*	vel: updated velocitiy from the integration
+	*	vel: updated velocity from the integration
 	*	acc: set to zero.
 	*
-	* Asumptions:
+	* Assumptions:
 	*	All inputs are real values
 	*
 	* Includes:
 	*	cuda_runtime.h
 	*	device_launch_parameters.h
 	*/
-	__global__ void stepForward(float3*, float3*, float3*, float* const);
+	__global__ void leapfrog
+           (float3*, 
+            float3*, 
+            float3*, 
+            const float*);
 
 #endif // IONWAKE_100

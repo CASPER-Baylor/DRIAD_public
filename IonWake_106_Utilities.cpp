@@ -1,13 +1,13 @@
 /*
 * Project: IonWake
-* File Type: function library implemtation
+* File Type: function library implementation
 * File Name: IonWake_106_Utilities.cpp
 *
 * Created: 6/20/2017
 * Last Modified: 8/29/2017
 *
 * Description:
-*	Includes general purpose algorythms 
+*	Includes general purpose algorithms  
 *
 * Functions:
 *	findMax()
@@ -43,7 +43,7 @@
 *	numVals: the number of input values
 *	max: the maximum value in the array
 *
-* Asumptions:
+* Assumptions:
 *	val is 1D and contains ints or floats
 *
 * Includes:
@@ -59,8 +59,7 @@ float findMax(float val[], int numVals)
 	// loop over each of the ions
 	for (int i = 0; i < numVals; i++)
 	{
-		// check if the current  is greator
-		// than the max
+		// check if the current is greator than the max
 		if (val[i] > max)
 		{
 			max = val[i];
@@ -77,8 +76,7 @@ int findMax(int val[], int numVals)
 	// loop over each of the ions
 	for (int i = 0; i < numVals; i++)
 	{
-		// check if the current  is greator
-		// than the max
+		// check if the current is greator than the max
 		if (val[i] > max)
 		{
 			max = val[i];
@@ -112,7 +110,7 @@ int findMax(int val[], int numVals)
 *	numVals: the number of input values
 *	max: the minimum value in the array
 *
-* Asumptions:
+* Assumptions:
 *	val is 1D and contains ints or floats
 *
 * Includes:
