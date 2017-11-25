@@ -4,15 +4,15 @@
 * File Name: IonWake_102_ionAcc.cu
 *
 * Created: 6/13/2017
-* Last Modified: 10/21/2017
+* Last Modified: 11/14/2017
 *
 * Description:
 *	Includes functions for calculating ion-ion accelerations 
 *
 * Functions:
-*	calcIonIonAcc()
-*   calcIonDustAcc()
-*   calcExtrnElcAcc()
+*	calcIonIonAcc_102()
+*   calcIonDustAcc_102()
+*   calcExtrnElcAcc_102()
 *
 */
 
@@ -20,14 +20,14 @@
 #include "IonWake_102_ionAcc.h"
 
 /*
-* Name: calcIonIonAcc
+* Name: calcIonIonAcc_102
 * Created: 6/13/2017
-* last edit: 10/21/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/21/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Calculates the accelerations due to ion-ion 
@@ -57,7 +57,7 @@
 *	device_launch_parameters.h
 *
 */
-__global__ void calcIonIonAcc
+__global__ void calcIonIonAcc_102
        (float3* d_posIon, 
         float3* d_accIon, 
         int * const d_NUM_ION,
@@ -146,14 +146,14 @@ __global__ void calcIonIonAcc
 }
 
 /*
-* Name: calcIonDustAcc
+* Name: calcIonDustAcc_102
 * Created: 6/13/2017
-* last edit: 10/21/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/21/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Calculates the ion accelerations due to ion-dust interactions 
@@ -185,7 +185,7 @@ __global__ void calcIonIonAcc
 *	device_launch_parameters.h
 *
 */
-__global__ void calcIonDustAcc(
+__global__ void calcIonDustAcc_102(
 		float3* d_posIon, 
 		float3* d_accIon, 
         float3* d_posDust,
@@ -234,14 +234,14 @@ __global__ void calcIonDustAcc(
 }
 
 /*
-* Name: calcExtrnElcAcc
+* Name: calcExtrnElcAcc_102
 * Created: 6/13/2017
-* last edit: 10/21/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/21/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	calculates the acceleration on the ions due to the electric field created 
@@ -272,7 +272,7 @@ __global__ void calcIonDustAcc(
 *	device_launch_parameters.h
 *
 */
-__global__ void calcExtrnElcAcc
+__global__ void calcExtrnElcAcc_102
        (float3* d_accIon, 
         float3* d_posIon, 
         float* const d_EXTERN_ELC_MULT, 

@@ -4,14 +4,14 @@
 * File Name: IonWake_106_Utilities.h
 *
 * Created: 6/20/2017
-* Last Modified: 8/29/2017
+* Last Modified: 11/14/2017
 * 
 * Description:
 *	Includes general purpose algorithms
 *
 * Functions:
-*	findMax()
-*	findMin()
+*	findMax_106()
+*	findMin_106()
 *
 * Includes:
 *	none
@@ -22,7 +22,7 @@
 #define IONWAKE_106_UTILITIES
 
 	/*
-	* Name: findMax
+	* Name: findMax_106
 	*
 	* Editors
 	*	Dustin Sanford
@@ -45,11 +45,11 @@
 	*
 	*/
 
-	float findMax(float val[], int numVals);
-	int   findMax(  int val[], int numVals);
+	float findMax_106(float val[], int numVals);
+	int   findMax_106(  int val[], int numVals);
 
 	/* 
-	* Name: findMin
+	* Name: findMin_106
 	*
 	* Editors
 	*	Dustin Sanford
@@ -72,7 +72,7 @@
 	*
 	*/
 
-	float findMin(float val[], int numVals);
-	int   findMin(  int val[], int numVals);
+	float findMin_106(float val[], int numVals);
+	int   findMin_106(  int val[], int numVals);
 
 #endif // IONWAKE_106_UTILITIES

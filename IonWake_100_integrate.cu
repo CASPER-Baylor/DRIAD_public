@@ -10,7 +10,7 @@
 *	Includes time step integrators
 *
 * Functions:
-*	stepForward()
+*	leapfrog_100()
 *
 */
 
@@ -18,7 +18,7 @@
 #include "IonWake_100_integrate.h"
 
 /*
-* Name: stepForward
+* Name: leapfrog_100
 * Created: 6/13/2017
 * last edit: 10/22/2017
 *
@@ -49,7 +49,7 @@
 *	device_launch_parameters.h
 *
 */
-__global__ void leapfrog
+__global__ void leapfrog_100
        (float3* pos, 
         float3* vel, 
         float3* acc, 

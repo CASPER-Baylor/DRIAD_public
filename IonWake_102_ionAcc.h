@@ -10,18 +10,18 @@
 *	Includes functions for calculating ion-ion accelerations 
 *
 * Functions:
-*	calcIonIonAcc()
-*   calcIonDustAcc()
-*   calcExtrnElcAcc()
+*	calcIonIonAcc_102()
+*   calcIonDustAcc_102()
+*   calcExtrnElcAcc_102()
 *
 * Includes:
-*	calcIonIonAcc()
+*	calcIonIonAcc_102()
 *		cuda_runtime.h
 *		device_launch_parameters.h
-*	calcIonDustAcc()
+*	calcIonDustAcc_102()
 *		cuda_runtime.h
 *		device_launch_parameters.h
-*	calcExtrnElcAcc()
+*	calcExtrnElcAcc_102()
 *		cuda_runtime.h
 *		device_launch_parameters.h
 */
@@ -31,9 +31,9 @@
 
 	/*
 	* Required By:
-	*	calcIonIonAcc()
-    *	calcIonDustAcc()
-    *	calcExtrnElcAcc()
+	*	calcIonIonAcc_102()
+    *	calcIonDustAcc_102()
+    *	calcExtrnElcAcc_102()
 	* For:
 	*	CUDA
 	*/
@@ -41,16 +41,16 @@
 
 	/*
 	* Required By:
-	*	calcIonIonAcc()
-    *	calcIonDustAcc()
-    *	calcExtrnElcAcc()
+	*	calcIonIonAcc_102()
+    *	calcIonDustAcc_102()
+    *	calcExtrnElcAcc_102()
 	* For:
 	*	CUDA
 	*/
 	#include "device_launch_parameters.h"
 
     /*
-    * calcIonIonAcc
+    * calcIonIonAcc_102
     *
     * Editors
     *	Dustin Sanford
@@ -83,7 +83,7 @@
     *	device_launch_parameters.h
     *
     */
-	__global__ void calcIonIonAcc
+	__global__ void calcIonIonAcc_102
            (float3*, 
             float3*, 
             int * const,
@@ -92,7 +92,7 @@
             float * const);
 
 	/*
-    * calcIonDustAcc
+    * calcIonDustAcc_102
     *
     * Editors
     *	Dustin Sanford
@@ -127,8 +127,8 @@
     *	device_launch_parameters.h
     *
     */
-	__global__ void calcIonDustAcc(
-			float3*, 
+	__global__ void calcIonDustAcc_102
+           (float3*, 
 			float3*,
             float3*,
 			int* const,
@@ -139,7 +139,7 @@
 			float* const);
 
     /*
-    * calcExtrnElcAcc
+    * calcExtrnElcAcc_102
     *
     * Editors
     *	Dustin Sanford
@@ -173,6 +173,6 @@
     *	device_launch_parameters.h
     *
     */
-	__global__ void calcExtrnElcAcc(float3*, float3*, float*, float*);
+	__global__ void calcExtrnElcAcc_102(float3*, float3*, float*, float*);
 
 #endif

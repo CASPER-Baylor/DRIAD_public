@@ -7,11 +7,11 @@
 * Created: 6/13/2017
 *
 * Editors
-*	Last Modified: 8/26/2017
+*	Last Modified: 11/12/2017
 *	Contributor(s):
 *		Name: Dustin Sanford
 *		Contact: Dustin_Sanford@baylor.edu
-*		Last Contribution: 10/21/2017
+*		Last Contribution: 11/12/2017
 *
 *       Name: Lorin Matthews
 *       Contact: Lorin_Matthews@baylor.edu
@@ -893,833 +893,56 @@ int main(int argc, char* argv[])
 	// variable to hold cuda status 
 	cudaError_t cudaStatus;
 
-	// create device int pointers 
-    int* d_NUM_DIV_QTH;
-	int* d_NUM_DIV_VEL;
-	int* d_boundsIon;
-	int* d_NUM_ION;
-	int* d_NUM_DUST;
+	// create constant device variables 
+    constCUDAvar<int> d_NUM_DIV_QTH(&NUM_DIV_QTH, 1);
+    constCUDAvar<int> d_NUM_DIV_VEL(&NUM_DIV_VEL, 1);
+    constCUDAvar<int> d_NUM_ION(&NUM_ION, 1);
+    constCUDAvar<int> d_NUM_DUST(&NUM_DUST, 1);
+    constCUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
+    constCUDAvar<float> d_RAD_DUST_SQRD(&RAD_DUST_SQRD, 1);
+    constCUDAvar<float> d_SOFT_RAD_SQRD(&SOFT_RAD_SQRD, 1);
+    constCUDAvar<float> d_RAD_SIM(&RAD_SIM, 1);
+    constCUDAvar<float> d_RAD_SIM_SQRD(&RAD_SIM_SQRD, 1);
+    constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
+    constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
+    constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
+    constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
+    constCUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
+    constCUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, NUM_DIV_VEL);
+    constCUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
+    constCUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
+    constCUDAvar<float> d_PI(&PI, 1);
+    constCUDAvar<float> d_MACH(&MACH, 1);
+    constCUDAvar<float> d_MASS_SINGLE_ION(&MASS_SINGLE_ION, 1);
+    constCUDAvar<float> d_BOLTZMANN(&BOLTZMANN, 1);
     
-    // create device float pointers 
-	float* d_INV_DEBYE;
-	float* d_RAD_DUST_SQRD;
-	float* d_SOFT_RAD_SQRD;
-	float* d_RAD_SIM;
-	float* d_RAD_SIM_SQRD;
-	float* d_HALF_TIME_STEP;
-	float* d_ION_ION_ACC_MULT;
-	float* d_ION_DUST_ACC_MULT;
-	float* d_EXTERN_ELC_MULT;
-	float* d_QCOM;
-	float* d_TEMP_ION;
-	float* d_DRIFT_VEL_ION;
-	float* d_VCOM;
-	float* d_GCOM;
-	float* d_TEMP_ELC;
-	float* d_SOUND_SPEED;
-	float* d_PI;
-	float* d_MACH;
-	float* d_chargeDust;
-	float* d_MASS_SINGLE_ION;
-	float* d_BOLTZMANN;
+    // create device pointers 
+    CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
+    CUDAvar<float> d_QCOM(NUM_DIV_QTH);
+    CUDAvar<float> d_VCOM(NUM_DIV_VEL);
+    CUDAvar<float> d_GCOM(NUM_DIV_QTH * NUM_DIV_VEL);
+    CUDAvar<float> d_chargeDust(chargeDust, NUM_DUST);   
+    CUDAvar<float3> d_posIon(posIon, NUM_ION);
+	CUDAvar<float3> d_velIon(velIon, NUM_ION);
+	CUDAvar<float3> d_accIon(accIon, NUM_ION);
+	CUDAvar<float3> d_posDust(posDust, NUM_DUST);
+    CUDAvar<curandState_t> randStates(NUM_ION);
 
-    // create device float3 pointers 
-    float3* d_posIon;
-	float3* d_velIon;
-	float3* d_accIon;
-	float3* d_posDust;
+	// Copy over values 
+    d_boundsIon.hostToDev();
+    d_QCOM.hostToDev();
+    d_VCOM.hostToDev();
+    d_GCOM.hostToDev();
+    d_chargeDust.hostToDev();
+    d_posIon.hostToDev();
+	d_velIon.hostToDev();
+	d_accIon.hostToDev();
+	d_posDust.hostToDev();
     
-    // create device curandState_t pointer
-    curandState_t* randStates = NULL;
-
-    // temporary holder for memory sizes
-    int memSize;
-    
-    // total memory allocated on the GPU
-    int totalGPUmem = 0;
-    
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;
-    // allocate memory on the GPU for the ion mass    
-	cudaStatus = cudaMalloc(&d_MASS_SINGLE_ION, sizeof(float));
-	// check if the allocation was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_MASS_SINGLE_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;
-	// allocate memory on the GPU for the Boltzmann constant
-	cudaStatus = cudaMalloc(&d_BOLTZMANN, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_BOLTZMANN\n");
-        // terminate the program
-        fatalError();
-	}
-    
-    // amount of memory to allocate
-    memSize = memFloatDust;
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;			
-	// allocat memory on the GPU for the dust charges
-	cudaStatus = cudaMalloc(&d_chargeDust, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_chargeDust\n");
-        // terminate the program
-        fatalError();
-	}
-    
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;		
-	// allocate memory on the GPU for the mach number
-	cudaStatus = cudaMalloc(&d_MACH, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_MACH\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;		
-	// allocate memory on the GPU for the sound speed
-	cudaStatus = cudaMalloc(&d_SOUND_SPEED, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_SOUND_SPEED\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;		
-	// allocate memory on the GPU for the electron temperature
-	cudaStatus = cudaMalloc(&d_TEMP_ELC, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_TEMP_ELC\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate memory on the GPU for PI
-	cudaStatus = cudaMalloc(&d_PI, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_PI\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate memory on the GPU for the ion temperature 
-	cudaStatus = cudaMalloc(&d_TEMP_ION, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_TEMP_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate memory on the GPU for the ion drift velocity
-	cudaStatus = cudaMalloc(&d_DRIFT_VEL_ION, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_DRIFT_VEL_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(int);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for d_NUM_DIV_QTH which is the length of d_QCOM
-	cudaStatus = cudaMalloc(&d_NUM_DIV_QTH, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_NUM_DIV_QTH\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(int);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for d_NUM_DIV_VEL which is the length of d_VCOM
-	cudaStatus = cudaMalloc(&d_NUM_DIV_VEL, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_NUM_DIV_VEL\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = NUM_DIV_QTH * sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for Qcom which is used in 
-	// the Piel 2017 ion injection method
-	cudaStatus = cudaMalloc(&d_QCOM, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_QCOM\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = NUM_DIV_VEL * sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;		
-	// allocate GPU memory for Vcom which is used in
-	// the Piel 2017 ion injection method
-	cudaStatus = cudaMalloc(&d_VCOM, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_VCOM\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = NUM_DIV_QTH * NUM_DIV_VEL * sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for Gcom which is used in
-	// the Piel 2017 ion injection method
-	cudaStatus = cudaMalloc(&d_GCOM, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_GCOM\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = NUM_ION * sizeof(int);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for an out of bounds flag for the ions
-	cudaStatus = cudaMalloc(&d_boundsIon, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_boundsIon\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the external electric field 
-	// multiplier for calculating the acceleration
-	cudaStatus = cudaMalloc(&d_EXTERN_ELC_MULT, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_EXTERN_ELC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-	
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the dust particle radius squared
-	cudaStatus = cudaMalloc(&d_RAD_DUST_SQRD, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_RAD_DUST_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(int);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the number of dust particles
-	cudaStatus = cudaMalloc(&d_NUM_DUST, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_NUM_DUST\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(int);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the number of ions
-	cudaStatus = cudaMalloc(&d_NUM_ION, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_NUM_ION\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the inverse debye
-	cudaStatus = cudaMalloc(&d_INV_DEBYE, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_INV_DEBYE\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the softening radius squared
-	cudaStatus = cudaMalloc(&d_SOFT_RAD_SQRD, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_SOFT_RAD_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the simulation radius
-	cudaStatus = cudaMalloc(&d_RAD_SIM, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_RAD_SIM\n");
-        // terminate the program
-        fatalError();
-	}
-    
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the simulation radius squared
-	cudaStatus = cudaMalloc(&d_RAD_SIM_SQRD, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_RAD_SIM_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the half time step
-	cudaStatus = cudaMalloc(&d_HALF_TIME_STEP, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_HALF_TIME_STEP\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the ion ion acceleration multiplier 
-	cudaStatus = cudaMalloc(&d_ION_ION_ACC_MULT, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_ION_ION_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = sizeof(float);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the ion dust acceleration multiplier 
-	cudaStatus = cudaMalloc(&d_ION_DUST_ACC_MULT, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_ION_DUST_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = memFloat3Dust;
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the dust positions
-	cudaStatus = cudaMalloc(&d_posDust, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_posDust\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = memFloat3Ion;
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the ion positions
-	cudaStatus = cudaMalloc(&d_posIon, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_posIon\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = memFloat3Ion;
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the ion velocities 
-	cudaStatus = cudaMalloc(&d_velIon, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_velIon\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = memFloat3Ion;
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for the ion accelerations
-	cudaStatus = cudaMalloc(&d_accIon, memSize);
-    // check if the allocation was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: d_accIon\n");
-        // terminate the program
-        fatalError();
-	}
-
-    // amount of memory to allocate
-    memSize = blocksPerGridIon * DIM_BLOCK * sizeof(curandState_t);
-    // add to the total memory allocated on the GPU
-    totalGPUmem += memSize;	
-	// allocate GPU memory for random states
-	cudaStatus = cudaMalloc(&randStates, memSize);
-	// check if the allocation was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMalloc failed: randStates\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the external electric acceleration multiplier to the GPU
-	cudaStatus = cudaMemcpy(d_EXTERN_ELC_MULT, &EXTERN_ELC_MULT,
-		sizeof(float), cudaMemcpyHostToDevice);
-    // check if the memory copy was successful
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_EXTERN_ELC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy pi to the GPU
-	cudaStatus = cudaMemcpy(d_PI, &PI, sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_PI\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the mass of a single ion to the GPU
-	cudaStatus = cudaMemcpy(d_MASS_SINGLE_ION, &MASS_SINGLE_ION,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_MASS_SINGLE_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the boltzmann constant to the GPU
-	cudaStatus = cudaMemcpy(d_BOLTZMANN, &BOLTZMANN,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_BOLTZMANN\n");
-        // terminate the program
-        fatalError();
-	}
-	// copy the ion temperature to the GPU
-	cudaStatus = cudaMemcpy(d_TEMP_ION, &TEMP_ION,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_TEMP_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion drift velocity to the GPU
-	cudaStatus = cudaMemcpy(d_DRIFT_VEL_ION, &DRIFT_VEL_ION,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_DRIFT_VEL_ION\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the dust radius squared to the GPU
-	cudaStatus = cudaMemcpy(d_RAD_DUST_SQRD, &RAD_DUST_SQRD,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_RAD_DUST_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the inverse debye to the GPU
-	cudaStatus = cudaMemcpy(d_INV_DEBYE, &INV_DEBYE, 
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_INV_DEBYE\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the mach number to the GPU
-	cudaStatus = cudaMemcpy(d_MACH, &MACH, 
-        sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_MACH\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the softening radius squared to the GPU
-	cudaStatus = cudaMemcpy(d_SOFT_RAD_SQRD, &SOFT_RAD_SQRD, 
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_SOFT_RAD_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-    
-	// copy the simulation radius to the GPU
-	cudaStatus = cudaMemcpy(d_RAD_SIM, &RAD_SIM, 
-        sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_RAD_SIM\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the simulation radius squared to the GPU
-	cudaStatus = cudaMemcpy(d_RAD_SIM_SQRD, &RAD_SIM_SQRD, 
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_RAD_SIM_SQRD\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the dust charges to the GPU
-	cudaStatus = cudaMemcpy(d_chargeDust, chargeDust, 
-		memFloatDust, cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_chargeDust\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the half time step to the GPU
-	cudaStatus = cudaMemcpy(d_HALF_TIME_STEP, &HALF_TIME_STEP, 
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_HALF_TIME_STEP\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion ion acceleration multiplier to the GPU
-	cudaStatus = cudaMemcpy(d_ION_ION_ACC_MULT, &ION_ION_ACC_MULT, 
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_ION_ION_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the ion dust acceleration multiplier to the GPU
-	cudaStatus = cudaMemcpy(d_ION_DUST_ACC_MULT, &ION_DUST_ACC_MULT,
-		sizeof(float), cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_ION_DUST_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the number of dust particles to the GPU
-	cudaStatus = cudaMemcpy(d_NUM_DUST, &NUM_DUST, sizeof(int), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_NUM_DUST\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the number of ions to the GPU
-	cudaStatus = cudaMemcpy(d_NUM_ION, &NUM_ION, sizeof(int), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_NUM_ION\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the number of divisions  in d_QCOM to the GPU
-	cudaStatus = cudaMemcpy(d_NUM_DIV_QTH, &NUM_DIV_QTH, sizeof(int), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_NUM_DIV_QTH\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the electron temperature to the GPU
-	cudaStatus = cudaMemcpy(d_TEMP_ELC, &TEMP_ELC, sizeof(float), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_TEMP_ELC\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the sound speed to the GPU
-	cudaStatus = cudaMemcpy(d_SOUND_SPEED, &SOUND_SPEED, sizeof(float), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_SOUND_SPEED\n");
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the number of divisions in d_VCOM to the GPU
-	cudaStatus = cudaMemcpy(d_NUM_DIV_VEL, &NUM_DIV_VEL, sizeof(int), 
-		cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_NUM_DIV_VEL\n");
-        // terminate the program
-        fatalError();
-	}
-		
-	// copy the dust positions to the GPU
-	cudaStatus = cudaMemcpy(d_posDust, posDust, 
-        memFloat3Dust, cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_posDust\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the ion positions to the GPU
-	cudaStatus = cudaMemcpy(d_posIon, posIon, 
-        memFloat3Ion, cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the ion velocities to the GPU
-	cudaStatus = cudaMemcpy(d_velIon, velIon, 
-        memFloat3Ion, cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_velIon\n");
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the ion accelerations to the GPU
-	cudaStatus = cudaMemcpy(d_accIon, accIon, 
-        memFloat3Ion, cudaMemcpyHostToDevice);
-	// check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "cudaMemcpy failed: d_accIon\n");
-        // terminate the program
-        fatalError();
-	}
-
 	// generate all of the random states on the GPU
-	init <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates);
-
+	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> 
+            (time(0), randStates.getDevPtr());
+    
 	// Check for any errors launching the init kernel
 	cudaStatus = cudaGetLastError();
     if (cudaStatus != cudaSuccess) {
@@ -1729,7 +952,7 @@ int main(int argc, char* argv[])
         // terminate the program
         fatalError();
 	}
-
+    
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns 
 	// any errors encountered during the launch.
 	cudaStatus = cudaDeviceSynchronize();
@@ -1743,7 +966,7 @@ int main(int argc, char* argv[])
 	}
 	
 	// initialize variables needed for injecting ions with the Piel 2017 method
-	initInjectIonPiel(
+	initInjectIonPiel_101(
 		NUM_DIV_QTH, 
 		NUM_DIV_VEL, 
 		TEMP_ELC, 
@@ -1753,23 +976,16 @@ int main(int argc, char* argv[])
 		MASS_SINGLE_ION,
 		BOLTZMANN,
 		PI,
-		d_QCOM,
-		d_VCOM,
-		d_GCOM,
+		d_QCOM.getDevPtr(),
+		d_VCOM.getDevPtr(),
+		d_GCOM.getDevPtr(),
 		debugMode,
 		debugFile);
-
-    if (debugMode){
-        debugFile << '\n' << "-- GPU Allocated Memory --" << '\n'
-            << "total memory allocated " << totalGPUmem << '\n' << '\n';
-            
-        debugFile.flush();
-    }
         
 	/*************************
             time step
 	*************************/
-
+    
 	// synchronize threads and check for errors before entering timestep
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
@@ -1783,10 +999,10 @@ int main(int argc, char* argv[])
     // time step
     for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-
+    
         // print the time step number to the status file 
 		statusFile << i << ": ";
-
+    
         // loop over all of the commands for each time step
 		for (int j = 0; j < numCommands; j++) {
 			
@@ -1795,11 +1011,14 @@ int main(int argc, char* argv[])
                 
                 // print command number to status file 
 				statusFile << "1 ";
-
+    
 				// perform a leapfrog integration for the ions 
-				leapfrog <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon, d_velIon, d_accIon, d_HALF_TIME_STEP);
-
+				leapfrog_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_posIon.getDevPtr(), 
+                    d_velIon.getDevPtr(), 
+                    d_accIon.getDevPtr(), 
+                    d_HALF_TIME_STEP.getDevPtr());
+    
 				// check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -1810,7 +1029,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -1822,25 +1041,25 @@ int main(int argc, char* argv[])
                     fatalError();
 				}                
 			}
-
+    
 			// calculate the acceleration due to ion-ion interactions
 			else if (commands[j] == 2){
 				
                 // print the command number to the status file 
 				statusFile << "2 ";
-
+    
 				// calculate the forces between all ions
-				calcIonIonAcc 
+				calcIonIonAcc_102 
                     <<< blocksPerGridIon, 
                         DIM_BLOCK, 
                         sizeof(float3) * DIM_BLOCK >>>
-                       (d_posIon, 
-                        d_accIon, 
-                        d_NUM_ION, 
-                        d_SOFT_RAD_SQRD, 
-                        d_ION_ION_ACC_MULT, 
-                        d_INV_DEBYE);
-
+                       (d_posIon.getDevPtr(), 
+                        d_accIon.getDevPtr(), 
+                        d_NUM_ION.getDevPtr(), 
+                        d_SOFT_RAD_SQRD.getDevPtr(), 
+                        d_ION_ION_ACC_MULT.getDevPtr(), 
+                        d_INV_DEBYE.getDevPtr());
+    
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -1851,7 +1070,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -1863,25 +1082,25 @@ int main(int argc, char* argv[])
                     fatalError();
 				} 
 			}
-
+    
 			// calculate the acceleration due to ion-dust interactions
 			else if (commands[j] == 3){
 				
                 // print the command number to the status file 
 				statusFile << "3 ";
-
+    
 				// calculate ion dust accelerations
-				calcIonDustAcc <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon, 
-                        d_accIon, 
-                        d_posDust,
-                        d_NUM_ION,
-                        d_NUM_DUST, 
-                        d_SOFT_RAD_SQRD, 
-                        d_ION_DUST_ACC_MULT, 
-                        d_INV_DEBYE, 
-                        d_chargeDust);
-
+				calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                       (d_posIon.getDevPtr(), 
+                        d_accIon.getDevPtr(), 
+                        d_posDust.getDevPtr(),
+                        d_NUM_ION.getDevPtr(),
+                        d_NUM_DUST.getDevPtr(), 
+                        d_SOFT_RAD_SQRD.getDevPtr(), 
+                        d_ION_DUST_ACC_MULT.getDevPtr(), 
+                        d_INV_DEBYE.getDevPtr(), 
+                        d_chargeDust.getDevPtr());
+    
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -1893,7 +1112,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -1912,11 +1131,14 @@ int main(int argc, char* argv[])
 				
                 // print the command number to the status file 
 				statusFile << "4 ";
-
+    
 				// calculate the forces between all ions
-				calcExtrnElcAcc <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_accIon, d_posIon, d_EXTERN_ELC_MULT, d_INV_DEBYE);
-
+				calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                    d_posIon.getDevPtr(),
+                    d_EXTERN_ELC_MULT.getDevPtr(),
+                    d_INV_DEBYE.getDevPtr());
+    
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -1928,7 +1150,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -1946,91 +1168,61 @@ int main(int argc, char* argv[])
 				
                 // print the command number to the status file 
 				statusFile << "5 ";
-
+    
 				// copy ion positions to host
-				cudaStatus = cudaMemcpy(posIon, d_posIon, 
-                    memFloat3Ion, cudaMemcpyDeviceToHost);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
-                    // terminate the program
-                    fatalError();
-                }
+				d_posIon.devToHost();
 			}
-
+    
 			// print the position of an ion to the trace file
 			else if (commands[j] == 6) {
 				
                 // print the command number to the status file 
 				statusFile << "6 ";
-
+    
 				// print the position of the specified ion to the trace file
 				traceFile << posIon[ionTraceIndex].x;
 				traceFile << ", " << posIon[ionTraceIndex].y;
 				traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
 			}
-
-
+    
+    
 			// copy the ion accelerations to the host
 			else if (commands[j] == 7) {
                 
                 // print the command number to the status file 
 				statusFile << "7 ";
-
-				// copy ion positions to host
-				cudaStatus = cudaMemcpy(accIon, d_accIon, 
-                    memFloat3Ion, cudaMemcpyDeviceToHost);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: accIon\n");
-                    // terminate the program
-                    fatalError();
-                }
+    
+				// copy ion accelerations to host
+				d_accIon.devToHost();
 			}
-
+    
 			// print the acceleration of an ion to the trace file 
 			else if (commands[j] == 8) {
                 
                 // print the command number to the status file 
 				statusFile << "8 ";
-
+    
 				// print the acceleration of the specified ion to the trace file
 				traceFile << accIon[ionTraceIndex].x;
 				traceFile << ", " << accIon[ionTraceIndex].y;
 				traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 			}
-
+    
 			// copy the ion velocities to the host
 			else if (commands[j] == 9) {
 				
 				statusFile << "9 ";
-
+    
 				// copy ion velocities to host
-				cudaStatus = cudaMemcpy(velIon, d_velIon, 
-                    memFloat3Ion, cudaMemcpyDeviceToHost);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: d_velIon\n");
-                    // terminate the program
-                    fatalError();
-                }
+				d_velIon.devToHost();
 			}
-
+    
 			// print the velocity of an ion to the trace file 
 			else if (commands[j] == 10) {
 				
                 // print the command number to the status file 
 				statusFile << "10 ";
-
+    
 				// print the velocity of the specified ion to the trace file
 				traceFile << velIon[ionTraceIndex].x;
 				traceFile << ", " << velIon[ionTraceIndex].y;
@@ -2044,9 +1236,11 @@ int main(int argc, char* argv[])
 				statusFile << "11 ";
 				
 				// check if any ions are outside of the simulation sphere
-				checkIonSphereBounds <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon, d_boundsIon, d_RAD_SIM_SQRD);
-
+				checkIonSphereBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                      (d_posIon.getDevPtr(), 
+                       d_boundsIon.getDevPtr(), 
+                       d_RAD_SIM_SQRD.getDevPtr());
+    
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -2058,7 +1252,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -2078,13 +1272,13 @@ int main(int argc, char* argv[])
 				statusFile << "12 ";
 				
 				// check if any ions are inside a dust particle 
-				checkIonDustBounds <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon,
-                        d_boundsIon,
-                        d_RAD_DUST_SQRD,
-                        d_NUM_DUST,
-                        d_posDust);
-
+				checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                       (d_posIon.getDevPtr(),
+                        d_boundsIon.getDevPtr(),
+                        d_RAD_DUST_SQRD.getDevPtr(),
+                        d_NUM_DUST.getDevPtr(),
+                        d_posDust.getDevPtr());
+    
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -2096,7 +1290,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -2116,26 +1310,26 @@ int main(int argc, char* argv[])
 				statusFile << "13 ";
 				
 				// inject ions into the simulation sphere 
-				injectIonPiel <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon,
-                        d_velIon,
-                        d_accIon,
-                        randStates,
-                        d_RAD_SIM,
-                        d_boundsIon,
-                        d_GCOM,
-                        d_QCOM,
-                        d_VCOM,
-                        d_NUM_DIV_QTH,
-                        d_NUM_DIV_VEL,
-                        d_SOUND_SPEED,
-                        d_TEMP_ION,
-                        d_PI,
-                        d_TEMP_ELC,
-                        d_MACH,
-                        d_MASS_SINGLE_ION,
-                        d_BOLTZMANN);
-
+				injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                       (d_posIon.getDevPtr(),
+                        d_velIon.getDevPtr(),
+                        d_accIon.getDevPtr(),
+                        randStates.getDevPtr(),
+                        d_RAD_SIM.getDevPtr(),
+                        d_boundsIon.getDevPtr(),
+                        d_GCOM.getDevPtr(),
+                        d_QCOM.getDevPtr(),
+                        d_VCOM.getDevPtr(),
+                        d_NUM_DIV_QTH.getDevPtr(),
+                        d_NUM_DIV_VEL.getDevPtr(),
+                        d_SOUND_SPEED.getDevPtr(),
+                        d_TEMP_ION.getDevPtr(),
+                        d_PI.getDevPtr(),
+                        d_TEMP_ELC.getDevPtr(),
+                        d_MACH.getDevPtr(),
+                        d_MASS_SINGLE_ION.getDevPtr(),
+                        d_BOLTZMANN.getDevPtr());
+    
 	            // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -2147,7 +1341,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -2167,9 +1361,9 @@ int main(int argc, char* argv[])
 				statusFile << "14 ";
 				
 				// reset the ion bounds flag to 0 
-				resetIonBounds <<< blocksPerGridIon, DIM_BLOCK >>>
-                    (d_boundsIon);
-
+				resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+                    (d_boundsIon.getDevPtr());
+    
 	            // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
 				if (cudaStatus != cudaSuccess) {
@@ -2181,7 +1375,7 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-
+    
 				// synchronize threads and check for errors
 				cudaStatus = cudaDeviceSynchronize();
 				if (cudaStatus != cudaSuccess) {
@@ -2193,13 +1387,10 @@ int main(int argc, char* argv[])
                     fatalError();
 				}
 			}
-
+    
 			// update the charge on the dust grains 
 			else if (commands[j] == 15) {
-				// not implemented  
-                //for (int i = 0; i < NUM_DUST; i++){
-                //    chargeDust[i] += htifi;
-                //}
+           
 			}
 			
 			// copy d_ionBounds to the host
@@ -2209,17 +1400,7 @@ int main(int argc, char* argv[])
 				statusFile << "16 ";
 				
 				// copy ion bounds to host
-				cudaStatus = cudaMemcpy(boundsIon, d_boundsIon, 
-                    NUM_ION * sizeof(int), cudaMemcpyDeviceToHost);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: d_boundsIon\n");
-                    // terminate the program
-                    fatalError();
-                }
+				d_boundsIon.devToHost();
 			}
 			
 			// copy the dust charge to the device 
@@ -2229,17 +1410,7 @@ int main(int argc, char* argv[])
 				statusFile << "17 ";
 				
 				// copy the dust charge to the GPU
-				cudaStatus = cudaMemcpy(d_chargeDust, chargeDust, 
-                    memFloatDust, cudaMemcpyHostToDevice);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: d_chargeDust\n");
-                    // terminate the program
-                    fatalError();
-                }
+				d_chargeDust.hostToDev();
 			}
 			
 			// copy dust charge to the host
@@ -2249,17 +1420,7 @@ int main(int argc, char* argv[])
 				statusFile << "18 ";
 				
 				// copy dust charge to host
-				cudaStatus = cudaMemcpy(chargeDust, d_chargeDust, 
-                    memFloatDust, cudaMemcpyDeviceToHost);
-                    
-                // check if the memory copy was successful
-                if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "cudaMemcpy failed: d_chargeDust\n");
-                    // terminate the program
-                    fatalError();
-                }
+				d_chargeDust.devToHost();
 			}
 			
 			// print the dust charge to the trace file 
@@ -2267,7 +1428,7 @@ int main(int argc, char* argv[])
                 
                 // print the command number to the status file 
 				statusFile << "19 ";
-
+    
 				// print all the dust charges to the trace file
 				for (int k = 0; k < NUM_DUST; k++){
 					traceFile << chargeDust[k];
@@ -2275,7 +1436,7 @@ int main(int argc, char* argv[])
 				}
 				traceFile << std::endl;
 			}
-
+    
 			// calculate the ion currents to the dust particles 
 			else if (commands[j] == 20) {
 				
@@ -2316,14 +1477,14 @@ int main(int argc, char* argv[])
                     __LINE__, __FILE__);
 				fprintf(stderr, "Command number %d does not exist\n\n", 
                     commands[j]);
-
+    
 				// terminate the program 
 				fatalError();
 			}
 		}
-
+    
 		statusFile << "|" << std::endl;
-
+    
 	} // end time step
 	
 	if (debugMode)
@@ -2331,47 +1492,20 @@ int main(int argc, char* argv[])
 		// print the index of the traced ion to the debuging file
 		debugFile << "Single ion trace index: " << ionTraceIndex << "\n\n";
 	}
-
+    
     /***********************
            save data 
 	***********************/
 	
     // copy ion positions to host
-	cudaStatus = cudaMemcpy(posIon, d_posIon, 
-        memFloat3Ion, cudaMemcpyDeviceToHost);
-    // check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_posIon\n");
-        // terminate the program
-        fatalError();
-    }
+	d_posIon.devToHost();
     
 	// copy ion velocities to host
-	cudaStatus = cudaMemcpy(velIon, d_velIon, 
-        memFloat3Ion, cudaMemcpyDeviceToHost);
-    // check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_velIon\n");
-        // terminate the program
-        fatalError();
-    }
+	d_velIon.devToHost();
 	
 	// copy dust charges to the host 
-	cudaStatus = cudaMemcpy(chargeDust, d_chargeDust, 
-        memFloatDust, cudaMemcpyDeviceToHost);
-    // check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_chargeDust\n");
-        // terminate the program
-        fatalError();
-    }
-
+	d_chargeDust.devToHost();
+    
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
 	if (cudaStatus != cudaSuccess) {
@@ -2391,14 +1525,14 @@ int main(int argc, char* argv[])
 		ionPosFile << ", " << posIon[i].y;
 		ionPosFile << ", " << posIon[i].z << std::endl;
 	}
-
+    
 	// print the final dust charges to the dustChargeFile
     // loop over all of the dust particles 
 	for (int i = 0; i < NUM_DUST; i++) {
 		// print the dust charge 
 		dustChargeFile << chargeDust[i] << std::endl;
 	}
-
+    
 	// print the final dust positions to the dustPosFile
     // loop over all of the dust particles 
 	for (int i = 0; i < NUM_DUST; i++) {
@@ -2407,10 +1541,10 @@ int main(int argc, char* argv[])
 		dustPosFile << posDust[i].y << ", ";
 		dustPosFile << posDust[i].z << std::endl;
 	}
-
+    
 	if (debugMode)
 	{
-
+    
 		debugFile << "-- Final Ion Positions: First 20 Ions --" << std::endl;
 		for (int i = 0; i < 20; i++)
 		{
@@ -2425,7 +1559,7 @@ int main(int argc, char* argv[])
 		for (int i = 1; i <= 20; i++)
 		{
 			int ID = NUM_ION - i;
-
+    
 			debugFile << "#: "  << ID
 				      << " X: " << posIon[ID].x
 				      << " Y: " << posIon[ID].y
@@ -2449,7 +1583,7 @@ int main(int argc, char* argv[])
 		for (int i = 1; i <= 20; i++)
 		{
 			int ID = NUM_ION - i;
-
+    
 			debugFile << "#: " << ID
 				<< " X: " << velIon[ID].x
 				<< " Y: " << velIon[ID].y
@@ -2473,7 +1607,7 @@ int main(int argc, char* argv[])
 		for (int i = 1; i <= 20; i++)
 		{
 			int ID = NUM_ION - i;
-
+    
 			debugFile << "#: " << ID
 				<< " X: " << accIon[ID].x
 				<< " Y: " << accIon[ID].y
@@ -2482,442 +1616,38 @@ int main(int argc, char* argv[])
 		}
 		debugFile << std::endl;
 	}
-
+    
 	/*************************
 		  check device 
 		  "constants"
 	*************************/
-
-	// temporary host pointers to copy device constants to
-	float* floatTestVal = (float*)malloc(sizeof(float));
-	int* intTestVal = (int*)malloc(sizeof(int));
-
-	// copy the number of divisions  in d_QCOM to the host
-	cudaStatus = cudaMemcpy(intTestVal, d_NUM_DIV_QTH, 
-		sizeof(int), cudaMemcpyDeviceToHost);
-    // check if the memory copy was successful
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_NUM_DIV_QTH\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_NUM_DIV_QTH changed 
-	if ((*intTestVal - NUM_DIV_QTH) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_NUM_DIV_QTH\n");
-		fprintf(stderr, "from %u", NUM_DIV_QTH);
-		fprintf(stderr, " to %u\n", *intTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the number of divisions  in d_VCOM to the host
-	cudaStatus = cudaMemcpy(intTestVal, d_NUM_DIV_VEL, 
-		sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_NUM_DIV_VEL\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_NUM_DIV_VEL changed 
-	if ((*intTestVal - NUM_DIV_VEL) != 0) {
-		fprintf(stderr, "Const Device Value Changed: d_NUM_DIV_VEL\n");
-		fprintf(stderr, "from %u", NUM_DIV_VEL);
-		fprintf(stderr, " to %u\n", *intTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the number of ions to the host
-	cudaStatus = cudaMemcpy(intTestVal, d_NUM_ION, 
-		sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_NUM_ION\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_NUM_ION changed 
-	if ((*intTestVal - NUM_ION) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_NUM_ION\n");
-		fprintf(stderr, "from %u", NUM_ION);
-		fprintf(stderr, " to %u\n", *intTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the number of dust particles to the host
-	cudaStatus = cudaMemcpy(intTestVal, d_NUM_DUST, 
-		sizeof(int), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_NUM_DUST\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_NUM_DUST changed 
-	if ((*intTestVal - NUM_DUST) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_NUM_DUST\n");
-		fprintf(stderr, "from %u", NUM_DUST);
-		fprintf(stderr, " to %u\n", *intTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the dust radii squared to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_RAD_DUST_SQRD,
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_RAD_DUST_SQRD\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_RAD_DUST_SQRD changed 
-	if ((*floatTestVal - RAD_DUST_SQRD) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_RAD_DUST_SQRD\n");
-		fprintf(stderr, "from %f", RAD_DUST_SQRD);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the external electric field multiplier to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_EXTERN_ELC_MULT,
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_EXTERN_ELC_MULT\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_EXTERN_ELC_MULT changed 
-	if ((*floatTestVal - EXTERN_ELC_MULT) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_EXTERN_ELC_MULT\n");
-		fprintf(stderr, "from %f", EXTERN_ELC_MULT);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the PI to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_PI, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_PI\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_PI changed 
-	if ((*floatTestVal - PI) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_PI\n");
-		fprintf(stderr, "from %f", PI);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the sound speed to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_SOUND_SPEED, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_SOUND_SPEED\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_SOUND_SPEED changed 
-	if ((*floatTestVal - SOUND_SPEED) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_SOUND_SPEED\n");
-		fprintf(stderr, "from %f", SOUND_SPEED);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}	
-	
-	// copy the electron temperature to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_TEMP_ELC, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_TEMP_ELC\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_TEMP_ELC changed 
-	if ((*floatTestVal - TEMP_ELC) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_TEMP_ELC\n");
-		fprintf(stderr, "from %f", TEMP_ELC);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion drift velocity to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_DRIFT_VEL_ION, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-   if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_DRIFT_VEL_ION\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_DRIFT_VEL_ION changed 
-	if ((*floatTestVal - DRIFT_VEL_ION) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_DRIFT_VEL_ION\n");
-		fprintf(stderr, "from %f", DRIFT_VEL_ION);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion temperature to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_TEMP_ION, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_TEMP_ION\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_TEMP_ION changed 
-	if ((*floatTestVal - TEMP_ION) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_TEMP_ION\n");
-		fprintf(stderr, "from %i", TEMP_ION);
-		fprintf(stderr, " to %i\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion ion acceleration multiplier to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_ION_ION_ACC_MULT, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_ION_ION_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_ION_ION_ACC_MULT changed 
-	if ((*floatTestVal - ION_ION_ACC_MULT) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_ION_ION_ACC_MULT\n");
-		fprintf(stderr, "from %f", ION_ION_ACC_MULT);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the mach number to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_MACH, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_MACH\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_MACH changed 
-	if ((*floatTestVal - MACH) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_MACH\n");
-		fprintf(stderr, "from %f", MACH);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion dust acceleration multiplier to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_ION_DUST_ACC_MULT,
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_ION_DUST_ACC_MULT\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the host device d_ION_DUST_ACC_MULT changed 
-	if ((*floatTestVal - ION_DUST_ACC_MULT) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_ION_DUST_ACC_MULT\n");
-		fprintf(stderr, "from %f", ION_DUST_ACC_MULT);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the half time step to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_HALF_TIME_STEP, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_HALF_TIME_STEP\n");
-        // terminate the program
-        fatalError();
-    }
-	//check if the device d_HALF_TIME_STEP changed 
-	if ((*floatTestVal - HALF_TIME_STEP) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_HALF_TIME_STEP");
-		fprintf(stderr, "from %f", HALF_TIME_STEP);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the squared simulation radius to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_RAD_SIM_SQRD, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_RAD_SIM_SQRD\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_RAD_SIM_SQRD changed 
-	if ((*floatTestVal - RAD_SIM_SQRD) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_RAD_SIM_SQRD\n");
-		fprintf(stderr, "from %f", RAD_SIM_SQRD);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the simulation radius to the device
-	cudaStatus = cudaMemcpy(floatTestVal, d_RAD_SIM, 
-        sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_RAD_SIM\n");
-        // terminate the program
-        fatalError();
-    }
-	//check if the device d_RAD_SIM changed 
-	if ((*floatTestVal - RAD_SIM) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_RAD_SIM");
-		fprintf(stderr, "from %f", RAD_SIM);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-
-	// copy the inverse debye to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_INV_DEBYE, 
-        sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_INV_DEBYE\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_INV_DEBYE changed 
-	if ((*floatTestVal - INV_DEBYE) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_INV_DEBYE");
-		fprintf(stderr, "from %f", INV_DEBYE);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the boltzmann number to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_BOLTZMANN, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_BOLTZMANN\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_BOLTZMANN
-	if ((*floatTestVal - BOLTZMANN) != 0) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_BOLTZMANN\n");
-		fprintf(stderr, "from %f", BOLTZMANN);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
-	
-	// copy the ion mass to the host
-	cudaStatus = cudaMemcpy(floatTestVal, d_MASS_SINGLE_ION, 
-		sizeof(float), cudaMemcpyDeviceToHost);
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "cudaMemcpy failed: d_MASS_SINGLE_ION\n");
-        // terminate the program
-        fatalError();
-    }
-	// check if the device d_MASS_SINGLE_ION changed 
-	if ((*floatTestVal - MASS_SINGLE_ION) != 0)
-	{
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Const Device Value Changed: d_MASS_SINGLE_ION\n");
-		fprintf(stderr, "from %f", MASS_SINGLE_ION);
-		fprintf(stderr, " to %f\n", *floatTestVal);
-        // terminate the program
-        fatalError();
-	}
+    
+    d_NUM_DIV_QTH.compare();
+    d_NUM_DIV_VEL.compare();
+    d_NUM_ION.compare();
+    d_NUM_DUST.compare();
+    d_INV_DEBYE.compare();
+    d_RAD_DUST_SQRD.compare();
+    d_SOFT_RAD_SQRD.compare();
+    d_RAD_SIM.compare();
+    d_RAD_SIM_SQRD.compare();
+    d_HALF_TIME_STEP.compare();
+    d_ION_ION_ACC_MULT.compare();
+    d_ION_DUST_ACC_MULT.compare();
+    d_EXTERN_ELC_MULT.compare();
+    d_TEMP_ION.compare();
+    d_DRIFT_VEL_ION.compare();
+    d_TEMP_ELC.compare();
+    d_SOUND_SPEED.compare();
+    d_PI.compare();
+    d_MACH.compare();
+    d_MASS_SINGLE_ION.compare();
+    d_BOLTZMANN.compare();
 	
 	/**********************
 	      free memory 
 	**********************/
 	
-	free(intTestVal);
-	free(floatTestVal);
     free(posDust);
     free(chargeDust);
     free(commands);
@@ -2930,7 +1660,7 @@ int main(int argc, char* argv[])
 	/*************************
 	      close files
 	*************************/
-
+    
 	// close all opened files 
 	paramFile.close();
 	dustParamFile.close();
@@ -2946,4 +1676,4 @@ int main(int argc, char* argv[])
 	
 	// exit
 	return 0;
-} 
+}   

@@ -4,14 +4,14 @@
 * File Name: IonWake_106_Utilities.cpp
 *
 * Created: 6/20/2017
-* Last Modified: 8/29/2017
+* Last Modified: 11/14/2017
 *
 * Description:
 *	Includes general purpose algorithms  
 *
 * Functions:
-*	findMax()
-*	findMin()
+*	findMax_106()
+*	findMin_106()
 *
 */
 
@@ -19,14 +19,14 @@
 #include "IonWake_106_Utilities.h"
 
 /*
-* Name: findMax
+* Name: findMax_106
 * Created: 6/20/2017
-* last edit: 6/21/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 6/21/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Takes a 1D array and returns the maximum value 
@@ -51,7 +51,7 @@
 *
 */
 
-float findMax(float val[], int numVals)
+float findMax_106(float val[], int numVals)
 {
 	// set an initial maximum
 	float max = val[0];
@@ -68,7 +68,7 @@ float findMax(float val[], int numVals)
 	return max;
 }
 
-int findMax(int val[], int numVals)
+int findMax_106(int val[], int numVals)
 {
 	// set an initial maximum
 	int max = val[0];
@@ -86,14 +86,14 @@ int findMax(int val[], int numVals)
 }
 
 /*
-* Name: findMin
+* Name: findMin_106
 * Created: 6/20/2017
-* last edit: 6/21/2017
+* last edit: 1/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 6/21/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Takes a 1D array and returns the minimum value
@@ -118,7 +118,7 @@ int findMax(int val[], int numVals)
 *
 */
 
-float findMin(float val[], int numVals)
+float findMin_106(float val[], int numVals)
 {
 	// set an initial min
 	float min = val[0];
@@ -135,7 +135,7 @@ float findMin(float val[], int numVals)
 	return min;
 }
 
-int findMin(int val[], int numVals)
+int findMin_106(int val[], int numVals)
 {
 	// set an initial min
 	int min = val[0];

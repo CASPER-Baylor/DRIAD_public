@@ -236,7 +236,7 @@ endif
 # Target rules
 all: build
 
-build: IonWake_000
+build: IonWake_EXE
 
 
 check.deps:
@@ -246,13 +246,13 @@ else
 	@echo "Sample is ready - all dependencies have been met"
 endif
 
-IonWake_000: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
+IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
     IonWake_102_ionAcc.o IonWake_106_Utilities.o 
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES) -Wno-deprecated-gpu-targets
 	@echo " "
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h \
-    IonWake_102_ionAcc.h IonWake_106_Utilities.h 
+    IonWake_102_ionAcc.h IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	

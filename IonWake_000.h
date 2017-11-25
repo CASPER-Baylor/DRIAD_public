@@ -4,7 +4,7 @@
 * File Name: IonWake_000.h
 *
 * Created: 6/13/2017
-* Last Modified: 8/26/2017 
+* Last Modified: 11/12/2017 
 */
 
 #ifndef IONWAKE_000
@@ -37,6 +37,12 @@
 	// includes utility functions
 	#include "IonWake_106_Utilities.h"
 
+    // includes abstractions for CUDA
+    #include "CUDAvar.h"
+    #include "constCUDAvar.h"
+    #include "CUDAerr.h"
+    #include "ErrorBase.h"
+    
 	// required for CUDA
 	#include "cuda_runtime.h"
 	#include "device_launch_parameters.h"

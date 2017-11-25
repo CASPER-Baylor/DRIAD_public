@@ -4,45 +4,47 @@
 * File Name: IonWake_101_bounds.h
 *
 * Created: 6/13/2017
-* Last Modified: 10/22/2017
+* Last Modified: 11/14/2017
 *
 * Description:
-*	Functions for handling ions that ions have an illegal position.
+*	Functions for handling ions that have an illegal position.
 *	Such as outside of the simulation region or inside a dust particle.
 *
 * Functions:
-*	checkIonSphereBounds()
-*	checkIonDustBounds()
-*	injectIonSpherePiel()
-*	resetIonBounds()
-*	initInjectIonPiel()
-*	init()
+*	checkIonSphereBounds_101()
+*	checkIonDustBounds_101()
+*	injectIonPiel_101()
+*	resetIonBounds_101()
+*	initInjectIonPiel_101()
+*   invertFind_101()
+*	init_101()
 *
 * Includes:
-*	checkIonSphereBounds()
+*	checkIonSphereBounds_101()
 *		device_launch_parameters.h
-*		curand_kernel.h
-*	checkIonDustBounds()
+*		cuda_runtime.h
+*	checkIonDustBounds_101()
 *		device_launch_parameters.h
-*		curand_kernel.h
-*	injectIonSpherePiel()
+*		cuda_runtime.h
+*	injectIonPiel_101()
 *		cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
-*	resetIonBounds()
+*	resetIonBounds_101()
+*       cuda_runtime.h
 *		device_launch_parameters.h
-*		curand_kernel.h
-*	init()
+*	init_101()
 *		cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
-*	initInjectIonPiel()
+*	initInjectIonPiel_101()
+*       cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
 *		<cstdio>
 *		<fstream>
 *		<string>
-* 	invertFind()
+* 	invertFind_101()
 *		device_launch_parameters.h
 *		curand_kernel.h		
 *
@@ -53,13 +55,12 @@
 
 	/* 
 	* Required By:
-	*	checkIonSphereBounds()
-	*	checkIonDustBounds()
-	*	injectIonSpherePiel()
-	*	resetIonBounds()
-	*	initInjectIonPiel()
-	* 	invertFind()
-	*	init()
+	*	checkIonSphereBounds_101()
+	*	checkIonDustBounds_101()
+	*	injectIonPiel_101()
+	*	resetIonBounds_101()
+	* 	invertFind_101()
+	*	init_101()
 	* For:
 	*	CUDA
 	*/
@@ -67,13 +68,12 @@
 
 	/*
 	* Required By:
-	*	checkIonSphereBounds()
-	*	checkIonDustBounds()
-	*	injectIonSpherePiel()
-	*	resetIonBounds()
-	*	initInjectIonPiel()
-	* 	invertFind()
-	*	init()
+	*	checkIonSphereBounds_101()
+	*	checkIonDustBounds_101()
+	*	injectIonSpherePiel_101()
+	*	resetIonBounds_101()
+	* 	invertFind_101()
+	*	init_101()
 	* For:
 	*	CUDA
 	*/
@@ -81,8 +81,8 @@
 
 	/*
 	* Required By:
-	*	injectIonSpherePiel()
-	*	init()
+	*	injectIonPiel_101()
+	*	init_101()
 	* For:
 	*	curand
 	*/
@@ -90,8 +90,7 @@
 		
 	/*
 	* Required By:
-	*	initInjectIonPiel()
-	* 
+	*	initInjectIonPiel_101()
 	* For:
 	* 	sqrt()
 	*/
@@ -99,8 +98,7 @@
 
 	/*
 	* Required By:
-	*	initInjectIonPiel()
-	* 
+	*	initInjectIonPiel_101()
 	* For:
 	* 	fprintf()
 	*	stderr
@@ -109,8 +107,7 @@
 	
 	/*
 	* Required By:
-	*	initInjectIonPiel()
-	* 
+	*	initInjectIonPiel_101()
 	* For:
 	* 	fstream
 	*/
@@ -118,15 +115,14 @@
 	
 	/*
 	* Required By:
-	*	initInjectIonPiel()
-	* 
+	*	initInjectIonPiel_101()
 	* For:
 	* 	std::string
 	*/
 	#include <string>
 	
 	/*
-	* Name: checkIonSphereBounds
+	* Name: checkIonSphereBounds_101
 	*
 	* Editors
 	*	Dustin Sanford
@@ -150,13 +146,13 @@
 	*	device_launch_parameters.h
 	*
 	*/
-	__global__ void checkIonSphereBounds(
+	__global__ void checkIonSphereBounds_101(
 			float3* const, 
 			int*, 
 			float* const);
 	
     /*
-    * checkIonDustBounds
+    * checkIonDustBounds_101
     *
     * Editors
     *	Dustin Sanford
@@ -185,7 +181,7 @@
     *	device_launch_parameters.h
     *
     */
-	__global__ void checkIonDustBounds(		
+	__global__ void checkIonDustBounds_101(		
 		float3* const, 
 		int*,
 		float* const,
@@ -193,7 +189,7 @@
 		float3* const);
 	
 	/*
-    * injectIonSpherePiel
+    * injectIonSpherePiel_101
     *
     * Editors
     *	Dustin Sanford
@@ -241,7 +237,7 @@
     *	curand_kernel.h
     *
     */
-	__global__ void injectIonPiel(
+	__global__ void injectIonPiel_101(
 			float3*, 
 			float3*, 
 			float3*,
@@ -262,7 +258,7 @@
 			float* const); 
 			
 	/*
-	* Name: resetIonBounds
+	* Name: resetIonBounds_101
 	*
 	* Editors
 	*	Dustin Sanford
@@ -283,10 +279,10 @@
 	*	device_launch_parameters.h
 	*
 	*/
-	__global__ void resetIonBounds(int*);
+	__global__ void resetIonBounds_101(int*);
 
 	/*
-	* Name: init
+	* Name: init_101
 	*
 	* Editors
 	*	Dustin Sanford
@@ -315,11 +311,11 @@
 	*	curand_kernel.h
 	*
 	*/
-	__global__ void init(unsigned int, curandState_t*);
+	__global__ void init_101(unsigned int, curandState_t*);
 	
 
 	/*
-	* Name: initInjectIonPiel
+	* Name: initInjectIonPiel_101
 	*
 	* Editors
 	*	Lorin Matthews
@@ -363,7 +359,7 @@
 	*	<string>
 	*
 	*/
-	void initInjectIonPiel(
+	void initInjectIonPiel_101(
 		const int,
 		const int,
 		const float,
@@ -380,7 +376,7 @@
 		std::ostream&);
 		
 	/*
-	* Name: invertFind
+	* Name: invertFind_101
 	* Created: 6/22/2017
 	* last edit: 10/22/2017
 	*
@@ -414,6 +410,6 @@
 	*	device_launch_parameters.h
 	*
 	*/	
-	__device__ float invertFind(float* const, int, float);
+	__device__ float invertFind_101(float* const, int, float);
 	
 #endif // IONWAKE_101_BOUNDS

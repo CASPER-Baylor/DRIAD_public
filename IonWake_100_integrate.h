@@ -10,7 +10,7 @@
 *	Includes time step integrators
 *
 * Functions:
-*	leapfrog()
+*	leapfrog_100()
 *
 * Includes:
 *	leapfrog()
@@ -24,7 +24,7 @@
 
 	/*
 	* Required By:
-	*	leapfrog()
+	*	leapfrog_100()
 	* For:
 	*	CUDA
 	*/
@@ -32,14 +32,14 @@
 
 	/*
 	* Required By:
-	*	leapfrog()
+	*	leapfrog_100()
 	* For:
 	*	CUDA
 	*/
 	#include "device_launch_parameters.h"
 
 	/*
-	* Name: leapfrog
+	* Name: leapfrog_100
 	*
 	* Editors
 	*	Dustin Sanford
@@ -65,7 +65,7 @@
 	*	cuda_runtime.h
 	*	device_launch_parameters.h
 	*/
-	__global__ void leapfrog
+	__global__ void leapfrog_100
            (float3*, 
             float3*, 
             float3*, 

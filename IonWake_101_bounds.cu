@@ -4,7 +4,7 @@
 * File Name: IonWake_101_bounds.cu
 *
 * Created: 6/13/2017
-* Last Modified: 10/22/2017
+* Last Modified: 11/14/2017
 *
 * Description:
 *	Functions for handling the boundary conditions for the ion positions.
@@ -12,12 +12,13 @@
 *   as reinserting out of bounds ions back into the simulation.
 *
 * Functions:
-*	checkIonSphereBounds()
-*	checkIonDustBounds()
-*	injectIonSpherePiel()
-*	resetIonBounds()
-*	initInjectIonPiel()
-*	init()
+*	checkIonSphereBounds_101()
+*	checkIonDustBounds_101()
+*	injectIonPiel_101()
+*	resetIonBounds_101()
+*	initInjectIonPiel_101()
+*   invertFind_101()
+*	init_101()
 *
 */
 
@@ -25,14 +26,14 @@
 #include "IonWake_101_bounds.h"
 
 /*
-* Name: checkIonSphereBounds
+* Name: checkIonSphereBounds_101
 * Created: 10/2/2017
-* last edit: 10/22/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/22/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Checks if an ion has left the simulation sphere
@@ -56,7 +57,7 @@
 *	device_launch_parameters.h
 *
 */
-__global__ void checkIonSphereBounds
+__global__ void checkIonSphereBounds_101
        (float3* const d_posIon, 
 		int* d_boundsIon,
 		float* const d_RAD_SIM_SQRD){
@@ -84,14 +85,14 @@ __global__ void checkIonSphereBounds
 }
 
 /*
-* Name: checkIonDustBounds
+* Name: checkIonDustBounds_101
 * Created: 10/2/2017
-* last edit: 10/22/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/22/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	checks if an ion is within  a dust particle 
@@ -117,7 +118,7 @@ __global__ void checkIonSphereBounds
 *	device_launch_parameters.h
 *
 */
-__global__ void checkIonDustBounds(
+__global__ void checkIonDustBounds_101(
 		float3* const d_posIon, 
 		int* d_boundsIon,
 		float* const d_RAD_DUST_SQRD,
@@ -161,14 +162,14 @@ __global__ void checkIonDustBounds(
 }
 
 /*
-* Name: injectIonSpherePiel
+* Name: injectIonSpherePiel_101
 * Created: 10/2/2017
-* last edit: 10/6/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/22/2017
+*	last edit: 11/14/2017
 *
 *   Name: Lorin Matthews
 *   Contact: Lorin_Matthews@baylor.edu
@@ -216,7 +217,7 @@ __global__ void checkIonDustBounds(
 *	curand_kernel.h
 *
 */
-__global__ void injectIonPiel(
+__global__ void injectIonPiel_101(
 		float3* d_posIon, 
 		float3* d_velIon,
 		float3* d_accIon,		
@@ -271,7 +272,7 @@ __global__ void injectIonPiel(
 		randNum = curand_uniform(&randStates[IDion]);
 		
 		// find the floating point index of randNum in d_Qcom 
-		floatQIndex = invertFind(d_QCOM, *d_NUM_DIV_QTH, randNum);
+		floatQIndex = invertFind_101(d_QCOM, *d_NUM_DIV_QTH, randNum);
 		
 		// get the floating point part of floatQIndex
 		partQIndex = floatQIndex - static_cast<int>(floatQIndex);
@@ -281,13 +282,13 @@ __global__ void injectIonPiel(
 		
 		// Pick normal velocity from cumulative G.
 		tempIndex = static_cast<int>(floatQIndex) * *d_NUM_DIV_VEL;
-		lowerFloatGIndex = invertFind(
+		lowerFloatGIndex = invertFind_101(
 				&d_GCOM[tempIndex],
 				*d_NUM_DIV_VEL,
 				randNum);
 				
 		tempIndex = static_cast<int>(floatQIndex + 1) * *d_NUM_DIV_VEL;
-		upperFloatGIndex = invertFind(
+		upperFloatGIndex = invertFind_101(
 				&d_GCOM[tempIndex],
 				*d_NUM_DIV_VEL,
 				randNum);
@@ -356,14 +357,14 @@ __global__ void injectIonPiel(
 }
 
 /*
-* Name: resetIonBounds
+* Name: resetIonBounds_101
 * Created: 10/2/2017
-* last edit: 10/6/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/2/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Resets d_boundsIon to all 0
@@ -382,7 +383,7 @@ __global__ void injectIonPiel(
 *	device_launch_parameters.h
 *
 */
-__global__ void resetIonBounds(int* d_boundsIon){
+__global__ void resetIonBounds_101(int* d_boundsIon){
 	
 	// thread ID 
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
@@ -392,14 +393,14 @@ __global__ void resetIonBounds(int* d_boundsIon){
 }
 
 /*
-* Name: init
+* Name: init_101
 * Created: 8/26/2017
-* last edit: 8/26/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 8/26/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Initializes an array of random states for use
@@ -426,7 +427,7 @@ __global__ void resetIonBounds(int* d_boundsIon){
 *
 */
 
-__global__ void init(unsigned int seed, curandState_t* states) 
+__global__ void init_101(unsigned int seed, curandState_t* states) 
 {
 	// initialize the states
 	curand_init(seed, // seed for the random states generator
@@ -438,18 +439,18 @@ __global__ void init(unsigned int seed, curandState_t* states)
 }
 
 /*
-* Name: initInjectIonPiel
+* Name: initInjectIonPiel_101
 * Created: 9/21/2017
-* last edit: 10/22/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 10/16/2017
+*	last edit: 11/16/2017
 *
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/22/2017
+*	last edit: 11/14/2017
 *
 * Description:
 *	Initializes matrices for randomly selecting location on spherical 
@@ -490,7 +491,7 @@ __global__ void init(unsigned int seed, curandState_t* states)
 *
 */
 
-void initInjectIonPiel(
+void initInjectIonPiel_101(
 		const int NUM_DIV_QTH,
 		const int NUM_DIV_VEL,
 		const float TEMP_ELC,
@@ -639,14 +640,14 @@ void initInjectIonPiel(
 }
 
 /*
-* Name: invertFind
+* Name: invertFind_101
 * Created: 6/22/2017
-* last edit: 10/22/2017
+* last edit: 11/14/2017
 *
 * Editors
 *	Name: Dustin Sanford
 *	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 10/22/2017
+*	last edit: 11/14/2017
 *
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
@@ -674,7 +675,7 @@ void initInjectIonPiel(
 *	device_launch_parameters.h
 *
 */
-__device__ float invertFind(float* const mat, int sizeMat, float y){
+__device__ float invertFind_101(float* const mat, int sizeMat, float y){
 
 	int intIndex = 0;
 	
