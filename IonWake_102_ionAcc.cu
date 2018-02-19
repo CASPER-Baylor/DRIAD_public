@@ -13,6 +13,7 @@
 *	calcIonIonAcc_102()
 *   calcIonDustAcc_102()
 *   calcExtrnElcAcc_102()
+*   calcExtrnElcAccCyl_102()
 *
 */
 
@@ -308,4 +309,94 @@ __global__ void calcExtrnElcAcc_102
 	d_accIon[ID].x += d_posIon[ID].x * linForce;
 	d_accIon[ID].y += d_posIon[ID].y * linForce;
 	d_accIon[ID].z += d_posIon[ID].z * linForce;
+}
+
+
+/*
+* Name: calcExtrnElcAccCyl_102
+* Created: 11/18/2017
+* last edit: 11/18/2017
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*	last edit: 11/18/2017
+*
+* Description:
+*	calculates the acceleration on the ions due to the electric field created 
+*   by the ions outside of a simulation cylinder.
+*
+* Input:
+*	d_accIon: ion accelerations
+*	d_posIon: ion positions
+*	d_Q_DIV_M:  charge to mass ratio
+*	d_p10x: coefficient for radial E field
+*	d_p12x: coefficient for radial E field
+*	d_p14x: coefficient for radial E field
+*	d_p01z: coefficient for vertical E field
+*	d_p21z: coefficient for vertical E field
+*	d_p03z: coefficient for vertical E field
+*	d_p23z: coefficient for vertical E field
+*	d_p05z: coefficient for vertical E field
+*
+* Output (void):
+*	d_accIon: the acceleration due to the outside electric 
+*		field is added to the initial ion accelerations
+*
+* Assumptions:
+*	All inputs are real values
+*	The simulation region is a cylinder
+*	The electric field due to outside ions is radially symmetric
+*	The center of the simulation region is (0,0,0)
+*	The coefficients for the electric fields were calculated using the
+*	  Matlab routine e_field_in_cylinder.m using the correct dimentions
+*	  for the cylinder, ion density, and debye length.
+*   The number of ions is a multiple of the block size
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+__global__ void calcExtrnElcAccCyl_102
+       (float3* d_accIon, 
+        float3* d_posIon, 
+	float* d_Q_DIV_M,
+	float* d_p10x, float* d_p12x,float* d_p14x,
+	float* d_p01z, float* d_p21z,float* d_p03z, float* d_p23z,float* d_p05z)
+{
+
+	// the thread ID
+	int ID = blockIdx.x * blockDim.x + threadIdx.x;
+
+	// get the radius of the ion from the center of the
+	// simulation sphere. The center is assumed to be (0,0,0)
+	float rad = __fsqrt_rn(
+		(d_posIon[ID].x * d_posIon[ID].x) +
+		(d_posIon[ID].y * d_posIon[ID].y)) ;
+
+	// get the z position of the ion
+	float z = d_posIon[ID].z;
+	float zsq = z * z;
+
+	// calculate the radial component of the acceleration
+	// Since this has to be turned into vector components, it
+	// it divided by rad.
+	float radAcc = *d_p10x  +
+			*d_p12x * zsq +
+			*d_p14x * zsq * zsq;
+
+	// calculate vertical component of the acceleration
+	float vertAcc = *d_p01z * z +
+			*d_p21z * rad * rad * z +
+			*d_p03z * z * zsq +
+			*d_p23z * rad * rad * z * zsq +
+			*d_p05z * z * zsq * zsq;
+
+	// multiply by the vector distance to the center of 
+	// the simulation radius and add it to the ion
+	// acceleration
+	d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
+	d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
+	d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
 }

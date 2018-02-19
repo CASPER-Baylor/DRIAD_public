@@ -24,6 +24,9 @@
 *	calcExtrnElcAcc_102()
 *		cuda_runtime.h
 *		device_launch_parameters.h
+*	calcExtrnElcAccCyl_102()
+*		cuda_runtime.h
+*		device_launch_parameters.h
 */
 
 #ifndef IONWAKE_102_IONACC
@@ -34,6 +37,7 @@
 	*	calcIonIonAcc_102()
     *	calcIonDustAcc_102()
     *	calcExtrnElcAcc_102()
+    *	calcExtrnElcAccCyl_102()
 	* For:
 	*	CUDA
 	*/
@@ -44,6 +48,7 @@
 	*	calcIonIonAcc_102()
     *	calcIonDustAcc_102()
     *	calcExtrnElcAcc_102()
+    *	calcExtrnElcAccCyl_102()
 	* For:
 	*	CUDA
 	*/
@@ -174,5 +179,59 @@
     *
     */
 	__global__ void calcExtrnElcAcc_102(float3*, float3*, float*, float*);
+
+/*
+* Name: calcExtrnElcAccCyl_102
+* Created: 11/18/2017
+* last edit: 11/18/2017
+*
+* Editors
+*       Name: Lorin Matthews
+*       Contact: Lorin_Matthews@baylor.edu
+*       last edit: 11/18/2017
+*
+* Description:
+*       calculates the acceleration on the ions due to the electric field created
+*   by the ions outside of a simulation cylinder.
+*
+* Input:
+*       d_accIon: ion accelerations
+*       d_posIon: ion positions
+*       d_Q_DIV_M:  charge to mass ratio
+*       d_p10x: coefficient for radial E field
+*       d_p12x: coefficient for radial E field
+*       d_p14x: coefficient for radial E field
+*       d_p01z: coefficient for vertical E field
+*       d_p21z: coefficient for vertical E field
+*       d_p03z: coefficient for vertical E field
+*       d_p23z: coefficient for vertical E field
+*       d_p05z: coefficient for vertical E field
+*
+* Output (void):
+*       d_accIon: the acceleration due to the outside electric
+*               field is added to the initial ion accelerations
+*
+* Assumptions:
+*       All inputs are real values
+*       The simulation region is a cylinder
+*       The electric field due to outside ions is radially symmetric
+*       The center of the simulation region is (0,0,0)
+*       The coefficients for the electric fields were calculated using the
+*         Matlab routine e_field_in_cylinder.m using the correct dimentions
+*         for the cylinder, ion density, and debye length.
+*   The number of ions is a multiple of the block size
+*
+* Includes:
+*       cuda_runtime.h
+*       device_launch_parameters.h
+*
+*
+*/
+__global__ void calcExtrnElcAccCyl_102
+       (float3*,
+        float3*,
+        float*,
+        float*, float*,float* ,
+        float*, float*,float*, float*,float*);
 
 #endif

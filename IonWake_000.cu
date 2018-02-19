@@ -7,7 +7,7 @@
 * Created: 6/13/2017
 *
 * Editors
-*	Last Modified: 11/12/2017
+*	Last Modified: 11/20/2017
 *	Contributor(s):
 *		Name: Dustin Sanford
 *		Contact: Dustin_Sanford@baylor.edu
@@ -15,7 +15,11 @@
 *
 *       Name: Lorin Matthews
 *       Contact: Lorin_Matthews@baylor.edu
-*       Last Contribution: 10/19/2017
+*       Last Contribution: 11/20/2017
+*		Added in variables for cylindrical simulation region.  See addition
+*		of variables RAD_CYL_DEBYE, HT_CYL_DEBYE, RAD_CYL, RAD_CYL_SQRD,
+*		HT_CYL.  Calculation of SIM_VOLUME is changed appropriately.  Added
+*		code to check that ions initially placed inside cylinder.
 *
 * Description:
 *	Handles the execution of the IonWake simulation. Provides a user interface 
@@ -218,6 +222,12 @@ int main(int argc, char* argv[])
 
 	// number of threads in a warp
 	const int WARP_SIZE = 32;
+    
+    // mass of an electron 
+    const float ELC_MASS = 9.10938356e-31;
+    
+    // Coulomb's constant 
+    const float COULOMB_CONST = 8.99e9;
 
 	if (debugMode)
 	{
@@ -227,6 +237,8 @@ int main(int argc, char* argv[])
             << "BOLTZMANN       " << BOLTZMANN       << '\n'
             << "PI:             " << PI              << '\n'
             << "DIM_BLOCK:      " << DIM_BLOCK       << '\n'
+            << "ELC_MASS:       " << ELC_MASS        << '\n'
+            << "COULOMB_CONST:  " << COULOMB_CONST   << '\n'
             << "WARP_SIZE:      " << WARP_SIZE       << '\n' << '\n';
         debugFile.flush();   
 	}
@@ -236,16 +248,16 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USSER_PARAMS = 15;
+	const int NUM_USER_PARAMS = 26;
 
 	// allocate memory for user parameters
-	float* params = (float*)malloc(NUM_USSER_PARAMS * sizeof(float));
+	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
 
     // string to dump unwanted text from the parameter file 
     std::string dump;
 
     // loop over the contents of the file
-    for (int i = 0; i < NUM_USSER_PARAMS; i++)
+    for (int i = 0; i < NUM_USER_PARAMS; i++)
     {
         // skip two columns
         paramFile >> dump >> dump;
@@ -255,6 +267,7 @@ int main(int argc, char* argv[])
     }
     
 	// assign user defined parameters
+	// GEOMETRY: use 0 = Sphere, 1 = Cylinder
 	const int   NUM_ION = static_cast<int>(params[0] / DIM_BLOCK) * DIM_BLOCK;
 	const float DEN_FAR_PLASMA = params[1];
 	const float TEMP_ELC = params[2];
@@ -267,9 +280,20 @@ int main(int argc, char* argv[])
 	const float CHARGE_SINGLE_ION = params[9] * CHARGE_ELC;
 	const float TIME_STEP = params[10];
 	const int   NUM_TIME_STEP = params[11];
-	const float RAD_SIM_DEBYE = params[12];
-	const int   NUM_DIV_VEL = params[13];
-	const int   NUM_DIV_QTH = params[14];
+	const int  GEOMETRY = params[12]; 
+	const float RAD_SIM_DEBYE = params[13];
+	const int   NUM_DIV_VEL = params[14];
+	const int   NUM_DIV_QTH = params[15];
+  	const float RAD_CYL_DEBYE = params[16];
+	const float HT_CYL_DEBYE = params[17];
+	const float P10X = params[18];
+	const float P12X = params[19];
+	const float P14X = params[20];
+	const float P01Z = params[21];
+	const float P21Z = params[22];
+	const float P03Z = params[23];
+	const float P23Z = params[24];
+	const float P05Z = params[25];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -303,8 +327,29 @@ int main(int argc, char* argv[])
 	// dust radius squared (m^2)
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
 
-	// volume of the simulation sphere (m^3)
-	const float SIM_VOLUME = (4.0 / 3.0) * PI * RAD_SIM * RAD_SIM * RAD_SIM;
+	// radius of the simulation cylinder (m)
+	const float RAD_CYL = RAD_CYL_DEBYE * DEBYE;
+
+	// cylinder radius squared (m^2)
+	const float RAD_CYL_SQRD = RAD_CYL * RAD_CYL;
+
+	// (half) height of the simulation cylinder (m)
+	const float HT_CYL = HT_CYL_DEBYE * DEBYE;
+
+	// variable for the volume
+	float temp_volume = 0;
+
+	if(GEOMETRY == 0) {
+		// volume of the simulation sphere (m^3)
+		temp_volume = (4.0 / 3.0) * PI * RAD_SIM * RAD_SIM * RAD_SIM;
+		}
+	else {
+
+		// volume of the simulation cylinder (overwrites vol abv)
+		temp_volume = PI * RAD_CYL_SQRD * 2 * HT_CYL;
+	}
+
+	const float SIM_VOLUME = temp_volume;
 
 	// multiplier for super ions
 	const float SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
@@ -320,7 +365,7 @@ int main(int argc, char* argv[])
         (CHARGE_ION * CHARGE_ION) / (4 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// a constant multiplier for acceleration due to Ion Dust forces
-	const float ION_DUST_ACC_MULT = (9e9) * CHARGE_ION / MASS_ION;
+	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
 
 	// a constant multiplier for acceleration due to the 
 	// electric field due to plasma outside of the simulation
@@ -329,12 +374,20 @@ int main(int argc, char* argv[])
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
 		(CHARGE_ION / MASS_ION) / (PERM_FREE_SPACE);
 
+	// a constant multiplier to acceraltion due to electric field
+	// outside the cylindrical simulation bounds
+	const float Q_DIV_M = CHARGE_ION / MASS_ION;
+
 	// sound speed of the plasma (m/s)
 	const float SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
 
 	// the drift velocity of the ions 
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;	
 		
+    // the electron current to an uncharged dust grain
+    const float ELC_CUERENT_0 = 4 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+        CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2 * PI * ELC_MASS));
+    
 	if (debugMode)
 	{
 		
@@ -353,30 +406,49 @@ int main(int argc, char* argv[])
             << "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
             << "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
             << "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
-            << "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n' << '\n';
+            << "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
+	    << "GEOMETRY          " << GEOMETRY          << '\n' 
+	    << "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
+            << "HT_CYL_DEBYE      " << HT_CYL_DEBYE      << '\n'
+	    << "P10X     	  " << P10X	         << '\n'
+	    << "P12X     	  " << P12X	         << '\n'
+	    << "P14X     	  " << P14X	         << '\n'
+	    << "P01Z     	  " << P01Z	         << '\n'
+	    << "P21Z     	  " << P21Z	         << '\n'
+	    << "P03Z     	  " << P03Z	         << '\n'
+	    << "P23Z     	  " << P23Z	         << '\n'
+	    << "P05Z     	  " << P05Z	         << '\n'
+<< '\n';
 
-		debugFile << "-- Derived Parameters --" << '\n'
-            << "DEBYE       " << DEBYE       << '\n'
-            << "RAD_SIM     " << RAD_SIM     << '\n'
-            << "SIM_VOLUME  " << SIM_VOLUME  << '\n'
-            << "SOUND_SPEED " << SOUND_SPEED << '\n'
-            << "MASS_DUST   " << MASS_DUST   << '\n' << '\n';
 
-		debugFile << "-- Super Ion Parameters --" << '\n'
+		debugFile << "-- Derived Parameters --"  << '\n'
+            << "DEBYE         "   << DEBYE         << '\n'
+            << "RAD_SIM       "   << RAD_SIM       << '\n'
+            << "RAD_CYL       " << RAD_CYL     << '\n'
+            << "HT_CYL        " << HT_CYL      << '\n'
+            << "SIM_VOLUME    "   << SIM_VOLUME    << '\n'
+            << "SOUND_SPEED   "   << SOUND_SPEED   << '\n'
+            << "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
+            << "ELC_CUERENT_0 "   << ELC_CUERENT_0 << '\n'
+            << "MASS_DUST     "   << MASS_DUST     << '\n' << '\n';
+
+		debugFile << "-- Super Ion Parameters --"  << '\n'
             << "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
             << "CHARGE_ION     " << CHARGE_ION     << '\n'
             << "MASS_ION       " << MASS_ION       << '\n' << '\n';
 
 
-		debugFile << "-- Further Derived Parameters --" << '\n'
+		debugFile << "-- Further Derived Parameters --"  << '\n'
             << "INV_DEBYE         " << INV_DEBYE         << '\n'
             << "SOFT_RAD_SQRD     " << SOFT_RAD_SQRD     << '\n'
             << "RAD_SIM_SQRD      " << RAD_SIM_SQRD      << '\n'
+		 << "RAD_CYL_SQRD      " << RAD_CYL_SQRD      << '\n'
             << "HALF_TIME_STEP    " << HALF_TIME_STEP    << '\n'
             << "ION_ION_ACC_MULT  " << ION_ION_ACC_MULT  << '\n'
             << "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
             << "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
-            << "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n' << '\n';
+            << "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n' 
+            << "Q_DIV_M   	  " << Q_DIV_M	         << '\n' << '\n';
         
         debugFile.flush();
 	}  
@@ -405,11 +477,25 @@ int main(int argc, char* argv[])
         << std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
         << std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
         << std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
+        << std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
+ 	<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
+        << std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
         << std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
         << std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
         << std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
+	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
+	<< std::setw(14) << P10X              << " % P10X"              << '\n'
+	<< std::setw(14) << P12X              << " % P12X"              << '\n'
+	<< std::setw(14) << P14X              << " % P14X"              << '\n'
+	<< std::setw(14) << P01Z              << " % P01Z"              << '\n'
+	<< std::setw(14) << P21Z              << " % P21Z"              << '\n'
+	<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
+	<< std::setw(14) << P23Z              << " % P23Z"              << '\n'
+	<< std::setw(14) << P05Z              << " % P05Z"              << '\n'
+	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
         << std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
         << std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
+        << std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"	<< '\n'
         << std::setw(14) << MASS_DUST         << " % MASS_DUST"         << '\n'
         << std::setw(14) << SUPER_ION_MULT    << " % SUPER_ION_MULT"    << '\n'
         << std::setw(14) << CHARGE_ION        << " % CHARGE_ION"        << '\n'
@@ -417,11 +503,13 @@ int main(int argc, char* argv[])
         << std::setw(14) << INV_DEBYE         << " % INV_DEBYE"         << '\n'
         << std::setw(14) << SOFT_RAD_SQRD     << " % SOFT_RAD_SQRD"     << '\n'
         << std::setw(14) << RAD_SIM_SQRD      << " % RAD_SIM_SQRD"      << '\n'
+	<< std::setw(14) << RAD_CYL_SQRD      << " % RAD_CYL_SQRD"      << '\n'
         << std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
         << std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
         << std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
         << std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
-        << std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n';
+        << std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
+        << std::setw(14) << Q_DIV_M	      << " % Q_DIV_M"    	<< '\n';
         
     paramOutFile.flush();
 	
@@ -507,10 +595,11 @@ int main(int argc, char* argv[])
 		chargeDust[i] *= CHARGE_ELC;
 	}
 
+	if(GEOMETRY ==0) {
 	// check if any of the dust particles are 
 	// outside of the simulation sphere
-	for (int i = 0; i < NUM_DUST; i++)
-	{
+	   for (int i = 0; i < NUM_DUST; i++)
+	   {
 		if (
 			   (posDust[i].x*posDust[i].x +
 				posDust[i].y*posDust[i].y +
@@ -520,6 +609,24 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "ERROR: Dust out of simulation\n");
 			fatalError();
 		}
+	   }
+	}
+
+	if(GEOMETRY == 1) {
+	// check if any of the dust particles are 
+	// outside of the simulation cylinder
+	   for (int i = 0; i < NUM_DUST; i++)
+	   {
+		if (
+			   (posDust[i].x*posDust[i].x +
+				posDust[i].y*posDust[i].y ) > RAD_CYL_SQRD
+				|| abs(posDust[i].z) > HT_CYL
+			)
+		{
+			fprintf(stderr, "ERROR: Dust out of simulation\n");
+			fatalError();
+		}
+	   }
 	}
 
 	if (debugMode)
@@ -606,15 +713,15 @@ int main(int argc, char* argv[])
 		} else if (line == "TR-ion-vel") {
 			commands[i] = 10;
 			
-		} else if (line == "CD-ion-sphere-bounds") {
+		} else if (line == "CD-ion-cavity-bounds") {
 			commands[i] = 11;
 			
 		} else if (line == "CD-ion-dust-bounds") {
 			if (NUM_DUST > 0){	
 				commands[i] = 12;
 			} else {
-				fprintf(stderr, "ERROR: cannot 'CD-ion-dust-bounds' ");
-                fprintf(stderr, "without a dust particle");
+			fprintf(stderr, "ERROR: cannot 'CD-ion-dust-bounds' ");
+                	fprintf(stderr, "without a dust particle");
 				fatalError();
 			}
 			
@@ -667,7 +774,7 @@ int main(int argc, char* argv[])
 			if (NUM_DUST > 0){	
 				commands[i] = 20;
 			} else {
-				fprintf(stderr, "ERROR: cannot 'CH-ion-dust-current'");
+			   fprintf(stderr, "ERROR: cannot 'CH-ion-dust-current'");
                 fprintf(stderr, " without a dust particle");
 				fatalError();
 			}
@@ -676,16 +783,16 @@ int main(int argc, char* argv[])
 			if (NUM_DUST > 0){	
 				commands[i] = 21;
 			} else {
-				fprintf(stderr, "ERROR: cannot 'TR-ion-current'");
+			     fprintf(stderr, "ERROR: cannot 'TR-ion-current'");
                 fprintf(stderr, " without a dust particle");
 				fatalError();
 			}
 			
 		} else {
 			// if the command does not exist give an error message
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
+		    fprintf(stderr, "ERROR on line number %d in file %s\n", 
                 __LINE__, __FILE__);
-			fprintf(stderr, "Command \"%s\" does not exist\n\n", line.c_str());
+            fprintf(stderr, "Command \"%s\" does not exist\n\n", line.c_str());
 
 			// terminate the program 
 			fatalError();
@@ -707,7 +814,7 @@ int main(int argc, char* argv[])
             << "8:  TR-ion-acc" << '\n'
             << "9:  CP-ion-vel" << '\n'
             << "10: TR-ion-vel" << '\n'
-            << "11: CD-ion-sphere-bounds" << '\n'
+            << "11: CD-ion-cavity-bounds" << '\n'
             << "12: CD-ion-dust-bounds" << '\n'
             << "13: CD-inject-ions" << '\n'
             << "14: CD-reset-ion-bounds" << '\n'
@@ -723,7 +830,7 @@ int main(int argc, char* argv[])
 		debugFile << "Number of commands: " << numCommands << std::endl;
 
 		for (int i = 0; i < numCommands; i++) {
-			debugFile << commands[i] << std::endl;
+			debugFile << "i: " << i << " | " << commands[i] << std::endl;
 		}
 
 		debugFile << "--------------------" << std::endl << std::endl;
@@ -736,6 +843,12 @@ int main(int argc, char* argv[])
      initialize host variables
 	***************************/
 
+    // holds electron current to a dust grain in the time step in C
+    float elcCurrent = 0;
+    
+    // holds a dust grain potential in the time step in V
+    float dustPotential = 0;
+    
 	// number of blocks per grid for ions
 	int blocksPerGridIon = (NUM_ION + 1) / DIM_BLOCK;
 
@@ -781,36 +894,66 @@ int main(int argc, char* argv[])
     // and position
 	for (int i = 0; i < NUM_ION; i++)
 	{
+/****** LSM changed for cylinder *************/
 
-        // give the ion a random position 
+	if(GEOMETRY == 0) {
+        	// give the ion a random position 
 		randNum = (((rand() % (number*2)) - number) / (float)number);
 		posIon[i].x = randNum * RAD_SIM;
 		randNum = (((rand() % (number*2)) - number) / (float)number);
 		posIon[i].y = randNum * RAD_SIM;
 		randNum = (((rand() % (number*2)) - number) / (float)number);
 		posIon[i].z = randNum * RAD_SIM;
-
         // calculate the distance from the ion to the center of the 
-        // simulation sphere
+        // simulation sphre
 		dist = posIon[i].x * posIon[i].x + 
-		       posIon[i].y * posIon[i].y + 
-			   posIon[i].z * posIon[i].z;
+		       posIon[i].y * posIon[i].y +
+		       posIon[i].z * posIon[i].z;
 
         // while the ion is outside of the simulation sphere, give it 
         // a new random position.
 		while (dist > RAD_SIM * RAD_SIM){
 			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].x = randNum * RAD_SIM;
+			posIon[i].x = randNum * RAD_CYL;
 			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].y = randNum * RAD_SIM;
+			posIon[i].y = randNum * RAD_CYL;
 			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].z = randNum * RAD_SIM;
+			posIon[i].z = randNum * RAD_CYL;
 
-            // recalculate the distance to the center of the simulation
+            	// recalculate the distance to the center of the simulation
 			dist = posIon[i].x * posIon[i].x + 
-				   posIon[i].y * posIon[i].y + 
-			       posIon[i].z * posIon[i].z;
+				posIon[i].y * posIon[i].y +
+				posIon[i].z * posIon[i].z;
 		}
+	}
+	
+	if(GEOMETRY == 1) {
+	        // give the ion a random position 
+		randNum = (((rand() % (number*2)) - number) / (float)number);
+		posIon[i].x = randNum * RAD_CYL;
+		randNum = (((rand() % (number*2)) - number) / (float)number);
+		posIon[i].y = randNum * RAD_CYL;
+		randNum = (((rand() % (number*2)) - number) / (float)number);
+		posIon[i].z = randNum * HT_CYL;
+        // calculate the distance from the ion to the center of the 
+        // simulation cylinder
+		dist = posIon[i].x * posIon[i].x + 
+		       posIon[i].y * posIon[i].y;
+
+        // while the ion is outside of the simulation cylinder, give it 
+        // a new random position.
+		while (dist > RAD_CYL * RAD_CYL){
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			posIon[i].x = randNum * RAD_CYL;
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			posIon[i].y = randNum * RAD_CYL;
+
+            	// recalculate the distance to the center of the simulation
+			dist = posIon[i].x * posIon[i].x + 
+				   posIon[i].y * posIon[i].y;
+		}
+	}
+/***************** end of LSM addition for cylinder *******/
 		
 		// give the ion an initial random velocity
 		randNum = (((rand() % (number*2)) - number) / (float)number);
@@ -903,12 +1046,25 @@ int main(int argc, char* argv[])
     constCUDAvar<float> d_SOFT_RAD_SQRD(&SOFT_RAD_SQRD, 1);
     constCUDAvar<float> d_RAD_SIM(&RAD_SIM, 1);
     constCUDAvar<float> d_RAD_SIM_SQRD(&RAD_SIM_SQRD, 1);
+    constCUDAvar<float> d_RAD_CYL(&RAD_CYL, 1);
+    constCUDAvar<float> d_RAD_CYL_SQRD(&RAD_CYL_SQRD, 1);
+    constCUDAvar<float> d_HT_CYL(&HT_CYL, 1);
+    constCUDAvar<float> d_P10X(&P10X, 1);
+    constCUDAvar<float> d_P12X(&P12X, 1);
+    constCUDAvar<float> d_P14X(&P14X, 1);
+    constCUDAvar<float> d_P01Z(&P01Z, 1);
+    constCUDAvar<float> d_P21Z(&P21Z, 1);
+    constCUDAvar<float> d_P03Z(&P03Z, 1);
+    constCUDAvar<float> d_P23Z(&P23Z, 1);
+    constCUDAvar<float> d_P05Z(&P05Z, 1);
+    
     constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
     constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
     constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
     constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
+    constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
     constCUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
-    constCUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, NUM_DIV_VEL);
+    constCUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
     constCUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
     constCUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
     constCUDAvar<float> d_PI(&PI, 1);
@@ -965,6 +1121,7 @@ int main(int argc, char* argv[])
         fatalError();
 	}
 	
+    if(GEOMETRY == 0) {
 	// initialize variables needed for injecting ions with the Piel 2017 method
 	initInjectIonPiel_101(
 		NUM_DIV_QTH, 
@@ -981,6 +1138,28 @@ int main(int argc, char* argv[])
 		d_GCOM.getDevPtr(),
 		debugMode,
 		debugFile);
+	}
+
+        if(GEOMETRY == 1) {
+	// initialize variables needed for injecting ions with the Piel 2017 method
+	initInjectIonCylinder_101(
+		NUM_DIV_QTH, 
+		NUM_DIV_VEL,
+		RAD_CYL,
+		HT_CYL,
+		TEMP_ELC, 
+		TEMP_ION, 
+		DRIFT_VEL_ION, 
+		MACH,
+		MASS_SINGLE_ION,
+		BOLTZMANN,
+		PI,
+		d_QCOM.getDevPtr(),
+		d_VCOM.getDevPtr(),
+		d_GCOM.getDevPtr(),
+		debugMode,
+		debugFile);
+	}
         
 	/*************************
             time step
@@ -1005,7 +1184,7 @@ int main(int argc, char* argv[])
     
         // loop over all of the commands for each time step
 		for (int j = 0; j < numCommands; j++) {
-			
+            
 			// perform a leapfrog integration
 			if (commands[j] == 1) {
                 
@@ -1126,18 +1305,36 @@ int main(int argc, char* argv[])
 			}
 			
 			// calculate the ion accelerations due to the ions outside of 
-            // the simulation sphere
+            // the simulation cavity
 			else if (commands[j] == 4) {
 				
                 // print the command number to the status file 
 				statusFile << "4 ";
     
-				// calculate the forces between all ions
-				calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+			       if(GEOMETRY == 0) {
+				 // calculate the forces between all ions
+				 calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 				   (d_accIon.getDevPtr(), 
-                    d_posIon.getDevPtr(),
-                    d_EXTERN_ELC_MULT.getDevPtr(),
-                    d_INV_DEBYE.getDevPtr());
+                                    d_posIon.getDevPtr(),
+                                    d_EXTERN_ELC_MULT.getDevPtr(),
+                                    d_INV_DEBYE.getDevPtr());
+				}
+				if(GEOMETRY == 1) {
+				 // calculate the forces between all ions
+				 calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                                    d_posIon.getDevPtr(),
+                                    d_Q_DIV_M.getDevPtr(),
+                                    d_P10X.getDevPtr(),
+                                    d_P12X.getDevPtr(),
+                                    d_P14X.getDevPtr(),
+                                    d_P01Z.getDevPtr(),
+                                    d_P21Z.getDevPtr(),
+                                    d_P03Z.getDevPtr(),
+                                    d_P23Z.getDevPtr(),
+                                    d_P05Z.getDevPtr());
+				}
+
     
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -1184,7 +1381,6 @@ int main(int argc, char* argv[])
 				traceFile << ", " << posIon[ionTraceIndex].y;
 				traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
 			}
-    
     
 			// copy the ion accelerations to the host
 			else if (commands[j] == 7) {
@@ -1235,11 +1431,23 @@ int main(int argc, char* argv[])
                 // print the command number to the status file 
 				statusFile << "11 ";
 				
-				// check if any ions are outside of the simulation sphere
-				checkIonSphereBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
-                      (d_posIon.getDevPtr(), 
-                       d_boundsIon.getDevPtr(), 
-                       d_RAD_SIM_SQRD.getDevPtr());
+                if(GEOMETRY == 0) {
+                    // check if any ions are outside of the simulation sphere
+                    checkIonSphereBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                          (d_posIon.getDevPtr(), 
+                           d_boundsIon.getDevPtr(), 
+                           d_RAD_SIM_SQRD.getDevPtr());
+                   }
+
+                if(GEOMETRY == 1) {
+                    // check if any ions are outside of the simulation cylinder
+                    checkIonCylinderBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                          (d_posIon.getDevPtr(), 
+                           d_boundsIon.getDevPtr(), 
+                           d_RAD_CYL_SQRD.getDevPtr(),
+                d_HT_CYL.getDevPtr());
+		       }
+
     
                 // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -1303,32 +1511,60 @@ int main(int argc, char* argv[])
 				}
 			}
 			
-			// inject ions as in Piel 2017
+			// inject ions on the boundary
 			else if (commands[j] == 13){
                 
                 // print the command number to the status file 
 				statusFile << "13 ";
-				
-				// inject ions into the simulation sphere 
-				injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon.getDevPtr(),
-                        d_velIon.getDevPtr(),
-                        d_accIon.getDevPtr(),
-                        randStates.getDevPtr(),
-                        d_RAD_SIM.getDevPtr(),
-                        d_boundsIon.getDevPtr(),
-                        d_GCOM.getDevPtr(),
-                        d_QCOM.getDevPtr(),
-                        d_VCOM.getDevPtr(),
-                        d_NUM_DIV_QTH.getDevPtr(),
-                        d_NUM_DIV_VEL.getDevPtr(),
-                        d_SOUND_SPEED.getDevPtr(),
-                        d_TEMP_ION.getDevPtr(),
-                        d_PI.getDevPtr(),
-                        d_TEMP_ELC.getDevPtr(),
-                        d_MACH.getDevPtr(),
-                        d_MASS_SINGLE_ION.getDevPtr(),
-                        d_BOLTZMANN.getDevPtr());
+		
+                if(GEOMETRY == 0) {
+                    
+                // inject ions into the simulation sphere 
+                injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                           (d_posIon.getDevPtr(),
+                            d_velIon.getDevPtr(),
+                            d_accIon.getDevPtr(),
+                            randStates.getDevPtr(),
+                            d_RAD_SIM.getDevPtr(),
+                            d_boundsIon.getDevPtr(),
+                            d_GCOM.getDevPtr(),
+                            d_QCOM.getDevPtr(),
+                            d_VCOM.getDevPtr(),
+                            d_NUM_DIV_QTH.getDevPtr(),
+                            d_NUM_DIV_VEL.getDevPtr(),
+                            d_SOUND_SPEED.getDevPtr(),
+                            d_TEMP_ION.getDevPtr(),
+                            d_PI.getDevPtr(),
+                            d_TEMP_ELC.getDevPtr(),
+                            d_MACH.getDevPtr(),
+                            d_MASS_SINGLE_ION.getDevPtr(),
+                            d_BOLTZMANN.getDevPtr());
+                }
+
+                if(GEOMETRY == 1) {
+                    
+                // inject ions into the simulation sphere 
+                injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                           (d_posIon.getDevPtr(),
+                            d_velIon.getDevPtr(),
+                            d_accIon.getDevPtr(),
+                            randStates.getDevPtr(),
+                            d_RAD_CYL.getDevPtr(),
+                            d_HT_CYL.getDevPtr(),
+                            d_boundsIon.getDevPtr(),
+                            d_GCOM.getDevPtr(),
+                            d_QCOM.getDevPtr(),
+                            d_VCOM.getDevPtr(),
+                            d_NUM_DIV_QTH.getDevPtr(),
+                            d_NUM_DIV_VEL.getDevPtr(),
+                            d_SOUND_SPEED.getDevPtr(),
+                            d_TEMP_ION.getDevPtr(),
+                            d_PI.getDevPtr(),
+                            d_TEMP_ELC.getDevPtr(),
+                            d_MACH.getDevPtr(),
+                            d_MASS_SINGLE_ION.getDevPtr(),
+                            d_BOLTZMANN.getDevPtr());
+                }
     
 	            // check for any errors launching the kernel
 				cudaStatus = cudaGetLastError();
@@ -1336,7 +1572,7 @@ int main(int argc, char* argv[])
                     fprintf(stderr, "ERROR on line number %d in file %s\n", 
                         __LINE__, __FILE__);
                     fprintf(stderr, 
-                        "Kernel launch failed: checkIonSphereBounds\n");
+                        "Kernel launch failed: injectIonCavityBounds\n");
 					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
                     // terminate the program
                     fatalError();
@@ -1347,7 +1583,7 @@ int main(int argc, char* argv[])
 				if (cudaStatus != cudaSuccess) {
                     fprintf(stderr, "ERROR on line number %d in file %s\n", 
                         __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: checkIonSphereBounds");
+                    fprintf(stderr, "Kernel failed: injectIonCavityBounds");
 					fprintf(stderr, "Error code: %d\n", cudaStatus);
                     // terminate the program
                     fatalError();
@@ -1355,7 +1591,7 @@ int main(int argc, char* argv[])
 			}
 			
 			// reset the ion bounds flag to 0
-			else if (commands[j] == 14){
+			else if (commands[j] == 14) {
                 
                 // print the command number to the status file 
 				statusFile << "14 ";
@@ -1390,11 +1626,26 @@ int main(int argc, char* argv[])
     
 			// update the charge on the dust grains 
 			else if (commands[j] == 15) {
-           
+                
+                for (int g = 0; g < NUM_DUST; g++) {
+                    
+                    // calculate the dust grain potential
+                    dustPotential = (COULOMB_CONST*chargeDust[g] / RAD_DUST) 
+                                        - 2.5;
+                    
+                    // calculate the electron current to the dust
+                    elcCurrent = ELC_CUERENT_0 * TIME_STEP * 
+                                 exp((-1) * CHARGE_ELC * dustPotential / 
+                                 (BOLTZMANN * TEMP_ELC));
+                    
+                    // add current to dust charge
+                    chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+                }
+                
 			}
 			
 			// copy d_ionBounds to the host
-			else if (commands[j] == 16){
+			else if (commands[j] == 16) {
 				
                 // print the command number to the status file 
 				statusFile << "16 ";
@@ -1475,8 +1726,8 @@ int main(int argc, char* argv[])
 				// output an error message
 				fprintf(stderr, "ERROR on line number %d in file %s\n", 
                     __LINE__, __FILE__);
-				fprintf(stderr, "Command number %d does not exist\n\n", 
-                    commands[j]);
+				fprintf(stderr, "Command number %d of %d does not exist\n\n", 
+                    commands[j], j);
     
 				// terminate the program 
 				fatalError();
@@ -1631,6 +1882,9 @@ int main(int argc, char* argv[])
     d_SOFT_RAD_SQRD.compare();
     d_RAD_SIM.compare();
     d_RAD_SIM_SQRD.compare();
+    d_RAD_CYL.compare();
+    d_RAD_CYL_SQRD.compare();
+    d_HT_CYL.compare();
     d_HALF_TIME_STEP.compare();
     d_ION_ION_ACC_MULT.compare();
     d_ION_DUST_ACC_MULT.compare();
@@ -1643,6 +1897,15 @@ int main(int argc, char* argv[])
     d_MACH.compare();
     d_MASS_SINGLE_ION.compare();
     d_BOLTZMANN.compare();
+    d_P10X.compare();
+    d_P12X.compare();
+    d_P14X.compare();
+    d_P01Z.compare();
+    d_P21Z.compare();
+    d_P03Z.compare();
+    d_P23Z.compare();
+    d_P05Z.compare();
+    d_Q_DIV_M.compare();
 	
 	/**********************
 	      free memory 
