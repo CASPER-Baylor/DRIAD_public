@@ -79,6 +79,10 @@ __global__ void calcIonIonAcc_102
 	float linForce;
 	int tileThreadID;
 
+  	d_accIon[IDcrntIon].x =0;
+  	d_accIon[IDcrntIon].y =0;
+  	d_accIon[IDcrntIon].z =0;
+
 	// allocate shared memory
 	extern __shared__ float3 sharedPos[];
 
@@ -167,12 +171,12 @@ __global__ void calcIonIonAcc_102
 *	d_NUM_DUST: the number of dust particles
 *	d_SOFT_RAD_SQRD: the squared softening radius squared
 *	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
-*	d_INV_DEBYE: the inverse of the debye
 *   d_chargeDust: the charge on the dust particles 
 *
 * Output (void):
 *	d_accIon: the acceleration due to all the dust particles
 *		is added to the initial ion acceleration
+*	d_minDistDust: the distance to closest dust particle
 *
 * Assumptions:
 *	All inputs are real values
@@ -194,8 +198,8 @@ __global__ void calcIonDustAcc_102(
         int* const d_NUM_DUST, 
 		float* const d_SOFT_RAD_SQRD, 
 		float* const d_ION_DUST_ACC_MULT, 
-		float* const d_INV_DEBYE, 
-		float* const d_chargeDust)
+		float* const d_chargeDust,
+		float* d_minDistDust)
 {
 
 	// index of the current ion
@@ -207,6 +211,14 @@ __global__ void calcIonDustAcc_102(
 	float hardDist;
 	float linForce;
 
+	//Set initial minimum distance to dust particle to large number
+	float min_dist = 1000;
+
+	//reset the accelerationa
+	d_accIon[IDcrntIon].x = 0;
+	d_accIon[IDcrntIon].y = 0;
+	d_accIon[IDcrntIon].z = 0;
+	
 	// loop over all of the dust particles
 	for (int h = 0; h < *d_NUM_DUST; h++) {
 
@@ -230,8 +242,103 @@ __global__ void calcIonDustAcc_102(
 			d_accIon[IDcrntIon].x += linForce * dist.x;
 			d_accIon[IDcrntIon].y += linForce * dist.y;
 			d_accIon[IDcrntIon].z += linForce * dist.z;
+			
+			// save the distance to the closest dust particle
+			if (hardDist < min_dist){
+			   min_dist = hardDist;
+			}	
 
 	} // end loop over dust
+	
+	d_minDistDust[IDcrntIon] = min_dist;
+}
+
+/*
+* Name: calcIonDustAcc_102_dev
+* Created: 3/20/2018
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*	last edit: 3/20/2018
+*
+* Description:
+*	Calculates the ion accelerations due to ion-dust interactions 
+*
+* Input:
+*	d_posIon: the positions of the ions
+*	d_accIon: the accelerations of the ions
+*	d_posDust: the dust particle positions
+*	d_NUM_ION: the number of ions
+*	d_NUM_DUST: the number of dust particles
+*	d_SOFT_RAD_SQRD: the squared softening radius squared
+*	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
+*   d_chargeDust: the charge on the dust particles 
+*
+* Output (void):
+*	d_accIon: the acceleration due to all the dust particles
+*		is added to the initial ion acceleration
+*
+* Assumptions:
+*	All inputs are real values
+*	All ions and dust particles have the parameters specified in the creation 
+*		of the d_ION_ION_ACC_MULT value
+*   The potential due to the dust particle is a bare coulomb potential
+*   The number of ions is a multiple of the block size
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+__device__ void calcIonDustAcc_102_dev(
+		float3* d_posIon, 
+		float3* d_accIon, 
+        float3* d_posDust,
+		const int* d_NUM_ION,
+        const int* d_NUM_DUST, 
+		const float* d_SOFT_RAD_SQRD, 
+		const float* d_ION_DUST_ACC_MULT, 
+		const float* d_chargeDust)
+{
+
+	// allocate variables
+	float3 dist;
+	float distSquared;
+	float hardDist;
+	float linForce;
+
+	//reset the acceleration
+	d_accIon->x = 0;
+	d_accIon->y = 0;
+	d_accIon->z = 0;
+	
+	// loop over all of the dust particles
+	for (int h = 0; h < *d_NUM_DUST; h++) {
+
+			// calculate the distance between the ion in shared
+			// memory and the current thread's ion
+			dist.x = d_posIon->x - (d_posDust+h)->x;
+			dist.y = d_posIon->y - (d_posDust+h)->y;
+			dist.z = d_posIon->z - (d_posDust+h)->z;
+
+			// calculate the distance squared
+			distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+
+			// calculate the hard distance
+			hardDist = __fsqrt_rn(distSquared);
+
+			// calculate a scaler intermediate
+			linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
+                        (hardDist*hardDist*hardDist);
+
+			// add the acceleration to the current ion's acceleration
+			d_accIon->x += linForce * dist.x;
+			d_accIon->y += linForce * dist.y;
+			d_accIon->z += linForce * dist.z;	
+
+	} // end loop over dust
+
 }
 
 /*

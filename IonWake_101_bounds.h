@@ -14,6 +14,9 @@
 *	checkIonSphereBounds_101()
 *	checkIonCylinderBounds_101()
 *	checkIonDustBounds_101()
+*	checkIonSphereBounds_101_dev()
+*	checkIonCylinderBounds_101_dev()
+*	checkIonDustBounds_101_dev()
 *	injectIonPiel_101()
 *	injectIonCylinder_101()
 *	resetIonBounds_101()
@@ -251,7 +254,116 @@ __global__ void checkIonCylinderBounds_101
 		float* const,
 		int* const,
 		float3* const);
-	
+
+/*
+* Name: checkIonSphereBounds_101_dev
+* Created: 3/17/2018
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*
+* Description:
+*	Checks if an ion has left the simulation sphere
+*
+* Input:
+*	d_posIion: ion positions
+*	d_boundsIon: a flag for if an ion is out of bounds
+*	d_RAD_SIM_SQRD: the simulation radius squared
+*
+* Output (void):
+*	d_boundsIon: set to -1 for ions that are outside of the 
+*		simulation sphere.
+*
+* Assumptions:
+*	The simulation region is a sphere with (0,0,0) at its center 
+*   The number of ions is a multiple of the block size
+*   the flag -1 is unique value for the ion bounds flag
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+
+__device__ void checkIonSphereBounds_101_dev
+      (float3* const, 
+		int*,
+		float* const);
+		
+/*
+* Name: checkIonCylinderBounds_101_dev
+*
+* Created: 3/17/2018
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*	last edit: 11/18/2017
+*
+* Description:
+*	Checks if an ion has left the simulation cylinder
+*
+* Input:
+*	d_posIion: ion positions
+*	d_boundsIon: a flag for if an ion is out of bounds
+*	d_RAD_CYL_SQRD: the simulation radius squared
+*	d_HT_CYL: the (half)height of the cylinder
+*
+* Output (void):
+*	d_boundsIon: set to -1 for ions that are outside of the 
+*		simulation sphere.
+*
+* Assumptions:
+*	The simulation region is a cylinder with (0,0,0) at its center 
+*   The number of ions is a multiple of the block size
+*   the flag -1 is unique value for the ion bounds flag
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+__device__ void checkIonCylinderBounds_101_dev
+       (float3* const, 
+		int*,
+		float* const,
+		float* const);
+			
+/*
+* Name: checkIonDustBounds_101_dev
+* Created: 3/17/2018
+*
+* Editors
+*	Name: Lorin_Matthews
+*
+* Description:
+*	checks if an ion is within  a dust particle 
+*
+* Input:
+*	d_posIon: the ion positions
+*	d_boundsIon: a flag for if an ion position is out of bounds
+*	d_RAD_DUST_SQRD: the radius of the dust particles squared
+*	d_NUM_DUST: the number of dust particles 
+*	d_posDust: the dust particle positions
+*
+* Output (void):
+*	d_boundsIon: set to the index of the dust particle the ion is
+*		in if the ion is in a dust particle.
+*
+* Assumptions:
+*	All dust particles have the same radius 
+*   The dust particles and ions are on the same coordinate axis
+*   The number of ions is a multiple of the block size
+*
+*/
+__device__ void checkIonDustBounds_101_dev(
+		float3* const, 
+		int*,
+		float* const,
+		int* const,
+		float3* const);
+			
 /*
     * injectIonSpherePiel_101
     *

@@ -15,6 +15,10 @@
 *
 *       Name: Lorin Matthews
 *       Contact: Lorin_Matthews@baylor.edu
+*		Last contribution: 3/01/2018
+*		Added adaptive time steps for ions
+*       Last Contribution: 02/19/2018
+*		Added dust motion.
 *       Last Contribution: 11/20/2017
 *		Added in variables for cylindrical simulation region.  See addition
 *		of variables RAD_CYL_DEBYE, HT_CYL_DEBYE, RAD_CYL, RAD_CYL_SQRD,
@@ -143,6 +147,10 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_dust-charge.txt";
 	std::ofstream dustChargeFile(fileName.c_str());
 	
+	// open an output file for tracing dust positions throughout the simulation
+	fileName = dataDirName + runName + "_dust-pos-trace.txt";
+	std::ofstream dustTraceFile(fileName.c_str());
+	
 	// open an output file for outputting the input parameters 
 	fileName = dataDirName + runName + "_params.txt";
 	std::ofstream paramOutFile(fileName.c_str());
@@ -227,7 +235,10 @@ int main(int argc, char* argv[])
     const float ELC_MASS = 9.10938356e-31;
     
     // Coulomb's constant 
-    const float COULOMB_CONST = 8.99e9;
+    const float COULOMB_CONST = 8.988e9;
+	
+	// maximum depth for adaptive time step
+	const int MAX_DEPTH = 8;
 
 	if (debugMode)
 	{
@@ -239,6 +250,7 @@ int main(int argc, char* argv[])
             << "DIM_BLOCK:      " << DIM_BLOCK       << '\n'
             << "ELC_MASS:       " << ELC_MASS        << '\n'
             << "COULOMB_CONST:  " << COULOMB_CONST   << '\n'
+			<< "MAX_DEPTH:      " << MAX_DEPTH       << '\n'
             << "WARP_SIZE:      " << WARP_SIZE       << '\n' << '\n';
         debugFile.flush();   
 	}
@@ -374,7 +386,7 @@ int main(int argc, char* argv[])
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
 		(CHARGE_ION / MASS_ION) / (PERM_FREE_SPACE);
 
-	// a constant multiplier to acceraltion due to electric field
+	// a constant multiplier to acceleration due to electric field
 	// outside the cylindrical simulation bounds
 	const float Q_DIV_M = CHARGE_ION / MASS_ION;
 
@@ -385,8 +397,12 @@ int main(int argc, char* argv[])
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;	
 		
     // the electron current to an uncharged dust grain
-    const float ELC_CUERENT_0 = 4 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+    const float ELC_CURRENT_0 = 4 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
         CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2 * PI * ELC_MASS));
+
+    // the electron temperature in eV is the plasma potential for this
+	// model, which excludes the electrons from the calculations
+    const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
     
 	if (debugMode)
 	{
@@ -407,18 +423,18 @@ int main(int argc, char* argv[])
             << "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
             << "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
             << "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
-	    << "GEOMETRY          " << GEOMETRY          << '\n' 
-	    << "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
+			<< "GEOMETRY          " << GEOMETRY          << '\n' 
+			<< "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
             << "HT_CYL_DEBYE      " << HT_CYL_DEBYE      << '\n'
-	    << "P10X     	  " << P10X	         << '\n'
-	    << "P12X     	  " << P12X	         << '\n'
-	    << "P14X     	  " << P14X	         << '\n'
-	    << "P01Z     	  " << P01Z	         << '\n'
-	    << "P21Z     	  " << P21Z	         << '\n'
-	    << "P03Z     	  " << P03Z	         << '\n'
-	    << "P23Z     	  " << P23Z	         << '\n'
-	    << "P05Z     	  " << P05Z	         << '\n'
-<< '\n';
+			<< "P10X     	  " << P10X	         << '\n'
+			<< "P12X     	  " << P12X	         << '\n'
+			<< "P14X     	  " << P14X	         << '\n'
+			<< "P01Z     	  " << P01Z	         << '\n'
+			<< "P21Z     	  " << P21Z	         << '\n'
+			<< "P03Z     	  " << P03Z	         << '\n'
+			<< "P23Z     	  " << P23Z	         << '\n'
+			<< "P05Z     	  " << P05Z	         << '\n'
+			<< '\n';
 
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -429,7 +445,8 @@ int main(int argc, char* argv[])
             << "SIM_VOLUME    "   << SIM_VOLUME    << '\n'
             << "SOUND_SPEED   "   << SOUND_SPEED   << '\n'
             << "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
-            << "ELC_CUERENT_0 "   << ELC_CUERENT_0 << '\n'
+            << "ELC_CURRENT_0 "   << ELC_CURRENT_0 << '\n'
+            << "ELC_TEMP_EV   "   << ELC_TEMP_EV << '\n'
             << "MASS_DUST     "   << MASS_DUST     << '\n' << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
@@ -442,7 +459,7 @@ int main(int argc, char* argv[])
             << "INV_DEBYE         " << INV_DEBYE         << '\n'
             << "SOFT_RAD_SQRD     " << SOFT_RAD_SQRD     << '\n'
             << "RAD_SIM_SQRD      " << RAD_SIM_SQRD      << '\n'
-		 << "RAD_CYL_SQRD      " << RAD_CYL_SQRD      << '\n'
+			<< "RAD_CYL_SQRD      " << RAD_CYL_SQRD      << '\n'
             << "HALF_TIME_STEP    " << HALF_TIME_STEP    << '\n'
             << "ION_ION_ACC_MULT  " << ION_ION_ACC_MULT  << '\n'
             << "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
@@ -478,24 +495,24 @@ int main(int argc, char* argv[])
         << std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
         << std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
         << std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
- 	<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
+		<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
         << std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
         << std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
         << std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
         << std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
-	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
-	<< std::setw(14) << P10X              << " % P10X"              << '\n'
-	<< std::setw(14) << P12X              << " % P12X"              << '\n'
-	<< std::setw(14) << P14X              << " % P14X"              << '\n'
-	<< std::setw(14) << P01Z              << " % P01Z"              << '\n'
-	<< std::setw(14) << P21Z              << " % P21Z"              << '\n'
-	<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
-	<< std::setw(14) << P23Z              << " % P23Z"              << '\n'
-	<< std::setw(14) << P05Z              << " % P05Z"              << '\n'
-	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
+		<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
+		<< std::setw(14) << P10X              << " % P10X"              << '\n'
+		<< std::setw(14) << P12X              << " % P12X"              << '\n'
+		<< std::setw(14) << P14X              << " % P14X"              << '\n'
+		<< std::setw(14) << P01Z              << " % P01Z"              << '\n'
+		<< std::setw(14) << P21Z              << " % P21Z"              << '\n'
+		<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
+		<< std::setw(14) << P23Z              << " % P23Z"              << '\n'
+		<< std::setw(14) << P05Z              << " % P05Z"              << '\n'
+		<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
         << std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
         << std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
-        << std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"	<< '\n'
+        << std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
         << std::setw(14) << MASS_DUST         << " % MASS_DUST"         << '\n'
         << std::setw(14) << SUPER_ION_MULT    << " % SUPER_ION_MULT"    << '\n'
         << std::setw(14) << CHARGE_ION        << " % CHARGE_ION"        << '\n'
@@ -503,13 +520,13 @@ int main(int argc, char* argv[])
         << std::setw(14) << INV_DEBYE         << " % INV_DEBYE"         << '\n'
         << std::setw(14) << SOFT_RAD_SQRD     << " % SOFT_RAD_SQRD"     << '\n'
         << std::setw(14) << RAD_SIM_SQRD      << " % RAD_SIM_SQRD"      << '\n'
-	<< std::setw(14) << RAD_CYL_SQRD      << " % RAD_CYL_SQRD"      << '\n'
+		<< std::setw(14) << RAD_CYL_SQRD      << " % RAD_CYL_SQRD"      << '\n'
         << std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
         << std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
         << std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
         << std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
         << std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
-        << std::setw(14) << Q_DIV_M	      << " % Q_DIV_M"    	<< '\n';
+        << std::setw(14) << Q_DIV_M	      	  << " % Q_DIV_M"    		<< '\n';
         
     paramOutFile.flush();
 	
@@ -517,8 +534,10 @@ int main(int argc, char* argv[])
 	     Dust Parameters
 	*************************/
 
-	// pointer for dust positions
+	// pointer for dust positions,velcoties, and accels
 	float3* posDust = NULL;
+	float3* velDust = NULL;
+	float3* accDust = NULL;
 	// pointer for dust charges;
 	float* chargeDust = NULL;
 
@@ -555,6 +574,9 @@ int main(int argc, char* argv[])
 		// allocate memory for the dust variables 
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
+		// 02/14/2018 LSM
+		velDust = (float3*)malloc(memFloat3Dust);
+		accDust = (float3*)malloc(memFloat3Dust);
 		
 		// clear the end of file error flag
 		dustParamFile.clear();
@@ -594,6 +616,24 @@ int main(int argc, char* argv[])
 		
 		chargeDust[i] *= CHARGE_ELC;
 	}
+	
+	// 02/14/2018 LSM
+	// initialize the dust velocities and accelerations to zero
+	for (int i = 0; i < NUM_DUST; i++)
+	{
+		velDust[i].x = 0;
+		velDust[i].y = 0;
+		velDust[i].z = 0;
+		accDust[i].x = 0;
+		accDust[i].y = 0;
+		accDust[i].z = 0;
+	}
+	
+	// 02/14/2018 LSM
+	// a constant multiplier for the radial dust acceleration due to
+	// external confinement  
+	const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
+	
 
 	if(GEOMETRY ==0) {
 	// check if any of the dust particles are 
@@ -677,116 +717,33 @@ int main(int argc, char* argv[])
 		timestepFile >> line;
 
 		// convert the command to an int
-		if (line == "CD-leapfrog") {
-			commands[i] = 1;
-			
-		} else if (line == "CD-ion-ion-acc") {
+		if (line == "TR-ion-pos") {
+			commands[i] = 1;		
+						
+		} else if (line == "TR-ion-vel") {
 			commands[i] = 2;
 			
-		} else if (line == "CD-ion-dust-acc") {
-			if (NUM_DUST > 0){
-				commands[i] = 3;
-			} else {
-				fprintf(stderr, "ERROR: cannot 'CD-ion-dust-acc'");
-                fprintf(stderr, " without a dust particle");
-				fatalError();
-			}
-			
-		} else if (line == "CD-extrn-ion-acc") {
-			commands[i] = 4;
-			
-		} else if (line == "CP-ion-pos") {
-			commands[i] = 5;
-			
-		} else if (line == "TR-ion-pos") {
-			commands[i] = 6;
-			
-		} else if (line == "CP-ion-acc") {
-			commands[i] = 7;
-			
 		} else if (line == "TR-ion-acc") {
-			commands[i] = 8;
-			
-		} else if (line == "CP-ion-vel") {
-			commands[i] = 9;
-			
-		} else if (line == "TR-ion-vel") {
-			commands[i] = 10;
-			
-		} else if (line == "CD-ion-cavity-bounds") {
-			commands[i] = 11;
-			
-		} else if (line == "CD-ion-dust-bounds") {
-			if (NUM_DUST > 0){	
-				commands[i] = 12;
-			} else {
-			fprintf(stderr, "ERROR: cannot 'CD-ion-dust-bounds' ");
-                	fprintf(stderr, "without a dust particle");
-				fatalError();
-			}
-			
-		} else if (line == "CD-inject-ions") {
-			commands[i] = 13;
-			
-		} else if (line == "CD-reset-ion-bounds") {
-			commands[i] = 14;
+			commands[i] = 3;
 			
 		} else if (line == "CH-charge-dust") {
-			if (NUM_DUST > 0){	
-				commands[i] = 15;
+			if (NUM_DUST > 0){
+				commands[i] = 4;
 			} else {
 				fprintf(stderr, "ERROR: cannot 'CH-charge-dust'");
                 fprintf(stderr, " without a dust particle");
 				fatalError();
 			}
 			
-		} else if (line == "CP-ion-bounds") {
-				commands[i] = 16;
-				
-		} else if (line == "PS-charge-dust") {
-			if (NUM_DUST > 0){	
-				commands[i] = 17;
+		} else if (line == "CH-move-dust") {
+			if (NUM_DUST > 0){
+				commands[i] = 5;
 			} else {
-				fprintf(stderr, "ERROR: cannot 'PS-charge-dust'");
+				fprintf(stderr, "ERROR: cannot 'CH-move-dust'");
                 fprintf(stderr, " without a dust particle");
 				fatalError();
 			}
 			
-		} else if (line == "CP-charge-dust") {
-			if (NUM_DUST > 0){	
-				commands[i] = 18;
-			} else {
-				fprintf(stderr, "ERROR: cannot 'CP-charge-dust'");
-                fprintf(stderr, " without a dust particle");
-				fatalError();
-			}
-			
-		} else if (line == "TR-dust-charge") {
-			if (NUM_DUST > 0){	
-				commands[i] = 19;
-			} else {
-				fprintf(stderr, "ERROR: cannot 'TR-dust-charge'");
-				fprintf(stderr, " without a dust particle");
-                fatalError();
-			}
-			
-		} else if (line == "CH-ion-dust-current") {
-			if (NUM_DUST > 0){	
-				commands[i] = 20;
-			} else {
-			   fprintf(stderr, "ERROR: cannot 'CH-ion-dust-current'");
-                fprintf(stderr, " without a dust particle");
-				fatalError();
-			}
-			
-		} else if (line == "TR-ion-current") {
-			if (NUM_DUST > 0){	
-				commands[i] = 21;
-			} else {
-			     fprintf(stderr, "ERROR: cannot 'TR-ion-current'");
-                fprintf(stderr, " without a dust particle");
-				fatalError();
-			}
 			
 		} else {
 			// if the command does not exist give an error message
@@ -804,27 +761,12 @@ int main(int argc, char* argv[])
 		debugFile << "-- Time Step Commands --" << std::endl;
 
 		debugFile << "Commands: " << '\n'
-            << "1:  CD-leapfrog" << '\n'
-            << "2:  CD-ion-ion-acc" << '\n'
-            << "3:  CD-ion-dust-acc"  << '\n'
-            << "4:  CD-extern-ion-acc" << '\n'
-            << "5:  CP-ion-pos" << '\n'
-            << "6:  TR-ion-pos" << '\n'
-            << "7:  CP-ion-acc" << '\n'
-            << "8:  TR-ion-acc" << '\n'
-            << "9:  CP-ion-vel" << '\n'
-            << "10: TR-ion-vel" << '\n'
-            << "11: CD-ion-cavity-bounds" << '\n'
-            << "12: CD-ion-dust-bounds" << '\n'
-            << "13: CD-inject-ions" << '\n'
-            << "14: CD-reset-ion-bounds" << '\n'
-            << "15: CH-charge-dust" << '\n'
-            << "16: CP-ion-bounds" << '\n'
-            << "17: PS-charge-dust" << '\n'
-            << "18: CP-charge-dust" << '\n'
-            << "19: TR-dust-charge" << '\n'
-            << "20: CH-ion-dust-current" << '\n'
-            << "21: TR-ion-current" << '\n';
+		    << "1:  TR-ion-pos" << '\n'
+            << "2:  TR-ion-vel" << '\n'
+            << "3:  TR-ion-acc"  << '\n'
+            << "4:  CH-charge-dust" << '\n'
+            << "5:  CH-move-dust" << '\n';
+			
 		debugFile << "--------------------" << std::endl;
 
 		debugFile << "Number of commands: " << numCommands << std::endl;
@@ -863,13 +805,28 @@ int main(int argc, char* argv[])
     
     // allocate memory for the ion accelerations 
 	float3* accIon = (float3*)malloc(memFloat3Ion);
+	
+	// allocate memory for ion accel due to dust
+	float3* accIonDust = (float3*)malloc(memFloat3Ion);
 
 	// allocate memory for the ion bounds flag
 	int* boundsIon = (int*)malloc(NUM_ION * sizeof(int));
+	
+	// allocate memory for the ion adaptive timestep depth
+	int* m = (int*)malloc(NUM_ION * sizeof(int));
+	
+	// allocate memory for the timestep factor for adaptive timestep
+	int* timeStepFactor = (int*)malloc(NUM_ION * sizeof(int));
+	
+	// allocate memory for the closest dust particle
+	float* minDistDust = (float*)malloc(NUM_ION * sizeof(float));
 
-	// set all ions to in-bounds
+	// set all ions to in-bounds, minDistDust to large number
 	for (int i = 0; i < NUM_ION; i++){
 		boundsIon[i] = 0;
+		minDistDust[i] = 1000;
+		m[i] = 0;
+		timeStepFactor[i] = 1;
 	}
 	
 	// allocate memory for the ion current to each dust particle
@@ -905,7 +862,7 @@ int main(int argc, char* argv[])
 		randNum = (((rand() % (number*2)) - number) / (float)number);
 		posIon[i].z = randNum * RAD_SIM;
         // calculate the distance from the ion to the center of the 
-        // simulation sphre
+        // simulation sphere
 		dist = posIon[i].x * posIon[i].x + 
 		       posIon[i].y * posIon[i].y +
 		       posIon[i].z * posIon[i].z;
@@ -967,6 +924,10 @@ int main(int argc, char* argv[])
 		accIon[i].x = 0;
 		accIon[i].y = 0;
 		accIon[i].z = 0;
+		// set the initial IonDust acceleration to 0
+		accIonDust[i].x = 0;
+		accIonDust[i].y = 0;
+		accIonDust[i].z = 0;
 	}	
 
 	if (debugMode)
@@ -981,8 +942,13 @@ int main(int argc, char* argv[])
             << "velIon     " << sizeof(*velIon) * NUM_ION << '\n'
             << "posIon     " << sizeof(*posIon) * NUM_ION << '\n'
             << "accIon     " << sizeof(*accIon) * NUM_ION << '\n'
+		<< "accIonDust " << sizeof(*accIonDust) * NUM_ION << '\n'
             << "boundsIon  " << sizeof(*boundsIon) * NUM_ION << '\n'
-            << "ionCurrent " << sizeof(*ionCurrent) * NUM_DUST << '\n' << '\n';
+            << "m          " << sizeof(*m) * NUM_ION << '\n'
+	    << "timeStepFactor   " << sizeof(*timeStepFactor) * NUM_ION << '\n' 
+		<< "minDistDust" << sizeof(*minDistDust) * NUM_ION << '\n'
+		<< "ionCurrent " << sizeof(*ionCurrent) * NUM_DUST << '\n' 
+		<< '\n';
         
 		debugFile << "-- Initial Host Variables --" << std::endl;
         
@@ -1042,6 +1008,7 @@ int main(int argc, char* argv[])
     constCUDAvar<int> d_NUM_ION(&NUM_ION, 1);
     constCUDAvar<int> d_NUM_DUST(&NUM_DUST, 1);
     constCUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
+	constCUDAvar<float> d_RAD_DUST(&RAD_DUST, 1);
     constCUDAvar<float> d_RAD_DUST_SQRD(&RAD_DUST_SQRD, 1);
     constCUDAvar<float> d_SOFT_RAD_SQRD(&SOFT_RAD_SQRD, 1);
     constCUDAvar<float> d_RAD_SIM(&RAD_SIM, 1);
@@ -1058,6 +1025,7 @@ int main(int argc, char* argv[])
     constCUDAvar<float> d_P23Z(&P23Z, 1);
     constCUDAvar<float> d_P05Z(&P05Z, 1);
     
+	constCUDAvar<float> d_TIME_STEP(&TIME_STEP, 1);
     constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
     constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
     constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
@@ -1071,6 +1039,8 @@ int main(int argc, char* argv[])
     constCUDAvar<float> d_MACH(&MACH, 1);
     constCUDAvar<float> d_MASS_SINGLE_ION(&MASS_SINGLE_ION, 1);
     constCUDAvar<float> d_BOLTZMANN(&BOLTZMANN, 1);
+	constCUDAvar<int> d_MAX_DEPTH(&MAX_DEPTH, 1);
+	
     
     // create device pointers 
     CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1081,7 +1051,11 @@ int main(int argc, char* argv[])
     CUDAvar<float3> d_posIon(posIon, NUM_ION);
 	CUDAvar<float3> d_velIon(velIon, NUM_ION);
 	CUDAvar<float3> d_accIon(accIon, NUM_ION);
+	CUDAvar<float3> d_accIonDust(accIonDust, NUM_ION);
 	CUDAvar<float3> d_posDust(posDust, NUM_DUST);
+	CUDAvar<int> d_m(m, NUM_ION);
+	CUDAvar<int> d_timeStepFactor(timeStepFactor, NUM_ION);
+	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
     CUDAvar<curandState_t> randStates(NUM_ION);
 
 	// Copy over values 
@@ -1091,9 +1065,13 @@ int main(int argc, char* argv[])
     d_GCOM.hostToDev();
     d_chargeDust.hostToDev();
     d_posIon.hostToDev();
-	d_velIon.hostToDev();
-	d_accIon.hostToDev();
-	d_posDust.hostToDev();
+    d_velIon.hostToDev();
+    d_accIon.hostToDev();
+    d_accIonDust.hostToDev();
+    d_posDust.hostToDev();
+    d_m.hostToDev();
+    d_timeStepFactor.hostToDev();
+    d_minDistDust.hostToDev();
     
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> 
@@ -1175,312 +1153,11 @@ int main(int argc, char* argv[])
         fatalError();
 	}
     
-    // time step
-    for (int i = 1; i <= NUM_TIME_STEP; i++)
-	{
-    
-        // print the time step number to the status file 
-		statusFile << i << ": ";
-    
-        // loop over all of the commands for each time step
-		for (int j = 0; j < numCommands; j++) {
-            
-			// perform a leapfrog integration
-			if (commands[j] == 1) {
-                
-                // print command number to status file 
-				statusFile << "1 ";
-    
-				// perform a leapfrog integration for the ions 
-				leapfrog_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				   (d_posIon.getDevPtr(), 
-                    d_velIon.getDevPtr(), 
-                    d_accIon.getDevPtr(), 
-                    d_HALF_TIME_STEP.getDevPtr());
-    
-				// check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "kernel launch failed: leapfrog\n");
-					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-    
-				// synchronize threads and check for errors
-				cudaStatus = cudaDeviceSynchronize();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: leapfrog");
-					fprintf(stderr, "Error code: %d\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}                
-			}
-    
-			// calculate the acceleration due to ion-ion interactions
-			else if (commands[j] == 2){
-				
-                // print the command number to the status file 
-				statusFile << "2 ";
-    
-				// calculate the forces between all ions
-				calcIonIonAcc_102 
-                    <<< blocksPerGridIon, 
-                        DIM_BLOCK, 
-                        sizeof(float3) * DIM_BLOCK >>>
-                       (d_posIon.getDevPtr(), 
-                        d_accIon.getDevPtr(), 
-                        d_NUM_ION.getDevPtr(), 
-                        d_SOFT_RAD_SQRD.getDevPtr(), 
-                        d_ION_ION_ACC_MULT.getDevPtr(), 
-                        d_INV_DEBYE.getDevPtr());
-    
-                // check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "kernel launch failed: calcIonIonAcc\n");
-					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-    
-				// synchronize threads and check for errors
-				cudaStatus = cudaDeviceSynchronize();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: calcIonIonAcc");
-					fprintf(stderr, "Error code: %d\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				} 
-			}
-    
-			// calculate the acceleration due to ion-dust interactions
-			else if (commands[j] == 3){
-				
-                // print the command number to the status file 
-				statusFile << "3 ";
-    
-				// calculate ion dust accelerations
-				calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> 
-                       (d_posIon.getDevPtr(), 
-                        d_accIon.getDevPtr(), 
-                        d_posDust.getDevPtr(),
-                        d_NUM_ION.getDevPtr(),
-                        d_NUM_DUST.getDevPtr(), 
-                        d_SOFT_RAD_SQRD.getDevPtr(), 
-                        d_ION_DUST_ACC_MULT.getDevPtr(), 
-                        d_INV_DEBYE.getDevPtr(), 
-                        d_chargeDust.getDevPtr());
-    
-                // check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, 
-                        "Kernel launch failed: calcIonDustAcc\n");
-					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-    
-				// synchronize threads and check for errors
-				cudaStatus = cudaDeviceSynchronize();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: calcIonDustAcc");
-					fprintf(stderr, "Error code: %d\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				} 
-			}
-			
-			// calculate the ion accelerations due to the ions outside of 
-            // the simulation cavity
-			else if (commands[j] == 4) {
-				
-                // print the command number to the status file 
-				statusFile << "4 ";
-    
-			       if(GEOMETRY == 0) {
-				 // calculate the forces between all ions
-				 calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				   (d_accIon.getDevPtr(), 
-                                    d_posIon.getDevPtr(),
-                                    d_EXTERN_ELC_MULT.getDevPtr(),
-                                    d_INV_DEBYE.getDevPtr());
-				}
-				if(GEOMETRY == 1) {
-				 // calculate the forces between all ions
-				 calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				   (d_accIon.getDevPtr(), 
-                                    d_posIon.getDevPtr(),
-                                    d_Q_DIV_M.getDevPtr(),
-                                    d_P10X.getDevPtr(),
-                                    d_P12X.getDevPtr(),
-                                    d_P14X.getDevPtr(),
-                                    d_P01Z.getDevPtr(),
-                                    d_P21Z.getDevPtr(),
-                                    d_P03Z.getDevPtr(),
-                                    d_P23Z.getDevPtr(),
-                                    d_P05Z.getDevPtr());
-				}
-
-    
-                // check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, 
-                        "Kernel launch failed: calcExtrnElcAcc\n");
-					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-    
-				// synchronize threads and check for errors
-				cudaStatus = cudaDeviceSynchronize();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
-					fprintf(stderr, "Error code: %d\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				} 				
-			}
-			
-			// copy ion positions to the host
-			else if (commands[j] == 5) {
-				
-                // print the command number to the status file 
-				statusFile << "5 ";
-    
-				// copy ion positions to host
-				d_posIon.devToHost();
-			}
-    
-			// print the position of an ion to the trace file
-			else if (commands[j] == 6) {
-				
-                // print the command number to the status file 
-				statusFile << "6 ";
-    
-				// print the position of the specified ion to the trace file
-				traceFile << posIon[ionTraceIndex].x;
-				traceFile << ", " << posIon[ionTraceIndex].y;
-				traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
-			}
-    
-			// copy the ion accelerations to the host
-			else if (commands[j] == 7) {
-                
-                // print the command number to the status file 
-				statusFile << "7 ";
-    
-				// copy ion accelerations to host
-				d_accIon.devToHost();
-			}
-    
-			// print the acceleration of an ion to the trace file 
-			else if (commands[j] == 8) {
-                
-                // print the command number to the status file 
-				statusFile << "8 ";
-    
-				// print the acceleration of the specified ion to the trace file
-				traceFile << accIon[ionTraceIndex].x;
-				traceFile << ", " << accIon[ionTraceIndex].y;
-				traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
-			}
-    
-			// copy the ion velocities to the host
-			else if (commands[j] == 9) {
-				
-				statusFile << "9 ";
-    
-				// copy ion velocities to host
-				d_velIon.devToHost();
-			}
-    
-			// print the velocity of an ion to the trace file 
-			else if (commands[j] == 10) {
-				
-                // print the command number to the status file 
-				statusFile << "10 ";
-    
-				// print the velocity of the specified ion to the trace file
-				traceFile << velIon[ionTraceIndex].x;
-				traceFile << ", " << velIon[ionTraceIndex].y;
-				traceFile << ", " << velIon[ionTraceIndex].z << std::endl;
-			}
-			
-			// check if any ions are outside of the simulation sphere
-			else if (commands[j] == 11){
-				
-                // print the command number to the status file 
-				statusFile << "11 ";
-				
-                if(GEOMETRY == 0) {
-                    // check if any ions are outside of the simulation sphere
-                    checkIonSphereBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
-                          (d_posIon.getDevPtr(), 
-                           d_boundsIon.getDevPtr(), 
-                           d_RAD_SIM_SQRD.getDevPtr());
-                   }
-
-                if(GEOMETRY == 1) {
-                    // check if any ions are outside of the simulation cylinder
-                    checkIonCylinderBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
-                          (d_posIon.getDevPtr(), 
-                           d_boundsIon.getDevPtr(), 
-                           d_RAD_CYL_SQRD.getDevPtr(),
-                d_HT_CYL.getDevPtr());
-		       }
-
-    
-                // check for any errors launching the kernel
-				cudaStatus = cudaGetLastError();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, 
-                        "Kernel launch failed: checkIonSphereBounds\n");
-					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-    
-				// synchronize threads and check for errors
-				cudaStatus = cudaDeviceSynchronize();
-				if (cudaStatus != cudaSuccess) {
-                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                        __LINE__, __FILE__);
-                    fprintf(stderr, "Kernel failed: checkIonSphereBounds");
-					fprintf(stderr, "Error code: %d\n", cudaStatus);
-                    // terminate the program
-                    fatalError();
-				}
-			}
-			
-			// check if any ions are inside of a dust particle
-			else if (commands[j] == 12) {
-                
-                // print the command number to the status file 
-				statusFile << "12 ";
-				
-				// check if any ions are inside a dust particle 
-				checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+	/***********************  TIME STEP STARTS HERE ********************/
+	/**** Before TS: initialize accelerations and kick for 1/2 step ***/
+	
+		//First make sure that no ions are inside dust
+			checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
                        (d_posIon.getDevPtr(),
                         d_boundsIon.getDevPtr(),
                         d_RAD_DUST_SQRD.getDevPtr(),
@@ -1509,15 +1186,385 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
+				
+		statusFile << "init: checkIonDustBounds " << std::endl;
+		//inject ions on the boundary
+		if(GEOMETRY == 0) {
+                    
+            // inject ions into the simulation sphere 
+            injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                    (d_posIon.getDevPtr(),
+                    d_velIon.getDevPtr(),
+                    d_accIon.getDevPtr(),
+                    randStates.getDevPtr(),
+                    d_RAD_SIM.getDevPtr(),
+                    d_boundsIon.getDevPtr(),
+                    d_GCOM.getDevPtr(),
+                    d_QCOM.getDevPtr(),
+                    d_VCOM.getDevPtr(),
+                    d_NUM_DIV_QTH.getDevPtr(),
+                    d_NUM_DIV_VEL.getDevPtr(),
+                    d_SOUND_SPEED.getDevPtr(),
+                    d_TEMP_ION.getDevPtr(),
+                    d_PI.getDevPtr(),
+                    d_TEMP_ELC.getDevPtr(),
+                    d_MACH.getDevPtr(),
+                    d_MASS_SINGLE_ION.getDevPtr(),
+                    d_BOLTZMANN.getDevPtr());
+        }
+
+        if(GEOMETRY == 1) {
+                    
+            // inject ions into the simulation sphere 
+            injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                    (d_posIon.getDevPtr(),
+                    d_velIon.getDevPtr(),
+                    d_accIon.getDevPtr(),
+                    randStates.getDevPtr(),
+                    d_RAD_CYL.getDevPtr(),
+                    d_HT_CYL.getDevPtr(),
+                    d_boundsIon.getDevPtr(),
+                    d_GCOM.getDevPtr(),
+                    d_QCOM.getDevPtr(),
+                    d_VCOM.getDevPtr(),
+                    d_NUM_DIV_QTH.getDevPtr(),
+                    d_NUM_DIV_VEL.getDevPtr(),
+                    d_SOUND_SPEED.getDevPtr(),
+                    d_TEMP_ION.getDevPtr(),
+                    d_PI.getDevPtr(),
+                    d_TEMP_ELC.getDevPtr(),
+                    d_MACH.getDevPtr(),
+                    d_MASS_SINGLE_ION.getDevPtr(),
+                    d_BOLTZMANN.getDevPtr());
+        }
+    
+	            // check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, 
+                        "Kernel launch failed: injectIonCavityBounds\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+    
+				// synchronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: injectIonCavityBounds");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+			
+			
+		statusFile << "init: checkIonSimBounds " << std::endl;
+			// reset the ion bounds flag to 0 
+				resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+                    (d_boundsIon.getDevPtr());
+    
+	            // check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, 
+                        "Kernel launch failed: checkIonSphereBounds\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+    
+				// synchronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: checkIonSphereBounds");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+				
+		statusFile << "init: resetIonSimBounds " << std::endl;
+		//Calculate ion-ion forcest 
+		//Ions inside the simulation region
+		// calculate the acceleration due to ion-ion interactions	 
+		calcIonIonAcc_102 
+            <<< blocksPerGridIon, 
+                DIM_BLOCK, 
+                sizeof(float3) * DIM_BLOCK >>>
+                (d_posIon.getDevPtr(), 
+                d_accIon.getDevPtr(), 
+                d_NUM_ION.getDevPtr(), 
+                d_SOFT_RAD_SQRD.getDevPtr(), 
+                d_ION_ION_ACC_MULT.getDevPtr(), 
+                d_INV_DEBYE.getDevPtr());
+    
+            // check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: calcIonIonAcc\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+    
+			// synchronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcIonIonAcc");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				} 
+			
+		statusFile << "init: calcIonIonForces" << std::endl;
+		// Calculate the ion accelerations due to the ions outside of 
+        // the simulation cavity			
+        if(GEOMETRY == 0) {
+			// calculate the forces between all ions
+			calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                    d_posIon.getDevPtr(),
+                    d_EXTERN_ELC_MULT.getDevPtr(),
+                    d_INV_DEBYE.getDevPtr());
+		}
+		if(GEOMETRY == 1) {
+			// calculate the forces between all ions
+			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                        d_posIon.getDevPtr(),
+                        d_Q_DIV_M.getDevPtr(),
+                        d_P10X.getDevPtr(),
+                        d_P12X.getDevPtr(),
+                        d_P14X.getDevPtr(),
+                        d_P01Z.getDevPtr(),
+                        d_P21Z.getDevPtr(),
+                        d_P03Z.getDevPtr(),
+                        d_P23Z.getDevPtr(),
+                        d_P05Z.getDevPtr());
+		}
+
+    
+            // check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                fprintf(stderr, 
+                        "Kernel launch failed: calcExtrnElcAcc\n");
+				fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                // terminate the program
+                fatalError();
+			}
+    
+			// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			} 				
+			
+		statusFile << "init: calcIonExtrnForce" << std::endl;
+	//Any other external forces acting on ions would be calc'd here
+		
+		// Kick for 1/2 a timestep -- using just ion-ion accels
+			kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+                    (d_velIon.getDevPtr(),
+                    d_accIon.getDevPtr(),
+                    d_HALF_TIME_STEP.getDevPtr()); //lsm 1.23.18
+
+			// check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: leapfrog\n");
+			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			}
+				 
+			// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
+			fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			}
+		statusFile << "init: kick 1/2 timestep" << std::endl;
+		
+		// calculate the acceleration due to ion-dust interactions
+		// also save the distance to the closest dust particle for each ion
+		calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> 
+                       (d_posIon.getDevPtr(), 
+                        d_accIonDust.getDevPtr(), 
+                        d_posDust.getDevPtr(),
+                        d_NUM_ION.getDevPtr(),
+                        d_NUM_DUST.getDevPtr(), 
+                        d_SOFT_RAD_SQRD.getDevPtr(), 
+                        d_ION_DUST_ACC_MULT.getDevPtr(), 
+                        d_chargeDust.getDevPtr(),
+			d_minDistDust.getDevPtr());
+    
+			// check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: calcIonDustAcc_102\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			}
+				 
+			// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcIonDustAcc_102");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
 			}
 			
-			// inject ions on the boundary
-			else if (commands[j] == 13){
-                
-                // print the command number to the status file 
-				statusFile << "13 ";
-		
-                if(GEOMETRY == 0) {
+		statusFile << "init: calcIonDustAcc" << std::endl;
+
+    // time step
+    for (int i = 1; i <= NUM_TIME_STEP; i++)
+	{
+		statusFile << "In the timestep loop " << std::endl; 
+        // print the time step number to the status file 
+		statusFile << i << ": "; 
+			
+		//Select the time step depth
+		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_velIon.getDevPtr(), 
+			d_minDistDust.getDevPtr(),
+			d_RAD_DUST.getDevPtr(),
+			d_TIME_STEP.getDevPtr(),
+			d_MAX_DEPTH.getDevPtr(),
+			d_m.getDevPtr(),
+			d_timeStepFactor.getDevPtr());
+	
+		// check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: select_100\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			}
+				 
+		// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: select_100");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			} 
+			
+		statusFile << "completed Select_100" << std::endl; 
+		// copy ion m_value to host
+		//d_m.devToHost();
+		//d_timeStepFactor.devToHost();
+
+		//debugFile << "First 20 ion m values: " << std::endl;
+		//for (int ii = 0; ii < 20; ii++)
+		//{
+	//		debugFile << "m: " << m[ii] << 
+	//			   "tsf: " << timeStepFactor[ii] << std::endl;
+	//	}
+
+			//KDK using just the ion-dust acceleration for s^m iterations
+		if(GEOMETRY ==0) {	
+			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+				(d_posIon.getDevPtr(), 
+				d_velIon.getDevPtr(),
+				d_accIonDust.getDevPtr(),
+				d_m.getDevPtr(),
+				d_timeStepFactor.getDevPtr(),
+				d_boundsIon.getDevPtr(),
+				d_TIME_STEP.getDevPtr(),
+				GEOMETRY,
+				d_RAD_SIM_SQRD.getDevPtr(),
+				NULL,
+				d_RAD_DUST_SQRD.getDevPtr(),
+				d_NUM_DUST.getDevPtr(),
+				d_posDust.getDevPtr(),
+				d_NUM_ION.getDevPtr(),
+				d_SOFT_RAD_SQRD.getDevPtr(),
+				d_ION_DUST_ACC_MULT.getDevPtr(),
+				d_chargeDust.getDevPtr());
+		}
+		if(GEOMETRY ==1){
+			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+				(d_posIon.getDevPtr(), 
+				d_velIon.getDevPtr(),
+				d_accIonDust.getDevPtr(),
+				d_m.getDevPtr(),
+				d_timeStepFactor.getDevPtr(),
+				d_boundsIon.getDevPtr(),
+				d_TIME_STEP.getDevPtr(),
+				GEOMETRY,
+				d_RAD_CYL_SQRD.getDevPtr(),
+				d_HT_CYL.getDevPtr(),
+				d_RAD_DUST_SQRD.getDevPtr(),
+				d_NUM_DUST.getDevPtr(),
+				d_posDust.getDevPtr(),
+				d_NUM_ION.getDevPtr(),
+				d_SOFT_RAD_SQRD.getDevPtr(),
+				d_ION_DUST_ACC_MULT.getDevPtr(),
+				d_chargeDust.getDevPtr());
+		}
+	
+			// check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: select_100\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			}
+				 
+		// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: KDK_100");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			} 		
+
+		statusFile << "completed KDK_100" << std::endl; 
+	// inject ions on the boundary
+            if(GEOMETRY == 0) {
                     
                 // inject ions into the simulation sphere 
                 injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
@@ -1588,15 +1635,291 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
-			}
+		
 			
-			// reset the ion bounds flag to 0
-			else if (commands[j] == 14) {
+		//Loop over optional commands
+		for(int j = 0; j < numCommands; j++){
+			
+			// copy ion positions to the host
+			if (commands[j] == 1) {
+				
+                // print the command number to the status file 
+				statusFile << "1 ";
+    
+				// copy ion positions to host
+				d_posIon.devToHost();
+			
+				// print the position of the specified ion to the trace file
+				traceFile << posIon[ionTraceIndex].x;
+				traceFile << ", " << posIon[ionTraceIndex].y;
+				traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
+			}
+    			// copy the ion velocities to the host
+			else if (commands[j] == 2) {
+				
+				statusFile << "2 ";
+    
+				// copy ion velocities to host
+				d_velIon.devToHost();
+			// print the velocity of the specified ion to the trace file
+				traceFile << velIon[ionTraceIndex].x;
+				traceFile << ", " << velIon[ionTraceIndex].y;
+				traceFile << ", " << velIon[ionTraceIndex].z << std::endl;
+			}
+			// copy the ion accelerations to the host
+			else if (commands[j] == 3) {
                 
                 // print the command number to the status file 
-				statusFile << "14 ";
+				statusFile << "3 ";
+    
+				// copy ion accelerations to host
+				d_accIon.devToHost();
+			// print the acceleration of the specified ion to the trace file
+				traceFile << accIon[ionTraceIndex].x;
+				traceFile << ", " << accIon[ionTraceIndex].y;
+				traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
+			}
+    
+			// update the charge on the dust grains 
+			else if (commands[j] == 4) {
+				// copy ion bounds to host
+				d_boundsIon.devToHost();
 				
-				// reset the ion bounds flag to 0 
+				// copy dust charge to host
+				d_chargeDust.devToHost();
+				
+				// calculate the ion currents to the dust particles 
+				// set initial currents to 0
+				for (int i = 0; i < NUM_DUST; i++){
+					ionCurrent[i] = 0;
+				}
+				
+				// loop over all of the ion bounds 
+				for (int i = 0; i < NUM_ION; i++){
+					// if the ion was collected by a dust particle 
+					if (boundsIon[i] > 0){
+						// increase the current to that dust particle by 1
+						ionCurrent[boundsIon[i] - 1] += 1;
+					}
+				}
+			
+                // Update charge on dust
+                for (int g = 0; g < NUM_DUST; g++) {
+                    
+                    // calculate the dust grain potential wrt plasma potential
+                    dustPotential = (COULOMB_CONST*chargeDust[g] / RAD_DUST) 
+                                        - ELC_TEMP_EV;
+                    
+                    // calculate the electron current to the dust
+                    elcCurrent = ELC_CURRENT_0 * TIME_STEP * 
+                                 exp((-1) * CHARGE_ELC * dustPotential / 
+                                 (BOLTZMANN * TEMP_ELC));
+                    
+                    // add current to dust charge
+                    chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+                }
+				
+				// copy the dust charge to the GPU
+				d_chargeDust.hostToDev();
+				
+				// print all the dust charges to the trace file
+				for (int k = 0; k < NUM_DUST; k++){
+					dustChargeFile << chargeDust[k];
+					dustChargeFile << ", ";
+				}
+				dustChargeFile << std::endl;
+				
+				// print the ion current to the first dust particle to 
+                // the trace file 
+				//traceFile << ionCurrent[0] << std::endl;
+			}
+			
+			//move the dust
+			else if (commands[j] == 5) {
+				/***************************************************************/
+				// 02/14/2018 LSM
+				// update dust positions every 10 timesteps
+				//Thus dust timestep = 10*TIME_STEP
+				if ( i % 10 == 0 )
+				{
+		
+				// copy the dust positions to the host
+				d_posDust.devToHost();    
+    
+				for (int j =0; j< NUM_DUST; j++) {
+		
+					//print vel and acc before the timestep
+					dustTraceFile << "Before the dust timestep" << std::endl;
+					dustTraceFile << velDust[j].x;
+					dustTraceFile << ", " << velDust[j].y;
+					dustTraceFile << ", " << velDust[j].z;
+					dustTraceFile << ", " << accDust[j].x;
+					dustTraceFile << ", " << accDust[j].y;
+					dustTraceFile << ", " << accDust[j].z << std::endl;
+			
+					//kick half a  time step 	
+					velDust[j].x += accDust[j].x * 5 * TIME_STEP;
+					velDust[j].y += accDust[j].y * 5 * TIME_STEP;
+					velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+			
+					// drift a whole step
+					posDust[j].x += velDust[j].x * 10 * TIME_STEP;
+					posDust[j].y += velDust[j].y * 10 * TIME_STEP;
+					posDust[j].z += velDust[j].z * 10 * TIME_STEP;
+					
+					// CHECK TO SEE IF ANY IONS INSIDE A DUST GRAIN
+					
+					// zero the acceleration
+					accDust[j].x = 0;
+					accDust[j].y = 0;
+					accDust[j].z = 0;
+
+					// calculate acceleration of the dust
+					//radial acceleration from confinement
+					accDust[j].x -= OMEGA2 * chargeDust[j] * posDust[j].x;
+					accDust[j].y -= OMEGA2 * chargeDust[j] * posDust[j].y;
+			
+					//vertical acceleration from confinement, with softening
+					if( abs(posDust[j].z) > 4 * DEBYE ){
+					accDust[j].z -= OMEGA2 * chargeDust[j] * posDust[j].z;
+					}		
+			
+					// forces between the dust grains
+			
+					// forces from ions inside simulation
+					
+					// forces from ions outside simulation region
+					
+					// drag force
+		
+					//kick half a  time step 	
+					velDust[j].x += accDust[j].x * 5 * TIME_STEP;
+					velDust[j].y += accDust[j].y * 5 * TIME_STEP;
+					velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+			
+					// print the dust position to the dustPosTrace file
+					dustTraceFile << "After the dust timestep" << std::endl;
+					dustTraceFile << posDust[j].x;
+					dustTraceFile << ", " << posDust[j].y;
+					dustTraceFile << ", " << posDust[j].z;
+					dustTraceFile << ", " << velDust[j].x;
+					dustTraceFile << ", " << velDust[j].y;
+					dustTraceFile << ", " << velDust[j].z;
+					dustTraceFile << ", " << accDust[j].x;
+					dustTraceFile << ", " << accDust[j].y;
+					dustTraceFile << ", " << accDust[j].z << std::endl;
+		
+				} //end of for loop over dust particles
+			} // End of dust timestep
+		
+			// copy the dust charge to the GPU
+			d_posDust.hostToDev();
+
+			/*********************************************************/
+			}
+			// if the command number does not exist throw an error
+			else {
+				
+				// output an error message
+				fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                   __LINE__, __FILE__);
+				fprintf(stderr, "Command number %d of %d does not exist\n\n", 
+                   commands[j], j);
+				   				// terminate the program 
+				fatalError();
+			}
+                
+		}
+		
+	//Calculate ion-ion forces 
+		//Ions inside the simulation region
+		// calculate the acceleration due to ion-ion interactions	 
+		calcIonIonAcc_102 
+            <<< blocksPerGridIon, 
+                DIM_BLOCK, 
+                sizeof(float3) * DIM_BLOCK >>>
+                (d_posIon.getDevPtr(), 
+                d_accIon.getDevPtr(), 
+                d_NUM_ION.getDevPtr(), 
+                d_SOFT_RAD_SQRD.getDevPtr(), 
+                d_ION_ION_ACC_MULT.getDevPtr(), 
+                d_INV_DEBYE.getDevPtr());
+    
+            // check for any errors launching the kernel
+				cudaStatus = cudaGetLastError();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: calcIonIonAcc\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				}
+    
+			// synchronize threads and check for errors
+				cudaStatus = cudaDeviceSynchronize();
+				if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcIonIonAcc");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+				} 
+			
+	// Calculate the ion accelerations due to the ions outside of 
+        // the simulation cavity			
+        if(GEOMETRY == 0) {
+			// calculate the forces between all ions
+			calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                    d_posIon.getDevPtr(),
+                    d_EXTERN_ELC_MULT.getDevPtr(),
+                    d_INV_DEBYE.getDevPtr());
+		}
+		if(GEOMETRY == 1) {
+			// calculate the forces between all ions
+			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
+				   (d_accIon.getDevPtr(), 
+                        d_posIon.getDevPtr(),
+                        d_Q_DIV_M.getDevPtr(),
+                        d_P10X.getDevPtr(),
+                        d_P12X.getDevPtr(),
+                        d_P14X.getDevPtr(),
+                        d_P01Z.getDevPtr(),
+                        d_P21Z.getDevPtr(),
+                        d_P03Z.getDevPtr(),
+                        d_P23Z.getDevPtr(),
+                        d_P05Z.getDevPtr());
+		}
+
+    
+            // check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                fprintf(stderr, 
+                        "Kernel launch failed: calcExtrnElcAcc\n");
+				fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                // terminate the program
+                fatalError();
+			}
+    
+			// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
+			} 				
+			
+	//Any other external forces acting on ions would be calc'd here
+		
+	// reset the ion bounds flag to 0 
 				resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
                     (d_boundsIon.getDevPtr());
     
@@ -1622,125 +1945,46 @@ int main(int argc, char* argv[])
                     // terminate the program
                     fatalError();
 				}
+				
+	// Kick for one timestep -- using just ion-ion accels
+			kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
+                    (d_velIon.getDevPtr(),
+                    d_accIon.getDevPtr(),
+                    d_TIME_STEP.getDevPtr()); //lsm 1.23.18
+
+			// check for any errors launching the kernel
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "kernel launch failed: leapfrog\n");
+					fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
 			}
-    
-			// update the charge on the dust grains 
-			else if (commands[j] == 15) {
-                
-                for (int g = 0; g < NUM_DUST; g++) {
-                    
-                    // calculate the dust grain potential
-                    dustPotential = (COULOMB_CONST*chargeDust[g] / RAD_DUST) 
-                                        - 2.5;
-                    
-                    // calculate the electron current to the dust
-                    elcCurrent = ELC_CUERENT_0 * TIME_STEP * 
-                                 exp((-1) * CHARGE_ELC * dustPotential / 
-                                 (BOLTZMANN * TEMP_ELC));
-                    
-                    // add current to dust charge
-                    chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
-                }
-                
+				 
+			// synchronize threads and check for errors
+			cudaStatus = cudaDeviceSynchronize();
+			if (cudaStatus != cudaSuccess) {
+                    fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                        __LINE__, __FILE__);
+                    fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
+					fprintf(stderr, "Error code: %d\n", cudaStatus);
+                    // terminate the program
+                    fatalError();
 			}
-			
-			// copy d_ionBounds to the host
-			else if (commands[j] == 16) {
-				
-                // print the command number to the status file 
-				statusFile << "16 ";
-				
-				// copy ion bounds to host
-				d_boundsIon.devToHost();
-			}
-			
-			// copy the dust charge to the device 
-			else if (commands[j] == 17){
-				
-                // print the command number to the status file 
-				statusFile << "17 ";
-				
-				// copy the dust charge to the GPU
-				d_chargeDust.hostToDev();
-			}
-			
-			// copy dust charge to the host
-			else if (commands[j] == 18){
-				
-                // print the command number to the status file 
-				statusFile << "18 ";
-				
-				// copy dust charge to host
-				d_chargeDust.devToHost();
-			}
-			
-			// print the dust charge to the trace file 
-			else if (commands[j] == 19) {
-                
-                // print the command number to the status file 
-				statusFile << "19 ";
-    
-				// print all the dust charges to the trace file
-				for (int k = 0; k < NUM_DUST; k++){
-					traceFile << chargeDust[k];
-					traceFile << ", ";
-				}
-				traceFile << std::endl;
-			}
-    
-			// calculate the ion currents to the dust particles 
-			else if (commands[j] == 20) {
-				
-                // print the command number to the status file 
-                statusFile << "20 ";
-                
-				// set initial currents to 0
-				for (int i = 0; i < NUM_DUST; i++){
-					ionCurrent[i] = 0;
-				}
-				
-				// loop over all of the ion bounds 
-				for (int i = 0; i < NUM_ION; i++){
-					// if the ion was collected by a dust particle 
-					if (boundsIon[i] > 0){
-						// increase the current to that dust particle by 1
-						ionCurrent[boundsIon[i] - 1] += 1;
-					}
-				}
-			}
-			
-			// print the ion current to a dust particle to the trace file 
-			else if (commands[j] == 21) {
-                
-                // print the command number to the status file 
-                statusFile << "21 ";
-                
-                // print the ion current to the first dust particle to 
-                // the trace file 
-				traceFile << ionCurrent[0] << std::endl;
-			}
-				
-			// if the command number does not exist throw an error
-			else {
-				
-				// output an error message
-				fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                    __LINE__, __FILE__);
-				fprintf(stderr, "Command number %d of %d does not exist\n\n", 
-                    commands[j], j);
-    
-				// terminate the program 
-				fatalError();
-			}
-		}
-    
+		
+ 			
 		statusFile << "|" << std::endl;
+		
     
 	} // end time step
 	
+	/*****************************  TIME STEP ENDS HERE *********************/
+	
 	if (debugMode)
 	{
-		// print the index of the traced ion to the debuging file
+		// print the index of the traced ion to the debugging file
 		debugFile << "Single ion trace index: " << ionTraceIndex << "\n\n";
 	}
     
@@ -1878,6 +2122,7 @@ int main(int argc, char* argv[])
     d_NUM_ION.compare();
     d_NUM_DUST.compare();
     d_INV_DEBYE.compare();
+	d_RAD_DUST.compare();
     d_RAD_DUST_SQRD.compare();
     d_SOFT_RAD_SQRD.compare();
     d_RAD_SIM.compare();
@@ -1906,18 +2151,24 @@ int main(int argc, char* argv[])
     d_P23Z.compare();
     d_P05Z.compare();
     d_Q_DIV_M.compare();
+	d_MAX_DEPTH.compare();
 	
 	/**********************
 	      free memory 
 	**********************/
 	
     free(posDust);
+	free(velDust);
+	free(accDust);
     free(chargeDust);
     free(commands);
     free(posIon);
     free(velIon);
     free(accIon);
     free(boundsIon);
+	free(m);
+	free(timeStepFactor);
+	free(minDistDust);
 	delete[] ionCurrent;
 	
 	/*************************
@@ -1934,6 +2185,7 @@ int main(int argc, char* argv[])
 	statusFile.close();
 	ionPosFile.close();
 	dustPosFile.close();
+	dustTraceFile.close();
 	dustChargeFile.close();
 	paramOutFile.close();
 	
