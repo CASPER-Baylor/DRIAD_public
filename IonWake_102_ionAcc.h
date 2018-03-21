@@ -192,54 +192,6 @@ __device__ void calcIonDustAcc_102_dev(
 		const float*, 
 		const float*);
 			
-/*
-* Name: calcIonDustAcc_102_dev
-* Created: 3/17/2018
-*
-* Editors
-*	Name: Lorin Matthews
-*	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 3/17/2018
-*
-* Description:
-*	Calculates the ion accelerations due to ion-dust interactions 
-*
-* Input:
-*	d_posIon: the positions of the ions
-*	d_accIon: the accelerations of the ions
-*	d_posDust: the dust particle positions
-*	d_NUM_ION: the number of ions
-*	d_NUM_DUST: the number of dust particles
-*	d_SOFT_RAD_SQRD: the squared softening radius squared
-*	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
-*   d_chargeDust: the charge on the dust particles 
-*
-* Output (void):
-*	d_accIon: the acceleration due to all the dust particles
-*		is added to the initial ion acceleration
-*
-* Assumptions:
-*	All inputs are real values
-*	All ions and dust particles have the parameters specified in the creation 
-*		of the d_ION_ION_ACC_MULT value
-*   The potential due to the dust particle is a bare coulomb potential
-*   The number of ions is a multiple of the block size
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-__device__ void calcIonDustAcc_102_dev(
-		float3*, 
-		float3*, 
-        float3*,
-		int* const,
-        int* const, 
-		float* const, 
-		float* const, 
-		float* const);
-		
     /*
     * calcExtrnElcAcc_102
     *

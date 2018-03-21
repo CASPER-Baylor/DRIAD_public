@@ -279,7 +279,7 @@ __global__ void checkIonDustBounds_101(
 __device__ void checkIonSphereBounds_101_dev
       (float3* d_posIon, 
 		int* d_boundsIon,
-		float* const d_RAD_SIM_SQRD){
+		const float* d_RAD_SIM_SQRD){
 	
 	// distance
 	float dist;
@@ -338,8 +338,8 @@ __device__ void checkIonSphereBounds_101_dev
 __device__ void checkIonCylinderBounds_101_dev
        (float3* d_posIon, 
 		int* d_boundsIon,
-		float* const d_RAD_CYL_SQRD,
-		float* const d_HT_CYL){
+		const float* d_RAD_CYL_SQRD,
+		const float* d_HT_CYL){
 	
 	// distance
 	float dist;
@@ -395,8 +395,8 @@ __device__ void checkIonCylinderBounds_101_dev
 __device__ void checkIonDustBounds_101_dev(
 		float3* d_posIon, 
 		int* d_boundsIon,
-		float* const d_RAD_DUST_SQRD,
-		int* const d_NUM_DUST,
+		const float* d_RAD_DUST_SQRD,
+		const int* d_NUM_DUST,
 		float3* const d_posDust){
 	
 	// distance

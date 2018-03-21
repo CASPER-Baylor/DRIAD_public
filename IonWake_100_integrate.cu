@@ -302,15 +302,15 @@ __global__ void KDK_100
 		kick_dev(vel+threadID, acc+threadID, half_ts); 
 	
 	// now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
-		while(d_boundsIon[threadID] ==0){
-			for (int depth = 1; depth <= tsf; depth++){
+		for (int depth = 1; depth <= tsf; depth++){
+		if(d_boundsIon[threadID] ==0){
 
 			drift_dev(pos+threadID,vel+threadID,ts);
 	
 			//Check outside bounds
 			if(GEOMETRY == 0) {
                     // check if any ions are outside of the simulation sphere
-                    checkIonSphereBounds_101_dev 
+			checkIonSphereBounds_101_dev
                           (pos+threadID, d_boundsIon+threadID, d_bndry_sqrd);
                    }
 
@@ -328,14 +328,14 @@ __global__ void KDK_100
 		// Calc IonDust accels
 		// calculate the acceleration due to ion-dust interactions
 				calcIonDustAcc_102_dev
-                       (&pos[threadID], 
-                        &acc[threadID],
-                        *d_posDust,
-                        *d_NUM_ION,
-                        *d_NUM_DUST, 
-                        *d_SOFT_RAD_SQRD, 
-                        *d_ION_DUST_ACC_MULT, 
-                        *d_chargeDust);
+                       (pos+threadID, 
+                        acc+threadID,
+                        d_posDust,
+                        d_NUM_ION,
+                        d_NUM_DUST, 
+                        d_SOFT_RAD_SQRD, 
+                        d_ION_DUST_ACC_MULT, 
+                        d_chargeDust);
     
 		// Kick with IonDust accels for deltat/2^(m-1)
 			if(depth == tsf){
@@ -346,8 +346,8 @@ __global__ void KDK_100
 				kick_dev(vel+threadID, acc+threadID, ts);
 			}
 
-		} //end for loop over depth
-	 }// end while dust in bounds
+		} //end if ion in bounds
+	 }// end for loop over depth
 		
 		
 	 }

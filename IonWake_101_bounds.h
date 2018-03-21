@@ -213,8 +213,8 @@
 __global__ void checkIonCylinderBounds_101
        (float3* const,
                 int*,
-                float* const, 
-                float* const);
+                const float*, 
+                const float*);
 
 
 	
@@ -286,10 +286,10 @@ __global__ void checkIonCylinderBounds_101
 *
 */
 
-__device__ void checkIonSphereBounds_101_dev
-      (float3* const, 
+__device__ void checkIonSphereBounds_101_dev(
+      float3* const, 
 		int*,
-		float* const);
+		const float*);
 		
 /*
 * Name: checkIonCylinderBounds_101_dev
@@ -324,11 +324,11 @@ __device__ void checkIonSphereBounds_101_dev
 *	device_launch_parameters.h
 *
 */
-__device__ void checkIonCylinderBounds_101_dev
-       (float3* const, 
+__device__ void checkIonCylinderBounds_101_dev(
+       float3* const, 
 		int*,
-		float* const,
-		float* const);
+		const float*,
+		const float*);
 			
 /*
 * Name: checkIonDustBounds_101_dev
@@ -360,8 +360,8 @@ __device__ void checkIonCylinderBounds_101_dev
 __device__ void checkIonDustBounds_101_dev(
 		float3* const, 
 		int*,
-		float* const,
-		int* const,
+		const float*,
+		const int*,
 		float3* const);
 			
 /*
