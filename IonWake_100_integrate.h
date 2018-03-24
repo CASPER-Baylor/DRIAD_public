@@ -142,6 +142,7 @@ __global__ void select_100
 	const float*,
         const float*,
 	const int*,
+	const float*,
 	int*,
 	int*);
 	

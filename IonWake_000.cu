@@ -260,7 +260,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 26;
+	const int NUM_USER_PARAMS = 27;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -289,23 +289,24 @@ int main(int argc, char* argv[])
 	const float MACH = params[6];
 	const float SOFT_RAD = params[7];
 	const float RAD_DUST = params[8];
-	const float CHARGE_SINGLE_ION = params[9] * CHARGE_ELC;
-	const float TIME_STEP = params[10];
-	const int   NUM_TIME_STEP = params[11];
-	const int  GEOMETRY = params[12]; 
-	const float RAD_SIM_DEBYE = params[13];
-	const int   NUM_DIV_VEL = params[14];
-	const int   NUM_DIV_QTH = params[15];
-  	const float RAD_CYL_DEBYE = params[16];
-	const float HT_CYL_DEBYE = params[17];
-	const float P10X = params[18];
-	const float P12X = params[19];
-	const float P14X = params[20];
-	const float P01Z = params[21];
-	const float P21Z = params[22];
-	const float P03Z = params[23];
-	const float P23Z = params[24];
-	const float P05Z = params[25];
+	const float M_FACTOR = params[9];
+	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
+	const float TIME_STEP = params[11];
+	const int   NUM_TIME_STEP = params[12];
+	const int  GEOMETRY = params[13]; 
+	const float RAD_SIM_DEBYE = params[14];
+	const int   NUM_DIV_VEL = params[15];
+	const int   NUM_DIV_QTH = params[16];
+  	const float RAD_CYL_DEBYE = params[17];
+	const float HT_CYL_DEBYE = params[18];
+	const float P10X = params[19];
+	const float P12X = params[20];
+	const float P14X = params[21];
+	const float P01Z = params[22];
+	const float P21Z = params[23];
+	const float P03Z = params[24];
+	const float P23Z = params[25];
+	const float P05Z = params[26];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -417,6 +418,7 @@ int main(int argc, char* argv[])
             << "MACH              " << MACH              << '\n'
             << "SOFT_RAD          " << SOFT_RAD          << '\n'
             << "RAD_DUST          " << RAD_DUST          << '\n'
+			<< "M_FACTOR		  " << M_FACTOR 		 << '\n'
             << "CHARGE_SINGLE_ION " << CHARGE_SINGLE_ION << '\n'
             << "TIME_STEP         " << TIME_STEP         << '\n'
             << "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
@@ -489,6 +491,7 @@ int main(int argc, char* argv[])
         << std::setw(14) << MACH              << " % MACH"              << '\n'
         << std::setw(14) << SOFT_RAD          << " % SOFT_RAD"          << '\n'
         << std::setw(14) << RAD_DUST          << " % RAD_DUST"          << '\n'
+		<< std::setw(14) << M_FACTOR          << " % M_FACTOR"          << '\n'
         << std::setw(14) << CHARGE_SINGLE_ION << " % CHARGE_SINGLE_ION" << '\n'
         << std::setw(14) << TIME_STEP         << " % TIME_STEP"         << '\n'
         << std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
@@ -1011,6 +1014,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_RAD_DUST(&RAD_DUST, 1);
     constCUDAvar<float> d_RAD_DUST_SQRD(&RAD_DUST_SQRD, 1);
     constCUDAvar<float> d_SOFT_RAD_SQRD(&SOFT_RAD_SQRD, 1);
+	constCUDAvar<float> d_M_FACTOR(&M_FACTOR, 1);
     constCUDAvar<float> d_RAD_SIM(&RAD_SIM, 1);
     constCUDAvar<float> d_RAD_SIM_SQRD(&RAD_SIM_SQRD, 1);
     constCUDAvar<float> d_RAD_CYL(&RAD_CYL, 1);
@@ -1450,7 +1454,6 @@ int main(int argc, char* argv[])
     // time step
     for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-		statusFile << "In the timestep loop " << std::endl; 
         // print the time step number to the status file 
 		statusFile << i << ": "; 
 			
@@ -1461,6 +1464,7 @@ int main(int argc, char* argv[])
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
+			d_M_FACTOR.getDevPtr(),
 			d_m.getDevPtr(),
 			d_timeStepFactor.getDevPtr());
 	
@@ -1486,7 +1490,6 @@ int main(int argc, char* argv[])
                     fatalError();
 			} 
 			
-		statusFile << "completed Select_100" << std::endl; 
 		// copy ion m_value to host
 		//d_m.devToHost();
 		//d_timeStepFactor.devToHost();
@@ -1562,7 +1565,6 @@ int main(int argc, char* argv[])
                     fatalError();
 			} 		
 
-		statusFile << "completed KDK_100" << std::endl; 
 	// inject ions on the boundary
             if(GEOMETRY == 0) {
                     
@@ -1682,6 +1684,8 @@ int main(int argc, char* argv[])
     
 			// update the charge on the dust grains 
 			else if (commands[j] == 4) {
+                // print the command number to the status file 
+				statusFile << "3 ";
 				// copy ion bounds to host
 				d_boundsIon.devToHost();
 				
@@ -1703,21 +1707,21 @@ int main(int argc, char* argv[])
 					}
 				}
 			
-                // Update charge on dust
-                for (int g = 0; g < NUM_DUST; g++) {
-                    
-                    // calculate the dust grain potential wrt plasma potential
-                    dustPotential = (COULOMB_CONST*chargeDust[g] / RAD_DUST) 
-                                        - ELC_TEMP_EV;
-                    
-                    // calculate the electron current to the dust
-                    elcCurrent = ELC_CURRENT_0 * TIME_STEP * 
-                                 exp((-1) * CHARGE_ELC * dustPotential / 
-                                 (BOLTZMANN * TEMP_ELC));
-                    
-                    // add current to dust charge
-                    chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
-                }
+               // Update charge on dust
+               for (int g = 0; g < NUM_DUST; g++) {
+                   
+                   // calculate the dust grain potential wrt plasma potential
+                   dustPotential = (COULOMB_CONST*chargeDust[g] / RAD_DUST) 
+                                       - ELC_TEMP_EV;
+                   
+                   // calculate the electron current to the dust
+                   elcCurrent = ELC_CURRENT_0 * TIME_STEP * 
+                                exp((-1) * CHARGE_ELC * dustPotential / 
+                                (BOLTZMANN * TEMP_ELC));
+                   
+                   // add current to dust charge
+                   chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+               }
 				
 				// copy the dust charge to the GPU
 				d_chargeDust.hostToDev();
@@ -1736,100 +1740,102 @@ int main(int argc, char* argv[])
 			
 			//move the dust
 			else if (commands[j] == 5) {
-				/***************************************************************/
-				// 02/14/2018 LSM
-				// update dust positions every 10 timesteps
-				//Thus dust timestep = 10*TIME_STEP
-				if ( i % 10 == 0 )
-				{
-		
-				// copy the dust positions to the host
-				d_posDust.devToHost();    
+			/***************************************************************/
+			// 02/14/2018 LSM
+               // Print the command number to the status file 
+			statusFile << "3 ";
+			// update dust positions every 10 timesteps
+			//Thus dust timestep = 10*TIME_STEP
+			if ( i % 10 == 0 )
+			{
+	
+			// copy the dust positions to the host
+			d_posDust.devToHost();    
     
-				for (int j =0; j< NUM_DUST; j++) {
+			for (int j =0; j< NUM_DUST; j++) {
 		
-					//print vel and acc before the timestep
-					dustTraceFile << "Before the dust timestep" << std::endl;
-					dustTraceFile << velDust[j].x;
-					dustTraceFile << ", " << velDust[j].y;
-					dustTraceFile << ", " << velDust[j].z;
-					dustTraceFile << ", " << accDust[j].x;
-					dustTraceFile << ", " << accDust[j].y;
-					dustTraceFile << ", " << accDust[j].z << std::endl;
+				//print vel and acc before the timestep
+				dustTraceFile << "Before the dust timestep" << std::endl;
+				dustTraceFile << velDust[j].x;
+				dustTraceFile << ", " << velDust[j].y;
+				dustTraceFile << ", " << velDust[j].z;
+				dustTraceFile << ", " << accDust[j].x;
+				dustTraceFile << ", " << accDust[j].y;
+				dustTraceFile << ", " << accDust[j].z << std::endl;
 			
-					//kick half a  time step 	
-					velDust[j].x += accDust[j].x * 5 * TIME_STEP;
-					velDust[j].y += accDust[j].y * 5 * TIME_STEP;
-					velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+				//kick half a  time step 	
+				velDust[j].x += accDust[j].x * 5 * TIME_STEP;
+				velDust[j].y += accDust[j].y * 5 * TIME_STEP;
+				velDust[j].z += accDust[j].z * 5 * TIME_STEP;
 			
-					// drift a whole step
-					posDust[j].x += velDust[j].x * 10 * TIME_STEP;
-					posDust[j].y += velDust[j].y * 10 * TIME_STEP;
-					posDust[j].z += velDust[j].z * 10 * TIME_STEP;
+				// drift a whole step
+				posDust[j].x += velDust[j].x * 10 * TIME_STEP;
+				posDust[j].y += velDust[j].y * 10 * TIME_STEP;
+				posDust[j].z += velDust[j].z * 10 * TIME_STEP;
 					
-					// CHECK TO SEE IF ANY IONS INSIDE A DUST GRAIN
+				// CHECK TO SEE IF ANY IONS INSIDE A DUST GRAIN
 					
-					// zero the acceleration
-					accDust[j].x = 0;
-					accDust[j].y = 0;
-					accDust[j].z = 0;
+				// zero the acceleration
+				accDust[j].x = 0;
+				accDust[j].y = 0;
+				accDust[j].z = 0;
 
-					// calculate acceleration of the dust
-					//radial acceleration from confinement
-					accDust[j].x -= OMEGA2 * chargeDust[j] * posDust[j].x;
-					accDust[j].y -= OMEGA2 * chargeDust[j] * posDust[j].y;
-			
-					//vertical acceleration from confinement, with softening
-					if( abs(posDust[j].z) > 4 * DEBYE ){
-					accDust[j].z -= OMEGA2 * chargeDust[j] * posDust[j].z;
-					}		
-			
-					// forces between the dust grains
-			
-					// forces from ions inside simulation
+				// calculate acceleration of the dust
+				//radial acceleration from confinement
+				accDust[j].x -= OMEGA2 * chargeDust[j] * posDust[j].x;
+				accDust[j].y -= OMEGA2 * chargeDust[j] * posDust[j].y;
+		
+				//vertical acceleration from confinement, with softening
+				if( abs(posDust[j].z) > 4 * DEBYE ){
+				accDust[j].z -= OMEGA2 * chargeDust[j] * posDust[j].z;
+				}		
+		
+				// forces between the dust grains
+	
+				// forces from ions inside simulation
 					
-					// forces from ions outside simulation region
+				// forces from ions outside simulation region
 					
-					// drag force
+				// drag force
 		
-					//kick half a  time step 	
-					velDust[j].x += accDust[j].x * 5 * TIME_STEP;
-					velDust[j].y += accDust[j].y * 5 * TIME_STEP;
-					velDust[j].z += accDust[j].z * 5 * TIME_STEP;
-			
-					// print the dust position to the dustPosTrace file
-					dustTraceFile << "After the dust timestep" << std::endl;
-					dustTraceFile << posDust[j].x;
-					dustTraceFile << ", " << posDust[j].y;
-					dustTraceFile << ", " << posDust[j].z;
-					dustTraceFile << ", " << velDust[j].x;
-					dustTraceFile << ", " << velDust[j].y;
-					dustTraceFile << ", " << velDust[j].z;
-					dustTraceFile << ", " << accDust[j].x;
-					dustTraceFile << ", " << accDust[j].y;
-					dustTraceFile << ", " << accDust[j].z << std::endl;
-		
-				} //end of for loop over dust particles
-			} // End of dust timestep
-		
-			// copy the dust charge to the GPU
-			d_posDust.hostToDev();
+				//kick half a  time step 	
+				velDust[j].x += accDust[j].x * 5 * TIME_STEP;
+				velDust[j].y += accDust[j].y * 5 * TIME_STEP;
+				velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+	
+				// print the dust position to the dustPosTrace file
+				dustTraceFile << "After the dust timestep" << std::endl;
+				dustTraceFile << posDust[j].x;
+				dustTraceFile << ", " << posDust[j].y;
+				dustTraceFile << ", " << posDust[j].z;
+				dustTraceFile << ", " << velDust[j].x;
+				dustTraceFile << ", " << velDust[j].y;
+				dustTraceFile << ", " << velDust[j].z;
+				dustTraceFile << ", " << accDust[j].x;
+				dustTraceFile << ", " << accDust[j].y;
+				dustTraceFile << ", " << accDust[j].z << std::endl;
+	
+			} //end of for loop over dust particles
+		} // End of dust timestep
+	
+		// copy the dust charge to the GPU
+		d_posDust.hostToDev();
 
-			/*********************************************************/
-			}
-			// if the command number does not exist throw an error
-			else {
-				
-				// output an error message
-				fprintf(stderr, "ERROR on line number %d in file %s\n", 
-                   __LINE__, __FILE__);
-				fprintf(stderr, "Command number %d of %d does not exist\n\n", 
-                   commands[j], j);
-				   				// terminate the program 
-				fatalError();
-			}
-                
+		/*********************************************************/
 		}
+		// if the command number does not exist throw an error
+		else {
+			
+			// output an error message
+			fprintf(stderr, "ERROR on line number %d in file %s\n", 
+                   __LINE__, __FILE__);
+			fprintf(stderr, "Command number %d of %d does not exist\n\n", 
+                   commands[j], j);
+			// terminate the program 
+			fatalError();
+		}
+               
+	}
 		
 	//Calculate ion-ion forces 
 		//Ions inside the simulation region
@@ -2126,6 +2132,7 @@ int main(int argc, char* argv[])
     d_RAD_DUST_SQRD.compare();
     d_SOFT_RAD_SQRD.compare();
     d_RAD_SIM.compare();
+	d_M_FACTOR.compare();
     d_RAD_SIM_SQRD.compare();
     d_RAD_CYL.compare();
     d_RAD_CYL_SQRD.compare();

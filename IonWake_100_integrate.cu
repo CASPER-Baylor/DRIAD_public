@@ -156,6 +156,7 @@ __global__ void drift_100
 *   minDistDust: distance to closest dust grain
 *   d_RAD_DUST: radius of dust grains
 *	d_TIME_STEP: time step
+*   d_M_FACTOR: constant used in determining time step division
 *   d_MAX_DEPTH: maximum divisions of time step
 *
 * Output (void):
@@ -176,6 +177,7 @@ __global__ void select_100
 	const float* d_RAD_DUST,
         const float* d_TIME_STEP,
 	const int* d_MAX_DEPTH,
+	const float* d_M_FACTOR,
 	int* m,
 	int* tsFactor)
 {
@@ -189,7 +191,7 @@ __global__ void select_100
 	int tsf;
 
 	/* calculate timestep depth
-	* m = ceil(ln(30 * dT * v / (dist - dustRadius))/ln(2))
+	* m = ceil(ln(*d_M_FACTOR * dT * v / (dist - dustRadius))/ln(2))
 	*******************
 	* dT - time step
 	* v  - magnitude of velocity
@@ -684,6 +686,7 @@ __device__ void calcIonDustAcc_102_dev(
 	float distSquared;
 	float hardDist;
 	float linForce;
+        float softDistSqrd= 2.5e-13;
 
 	//reset the acceleration
 	d_accIon->x = 0;
@@ -703,7 +706,7 @@ __device__ void calcIonDustAcc_102_dev(
 			distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
 
 			// calculate the hard distance
-			hardDist = __fsqrt_rn(distSquared);
+			hardDist = __fsqrt_rn(distSquared + softDistSqrd);
 
 			// calculate a scaler intermediate
 			linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
