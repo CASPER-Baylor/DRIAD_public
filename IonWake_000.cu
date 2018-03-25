@@ -1371,7 +1371,7 @@ int main(int argc, char* argv[])
 	//Any other external forces acting on ions would be calc'd here
 		
 	// Kick for 1/2 a timestep -- using just ion-ion accels
-	<<< blocksPerGridIon, DIM_BLOCK >>>
+	kick_100<<< blocksPerGridIon, DIM_BLOCK >>>
     (d_velIon.getDevPtr(),
      d_accIon.getDevPtr(),
      d_HALF_TIME_STEP.getDevPtr()); //lsm 1.23.18
