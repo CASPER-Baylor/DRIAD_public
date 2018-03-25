@@ -191,7 +191,7 @@ __global__ void select_100
 	int tsf;
 
 	/* calculate timestep depth
-	* m = ceil(ln(*d_M_FACTOR * dT * v / (dist - dustRadius))/ln(2))
+	* m = ceil(ln(*d_M_FACTOR * dT * v / abs(dist - dustRadius))/ln(2))
 	*******************
 	* dT - time step
 	* v  - magnitude of velocity
@@ -304,9 +304,10 @@ __global__ void KDK_100
 		kick_dev(vel+threadID, acc+threadID, half_ts); 
 	
 	// now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
-		for (int depth = 1; depth <= tsf; depth++){
-		if(d_boundsIon[threadID] ==0){
-
+		int depth = 0;
+		while(d_boundsIon[threadID] == 0 & depth <= tsf){
+			
+			depth++;
 			drift_dev(pos+threadID,vel+threadID,ts);
 	
 			//Check outside bounds
@@ -327,7 +328,11 @@ __global__ void KDK_100
 			checkIonDustBounds_101_dev
                        (pos+threadID, d_boundsIon+threadID,
                         d_RAD_DUST_SQRD, d_NUM_DUST, d_posDust);
-		// Calc IonDust accels
+						
+			if(d_boundsIon[threadID] !=0){
+			break;
+			}
+			
 		// calculate the acceleration due to ion-dust interactions
 				calcIonDustAcc_102_dev
                        (pos+threadID, 
@@ -348,7 +353,6 @@ __global__ void KDK_100
 				kick_dev(vel+threadID, acc+threadID, ts);
 			}
 
-		} //end if ion in bounds
 	 }// end for loop over depth
 		
 		
