@@ -72,13 +72,17 @@ void fatalError() {
 	exit(-1);
 }
 
+// Declaration of the checkCudaError_000 function defined at the botom of
+// this file. Needs to be moved to another file at a later date. 
+void checkCudaError_000(cudaError_t status, int line, string file, string name);
+
 int main(int argc, char* argv[])
 {
 
 	/*************************
 		   open files
 	*************************/
-	
+
 	// directory name where program inputs are read from
 	std::string inputDirName = argv[1];
 	// directory name where data output is saved
@@ -2173,4 +2177,41 @@ int main(int argc, char* argv[])
 	
 	// exit
 	return 0;
-}   
+}
+
+/*
+* Name: checkCudaError_000
+* Description:
+*	Checks for a CUDA error. If one is found it displays an error
+*	mesage and kills the program.
+*
+* Input:
+*	status: the CUDA status to be checked for errors
+* 	line: the line number where the function is called from
+*	file: the file where the function is called from
+*	name: a name that will be associated with the error
+*
+* Output <void>:
+*	If a CUDA error is found the program will be terminated
+*	and an error mesage will be printed to stderr
+*
+* Assumptions:
+* 	status holds a variable of type cudaError_t
+*
+* Includes 
+* 	cuda_runtime.h
+*	device_launch_parameters.h	
+*
+*/
+
+void checkCudaError_000(cudaError_t status, int line, string file, string name) {
+	// check if there is a CUDA error
+	if (status != cudaSuccess) {
+		// print an error
+		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
+		fprintf(stderr, "Kernel launch failed: %s\n", name.c_str());
+		fprintf(stderr, "Error code : %s\n\n", status);
+		// terminate the program
+		fatalError();
+	}
+}
