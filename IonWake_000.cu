@@ -1143,13 +1143,7 @@ int main(int argc, char* argv[])
     
 	// synchronize threads and check for errors before entering timestep
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaStatus));
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "before time step");
     
 	/***********************  TIME STEP STARTS HERE ********************/
 	/**** Before TS: initialize accelerations and kick for 1/2 step ***/
