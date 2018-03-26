@@ -860,6 +860,9 @@ int main(int argc, char* argv[])
 	float distSquared;
 	float hardDist;
 	float linForce;
+	int N = 1000; //update dust pos'n every N ion timesteps
+	float dust_dt = N * 10 * TIME_STEP;
+	float half_dust_dt = dust_dt * 0.5;
 	
 	// loop over all the ions and initialize their velocity, acceleration,
     // and position
@@ -1467,8 +1470,10 @@ int main(int argc, char* argv[])
 	
     for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-        // print the time step number to the status file 
+        if ( i % 10 == 0 ){
+		// print the time step number to the status file 
 		statusFile << i << ": "; 
+		}
 			
 		//Select the time step depth
 		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1647,9 +1652,11 @@ int main(int argc, char* argv[])
 			// copy ion positions to the host
 			if (commands[j] == 1) {
 				
+				if ( i % 10 == 0 ){				
                 // print the command number to the status file 
 				statusFile << "1 ";
-    
+				}
+				
 				// copy ion positions to host
 				d_posIon.devToHost();
 			
@@ -1673,9 +1680,11 @@ int main(int argc, char* argv[])
 			// copy the ion accelerations to the host
 			else if (commands[j] == 3) {
                 
+				if ( i % 10 == 0 ){
                 // print the command number to the status file 
 				statusFile << "3 ";
-    
+				}
+				
 				// copy ion accelerations to host
 				d_accIon.devToHost();
 			// print the acceleration of the specified ion to the trace file
@@ -1686,8 +1695,10 @@ int main(int argc, char* argv[])
     
 			// update the charge on the dust grains 
 			else if (commands[j] == 4) {
+				if ( i % 10 == 0 ){
                 // print the command number to the status file 
 				statusFile << "4 ";
+				}
 				// copy ion bounds to host
 				d_boundsIon.devToHost();
 				
@@ -1743,14 +1754,15 @@ int main(int argc, char* argv[])
 			//move the dust
 			else if (commands[j] == 5) {
 			/***************************************************************/
-			// 02/14/2018 LSM
-               // Print the command number to the status file 
-			statusFile << "5 ";
-			// update dust positions every 100 timesteps
-			//Thus dust timestep = 100*TIME_STEP
-			if ( i % 1000 == 0 )
+
+			// update dust positions every N timesteps
+			//Thus dust timestep = N*TIME_STEP
+			if ( i % N == 0 )
 			{
-	
+			
+			// Print the command number to the status file 
+			statusFile << "5 ";
+			
 			// copy the dust positions to the host
 			d_posDust.devToHost();    
     
@@ -1766,14 +1778,14 @@ int main(int argc, char* argv[])
 		//	dustTraceFile << ", " << accDust[j].z << std::endl;
 		
 			//kick half a  time step 	
-			velDust[j].x += accDust[j].x * 5000 * TIME_STEP;
-			velDust[j].y += accDust[j].y * 5000 * TIME_STEP;
-			velDust[j].z += accDust[j].z * 5000 * TIME_STEP;
+			velDust[j].x += accDust[j].x * half_dust_dt;
+			velDust[j].y += accDust[j].y * half_dust_dt;
+			velDust[j].z += accDust[j].z * half_dust_dt;
 		
 			// drift a whole step
-			posDust[j].x += velDust[j].x * 10000 * TIME_STEP;
-			posDust[j].y += velDust[j].y * 10000 * TIME_STEP;
-			posDust[j].z += velDust[j].z * 10000 * TIME_STEP;
+			posDust[j].x += velDust[j].x * dust_dt;
+			posDust[j].y += velDust[j].y * dust_dt;
+			posDust[j].z += velDust[j].z * dust_dt;
 				
 			// CHECK TO SEE IF ANY IONS INSIDE A DUST GRAIN
 				
@@ -1799,8 +1811,8 @@ int main(int argc, char* argv[])
 			//dustTraceFile << ", " << accDust[j].z << std::endl;
 			
 			// forces between the dust grains
-			for(int g =0; g< NUM_DUST; g++){
-				if (j!=g){
+			for(int g =j+1; g< NUM_DUST; g++){
+
 			// calculate the distance between current dust grain 
 			//and all other grains
 			  distdd.x = posDust[j].x - posDust[g].x;
@@ -1817,11 +1829,15 @@ int main(int argc, char* argv[])
 			   linForce = DUST_DUST_ACC_MULT * chargeDust[j] * chargeDust[g] / 
                         (hardDist*hardDist*hardDist);
 
-			// add the acceleration to the current ion's acceleration
+			// add the acceleration to the current dust grain
 			  accDust[j].x += linForce * distdd.x;
 			  accDust[j].y += linForce * distdd.y;
 			  accDust[j].z += linForce * distdd.z;
-				}
+			// add -acceleration to other dust grain  
+			  accDust[g].x -= linForce * distdd.x;
+			  accDust[g].y -= linForce * distdd.y;
+			  accDust[g].z -= linForce * distdd.z;
+
 			}
 				// print the dust position to the dustPosTrace file
 				//dustTraceFile << "After accel calc" << std::endl;
@@ -1838,9 +1854,9 @@ int main(int argc, char* argv[])
 				// drag force
 		
 				//kick half a  time step 	
-				velDust[j].x += accDust[j].x * 5000 * TIME_STEP;
-				velDust[j].y += accDust[j].y * 5000 * TIME_STEP;
-				velDust[j].z += accDust[j].z * 5000* TIME_STEP;
+				velDust[j].x += accDust[j].x * half_dust_dt;
+				velDust[j].y += accDust[j].y * half_dust_dt;
+				velDust[j].z += accDust[j].z * half_dust_dt;
 	
 				// print the dust position to the dustPosTrace file
 	//		dustTraceFile << "After the dust timestep" << std::endl;
@@ -2020,7 +2036,9 @@ int main(int argc, char* argv[])
 			}
 		
  			
-		statusFile << "|" << std::endl;
+		if ( i % 10 == 0 )
+		{statusFile << "|" << std::endl;
+		}
 		
     
 	} // end time step
