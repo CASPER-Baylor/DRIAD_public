@@ -1,0 +1,53 @@
+To Run
+	Exicute: ./IonWake_EXE {Input Directory} {Output Directory} {Run Name}
+
+Input Files
+	params.txt
+		Contains general input parameters for the simulation. Such as the timestep length
+		and the radius of the dust particles.
+	dust-params.txt
+		Contains the initial positions and charges for the dust particles. 
+	timestep.txt
+		Is used to turn on and off several time step options.
+
+Timestep Options
+	TR-ion-pos
+		Prints a trace of an ion's position to the trace output file.
+	TR-ion-vel
+		Prints a trace of an ion's velocity to the trace output file.
+	TR-ion-acc
+		Prints a trace of an ion's acceleration to the trace output file.
+	CH-charge-dust
+		Allows the dust charge to be dynamicaly calculated.
+	CH-move-dust
+		Allows the dust potision, velocity, and acceleration to be 
+		dynamicaly calculated.
+ 
+Sample parameter values from params.txt
+	NUM_ION   		   60000
+    DEN_FAR_PLASMA     1e14
+    TEMP_ELC   		   29011
+    TEMP_ION   		   290
+    DEN_DUST   		   1510
+    MASS_SINGLE_ION    6.633521e-26
+    MACH   	  		   1.00
+    SOFT_RAD   		   1e-6
+    RAD_DUST   		   5e-6
+    CHARGE_SINGLE_ION -1
+    TIME_STEP   	   1.0e-8
+    NUM_TIME_STEP      200000
+    GEOMETRY	 	   0
+    RAD_SIM_DEBYE      1.5
+    NUM_VEL_DIV   	   50
+    NUM_QTH_DIV   	   100
+    RAD_CYL_DEBYE	   2.0
+    HT_CYL_DEBYE	   5.0
+    P10X	 		  -3.3064e5
+    P12X   			  -1.7962e9 
+    P14X	 		   1.6279e14
+    P01Z   			  -1917.3
+   	P21Z	 		  -2.4581e9 	
+  	P03Z			  -3.4150e8 
+ 	P23Z	 		   3.7472e14
+ 	P05Z	  		  -9.8550e13
+ 
