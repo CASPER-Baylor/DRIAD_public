@@ -1158,25 +1158,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-    	fprintf(stderr, "ERROR on line number %d in file %s\n", 
-        	__LINE__, __FILE__);
-        fprintf(stderr, "Kernel launch failed: checkIonSphereBounds\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-    	fprintf(stderr, "ERROR on line number %d in file %s\n", 
-        	 __LINE__, __FILE__);
-    	fprintf(stderr, "Kernel failed: checkIonSphereBounds");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 				
 	statusFile << "init: checkIonDustBounds " << std::endl;
 	
@@ -1232,25 +1218,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel launch failed: injectIonCavityBounds\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-        fprintf(stderr, "Kernel failed: injectIonCavityBounds");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 					
 	statusFile << "init: checkIonSimBounds " << std::endl;
 	
@@ -1260,25 +1232,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel launch failed: checkIonSphereBounds\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel failed: checkIonSphereBounds");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 				
 	statusFile << "init: resetIonSimBounds " << std::endl;
 
@@ -1295,25 +1253,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "kernel launch failed: calcIonIonAcc\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel failed: calcIonIonAcc");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	} 
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 			
 	statusFile << "init: calcIonIonForces" << std::endl;
 
@@ -1345,26 +1289,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-    	fprintf(stderr, "ERROR on line number %d in file %s\n", 
-        	__LINE__, __FILE__);
-        fprintf(stderr, "Kernel launch failed: calcExtrnElcAcc\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-    	fprintf(stderr, "ERROR on line number %d in file %s\n", 
-        	__LINE__, __FILE__);
-        fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-		// terminate the program
-        fatalError();
-	} 				
-			
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");		
 	statusFile << "init: calcIonExtrnForce" << std::endl;
 	//Any other external forces acting on ions would be calc'd here
 		
@@ -1376,25 +1305,11 @@ int main(int argc, char* argv[])
 
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "kernel launch failed: leapfrog\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 				 
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 	statusFile << "init: kick 1/2 timestep" << std::endl;
 
 	// calculate the acceleration due to ion-dust interactions
@@ -1412,26 +1327,11 @@ int main(int argc, char* argv[])
 
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "kernel launch failed: calcIonDustAcc_102\n");
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-		fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-		fprintf(stderr, "Kernel failed: calcIonDustAcc_102");
-		fprintf(stderr, "Error code: %d\n", cudaStatus);
-		// terminate the program
-		fatalError();
-	}
-
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 	statusFile << "init: calcIonDustAcc" << std::endl;
 	// time step
 	for (int i = 1; i <= NUM_TIME_STEP; i++)
@@ -1452,25 +1352,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "kernel launch failed: select_100\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: select_100");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		} 
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		statusFile << "completed Select_100" << std::endl; 
 
@@ -1529,26 +1415,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "kernel launch failed: select_100\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: KDK_100");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		} 		
-
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 		statusFile << "completed KDK_100" << std::endl; 
 		// inject ions on the boundary
 		if(GEOMETRY == 0) {
@@ -1601,26 +1472,12 @@ int main(int argc, char* argv[])
 		}
 
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, 
-			"Kernel launch failed: injectIonCavityBounds\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: injectIonCavityBounds");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+
 		//Loop over optional commands
 		for(int j = 0; j < numCommands; j++){
 		
@@ -1830,25 +1687,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "kernel launch failed: calcIonIonAcc\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: calcIonIonAcc");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		} 
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// Calculate the ion accelerations due to the ions outside of 
 		// the simulation cavity			
@@ -1878,26 +1721,11 @@ int main(int argc, char* argv[])
 				
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-			fprintf(stderr, 
-			"Kernel launch failed: calcExtrnElcAcc\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-			__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		} 				
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		//Any other external forces acting on ions would be calc'd here
 
@@ -1907,26 +1735,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, 
-			"Kernel launch failed: checkIonSphereBounds\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: checkIonSphereBounds");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// Kick for one timestep -- using just ion-ion accels
 		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1936,25 +1749,11 @@ int main(int argc, char* argv[])
 					
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "kernel launch failed: leapfrog\n");
-			fprintf(stderr, "Error code : %s\n\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		if (cudaStatus != cudaSuccess) {
-			fprintf(stderr, "ERROR on line number %d in file %s\n", 
-				__LINE__, __FILE__);
-			fprintf(stderr, "Kernel failed: calcExtrnElcAcc");
-			fprintf(stderr, "Error code: %d\n", cudaStatus);
-			// terminate the program
-			fatalError();
-		}
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
 
 
 	statusFile << "|" << std::endl;
@@ -1983,14 +1782,7 @@ int main(int argc, char* argv[])
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-        fprintf(stderr, "Unknown CUDA failure");
-        fprintf(stderr, "Error code: %d\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
     
 	// print final ion positions to the ionPosFile	
     // loop over all of the positions 
