@@ -1077,25 +1077,12 @@ int main(int argc, char* argv[])
     
 	// Check for any errors launching the init kernel
 	cudaStatus = cudaGetLastError();
-    if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "kernel launch failed: init\n");
-        // terminate the program
-        fatalError();
-	}
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch"); 
     
 	// cudaDeviceSynchronize waits for the kernel to finish, and returns 
 	// any errors encountered during the launch.
-	cudaStatus = cudaDeviceSynchronize();
-	if (cudaStatus != cudaSuccess) {
-        fprintf(stderr, "ERROR on line number %d in file %s\n", 
-            __LINE__, __FILE__);
-		fprintf(stderr, "Kernel failed: init");
-        fprintf(stderr, "Error code: %d\n", cudaStatus);
-        // terminate the program
-        fatalError();
-	}
+	cudaStatus = cudaDeviceSynchronize();	
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize"); 
 	
 	// initialize variables needed for injecting ions with the Piel 2017 method
     if(GEOMETRY == 0) {
@@ -1114,10 +1101,7 @@ int main(int argc, char* argv[])
 			d_GCOM.getDevPtr(),
 			debugMode,
 			debugFile);
-	}
-
-	// initialize variables needed for injecting ions with the Piel 2017 method
-    if(GEOMETRY == 1) {
+	} else if(GEOMETRY == 1) {	
 		initInjectIonCylinder_101(
 			NUM_DIV_QTH, 
 			NUM_DIV_VEL,
@@ -1143,7 +1127,7 @@ int main(int argc, char* argv[])
     
 	// synchronize threads and check for errors before entering timestep
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "before time step");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "syncronize");
     
 	/***********************  TIME STEP STARTS HERE ********************/
 	/**** Before TS: initialize accelerations and kick for 1/2 step ***/
@@ -1158,18 +1142,16 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 				
 	statusFile << "init: checkIonDustBounds " << std::endl;
 	
 	//inject ions on the boundary
 	if(GEOMETRY == 0) {
-                  
-	   // inject ions into the simulation sphere 
        injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
 		   (d_posIon.getDevPtr(),
             d_velIon.getDevPtr(),
@@ -1189,11 +1171,7 @@ int main(int argc, char* argv[])
             d_MACH.getDevPtr(),
             d_MASS_SINGLE_ION.getDevPtr(),
             d_BOLTZMANN.getDevPtr());
-   	}
-
-    if(GEOMETRY == 1) {
-                    
-		// inject ions into the simulation sphere 
+   	} else if(GEOMETRY == 1) {
         injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> 
             (d_posIon.getDevPtr(),
              d_velIon.getDevPtr(),
@@ -1218,11 +1196,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 					
 	statusFile << "init: checkIonSimBounds " << std::endl;
 	
@@ -1232,11 +1210,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 				
 	statusFile << "init: resetIonSimBounds " << std::endl;
 
@@ -1253,11 +1231,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 			
 	statusFile << "init: calcIonIonForces" << std::endl;
 
@@ -1289,11 +1267,11 @@ int main(int argc, char* argv[])
     
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");		
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");		
 	statusFile << "init: calcIonExtrnForce" << std::endl;
 	//Any other external forces acting on ions would be calc'd here
 		
@@ -1305,11 +1283,11 @@ int main(int argc, char* argv[])
 
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 				 
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 	statusFile << "init: kick 1/2 timestep" << std::endl;
 
 	// calculate the acceleration due to ion-dust interactions
@@ -1327,11 +1305,11 @@ int main(int argc, char* argv[])
 
 	// check for any errors launching the kernel
 	cudaStatus = cudaGetLastError();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 	statusFile << "init: calcIonDustAcc" << std::endl;
 	// time step
 	for (int i = 1; i <= NUM_TIME_STEP; i++)
@@ -1352,11 +1330,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 		statusFile << "completed Select_100" << std::endl; 
 
@@ -1415,11 +1393,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 		statusFile << "completed KDK_100" << std::endl; 
 		// inject ions on the boundary
 		if(GEOMETRY == 0) {
@@ -1472,11 +1450,11 @@ int main(int argc, char* argv[])
 		}
 
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
     
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 		//Loop over optional commands
 		for(int j = 0; j < numCommands; j++){
@@ -1687,11 +1665,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 		// Calculate the ion accelerations due to the ions outside of 
 		// the simulation cavity			
@@ -1721,11 +1699,11 @@ int main(int argc, char* argv[])
 				
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 		//Any other external forces acting on ions would be calc'd here
 
@@ -1735,11 +1713,11 @@ int main(int argc, char* argv[])
 
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 		// Kick for one timestep -- using just ion-ion accels
 		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1749,11 +1727,11 @@ int main(int argc, char* argv[])
 					
 		// check for any errors launching the kernel
 		cudaStatus = cudaGetLastError();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "kernel launch");
 
 		// synchronize threads and check for errors
 		cudaStatus = cudaDeviceSynchronize();
-		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+		checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
 
 
 	statusFile << "|" << std::endl;
@@ -1782,7 +1760,7 @@ int main(int argc, char* argv[])
     
 	// synchronize threads and check for errors
 	cudaStatus = cudaDeviceSynchronize();
-	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "checkIonDustBounds_101");
+	checkCudaError_000(cudaStatus, __LINE__, __FILE__, "synchronize");
     
 	// print final ion positions to the ionPosFile	
     // loop over all of the positions 
