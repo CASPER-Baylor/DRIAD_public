@@ -1020,7 +1020,7 @@ int main(int argc, char* argv[])
 
 	// initialize variables needed for injecting ions with the Piel 2017 method
 	if(GEOMETRY == 0) {
-		initInjectIonPiel_101(
+		initInjectIonSphere_101(
 			NUM_DIV_QTH,
 			NUM_DIV_VEL,
 			TEMP_ELC,
@@ -1075,8 +1075,11 @@ int main(int argc, char* argv[])
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", true);
 
 	//inject ions on the boundary
+	//polarity switching of electric field
+	//int FREQ = 500; //should be defined in parameter file
+	int xac = 0;
 	if(GEOMETRY == 0) {
-		injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_posIon.getDevPtr(),
 			d_velIon.getDevPtr(),
 			d_accIon.getDevPtr(),
@@ -1096,7 +1099,7 @@ int main(int argc, char* argv[])
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr());
 
-		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonPiel_101", true);
+		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonSphere_101", true);
 
 	} else if(GEOMETRY == 1) {
 		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1120,7 +1123,7 @@ int main(int argc, char* argv[])
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr());
 
-		roadBlock_000( statusFile, __LINE__, __FILE__, "ingectIonCylinder_101", true);
+		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", true);
 	}
 
 	// reset the ion bounds flag to 0
@@ -1271,9 +1274,12 @@ int main(int argc, char* argv[])
 		}
 
 		// inject ions on the boundary
+		//polarity switching of electric field
+		int FREQ = 500; //should be defined in parameter file
+		int xac = (floor(2*FREQ*i*TIME_STEP))%2;
 		if(GEOMETRY == 0) {
 			// inject ions into the simulation sphere
-			injectIonPiel_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+			injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_posIon.getDevPtr(),
 				d_velIon.getDevPtr(),
 				d_accIon.getDevPtr(),
@@ -1291,9 +1297,10 @@ int main(int argc, char* argv[])
 				d_TEMP_ELC.getDevPtr(),
 				d_MACH.getDevPtr(),
 				d_MASS_SINGLE_ION.getDevPtr(),
-				d_BOLTZMANN.getDevPtr());
+				d_BOLTZMANN.getDevPtr(),
+				xac);
 
-			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonPiel_101", true);
+			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", true);
 		} if(GEOMETRY == 1) {
 			// inject ions into the simulation sphere
 			injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1315,7 +1322,8 @@ int main(int argc, char* argv[])
 				d_TEMP_ELC.getDevPtr(),
 				d_MACH.getDevPtr(),
 				d_MASS_SINGLE_ION.getDevPtr(),
-				d_BOLTZMANN.getDevPtr());
+				d_BOLTZMANN.getDevPtr(),
+				xac);
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", true);
 		}
