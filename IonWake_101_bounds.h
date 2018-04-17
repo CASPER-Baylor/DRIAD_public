@@ -17,10 +17,10 @@
 *	checkIonSphereBounds_101_dev()
 *	checkIonCylinderBounds_101_dev()
 *	checkIonDustBounds_101_dev()
-*	injectIonPiel_101()
+*	injectIonSphere_101()
 *	injectIonCylinder_101()
 *	resetIonBounds_101()
-*	initInjectIonPiel_101()
+*	initInjectIonSphere_101()
 *	initInjectIonCylinder_101()
 *   invertFind_101()
 *	init_101()
@@ -35,7 +35,7 @@
 *	checkIonDustBounds_101()
 *		device_launch_parameters.h
 *		cuda_runtime.h
-*	injectIonPiel_101()
+*	injectIonSphere_101()
 *		cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
@@ -50,7 +50,7 @@
 *		cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
-*	initInjectIonPiel_101()
+*	initInjectIonSphere_101()
 *       cuda_runtime.h
 *		device_launch_parameters.h
 *		curand_kernel.h
@@ -78,7 +78,7 @@
 	*	checkIonSphereBounds_101()
 	*	checkIonCylinderBounds_101()
 	*	checkIonDustBounds_101()
-	*	injectIonPiel_101()
+	*	injectIonSphere_101()
 	*	injectIonCylinder_101()
 	*	resetIonBounds_101()
 	* 	invertFind_101()
@@ -93,7 +93,7 @@
 	*	checkIonSphereBounds_101()
 	*	checkIonCylinderBounds_101()
 	*	checkIonDustBounds_101()
-	*	injectIonSpherePiel_101()
+	*	injectIonSphere_101()
 	*	injectIonSphereCylinder_101()
 	*	resetIonBounds_101()
 	* 	invertFind_101()
@@ -105,7 +105,7 @@
 
 	/*
 	* Required By:
-	*	injectIonPiel_101()
+	*	injectIonSphere_101()
 	*	injectIonCylinder_101()
 	*	init_101()
 	* For:
@@ -115,7 +115,7 @@
 		
 	/*
 	* Required By:
-	*	initInjectIonPiel_101()
+	*	initInjectIonSphere_101()
 	*	initInjectIonCylinder_101()
 	* For:
 	* 	sqrt()
@@ -124,7 +124,7 @@
 
 	/*
 	* Required By:
-	*	initInjectIonPiel_101()
+	*	initInjectIonSphere_101()
 	*	initInjectIonCylinder_101()
 	* For:
 	* 	fprintf()
@@ -134,7 +134,7 @@
 	
 	/*
 	* Required By:
-	*	initInjectIonPiel_101()
+	*	initInjectIonSphere_101()
 	*	initInjectIonCylinder_101()
 	* For:
 	* 	fstream
@@ -143,7 +143,7 @@
 	
 	/*
 	* Required By:
-	*	initInjectIonPiel_101()
+	*	initInjectIonSphere_101()
 	*	initInjectIonCylinder_101()
 	* For:
 	* 	std::string
@@ -257,7 +257,7 @@ __global__ void checkIonCylinderBounds_101
 
 			
 /*
-    * injectIonSpherePiel_101
+    * injectIonSphere_101
     *
     * Editors
     *	Dustin Sanford
@@ -287,6 +287,7 @@ __global__ void checkIonCylinderBounds_101
     *   d_MACH: the mach number 
     *   d_MASS_SINGLE_ION: the mass of a single ion
     *	d_BOLTZMANN: the boltzmann constant 
+	*   xac: 0 or 1 for polarity switching of E field
     *
     * Output (void):
     *	d_posIon: each ion that is out of bounds is given a new 
@@ -305,7 +306,7 @@ __global__ void checkIonCylinderBounds_101
     *	curand_kernel.h
     *
     */
-	__global__ void injectIonPiel_101(
+	__global__ void injectIonSphere_101(
 			float3*, 
 			float3*, 
 			float3*,
@@ -323,7 +324,8 @@ __global__ void checkIonCylinderBounds_101
 			float* const,
 			float* const,
 			float* const,
-			float* const); 
+			float* const,
+			int); 
 
 /*
 * Name: injectIonCylinder_101
@@ -362,6 +364,7 @@ __global__ void checkIonCylinderBounds_101
 *   d_MACH: the mach number
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *       d_BOLTZMANN: the boltzmann constant
+*   xac: 0 or 1 for polarity switching of E field
 *
 * Output (void):
 *       d_posIon: each ion that is out of bounds is given a new
@@ -401,7 +404,8 @@ __global__ void injectIonCylinder_101(
                 float* const ,
                 float* const ,
                 float* const ,
-                float* const );	
+                float* const ,
+				int );	
 		
 	/*
 	* Name: resetIonBounds_101
@@ -461,7 +465,7 @@ __global__ void injectIonCylinder_101(
 	
 
 	/*
-	* Name: initInjectIonPiel_101
+	* Name: initInjectIonSphere_101
 	*
 	* Editors
 	*	Lorin Matthews
@@ -505,7 +509,7 @@ __global__ void injectIonCylinder_101(
 	*	<string>
 	*
 	*/
-	void initInjectIonPiel_101(
+	void initInjectIonSphere_101(
 		const int,
 		const int,
 		const float,

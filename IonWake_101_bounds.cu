@@ -18,10 +18,10 @@
 *	checkIonSphereBounds_101_dev()
 *	checkIonCylinderBounds_101_dev()
 *	checkIonDustBounds_101_dev()
-*	injectIonPiel_101()
+*	injectIonSphere_101()
 *	injectIonCylinder_101
 *	resetIonBounds_101()
-*	initInjectIonPiel_101()
+*	initInjectIonSphere_101()
 *	initInjectIonCylinder_101()
 *   	invertFind_101()
 *	init_101()
@@ -247,7 +247,7 @@ __global__ void checkIonDustBounds_101(
 
 
 /*
-* Name: injectIonSpherePiel_101
+* Name: injectIonSphere_101
 * Created: 10/2/2017
 * last edit: 11/14/2017
 *
@@ -302,7 +302,7 @@ __global__ void checkIonDustBounds_101(
 *	curand_kernel.h
 *
 */
-__global__ void injectIonPiel_101(
+__global__ void injectIonSphere_101(
 		float3* d_posIon, 
 		float3* d_velIon,
 		float3* d_accIon,		
@@ -320,7 +320,8 @@ __global__ void injectIonPiel_101(
 		float* const d_TEMP_ELC,
 		float* const d_MACH,
 		float* const d_MASS_SINGLE_ION,
-		float* const d_BOLTZMANN){
+		float* const d_BOLTZMANN,
+		int xac){
 	
 	// thread ID 
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
@@ -433,6 +434,12 @@ __global__ void injectIonPiel_101(
       	d_posIon[IDion].z = *d_RAD_SIM * rfrac * cosTheta;
       	d_posIon[IDion].y = *d_RAD_SIM * rfrac * sinTheta * sinPhi;
       	d_posIon[IDion].x = *d_RAD_SIM * rfrac * sinTheta * cosPhi;
+		
+		// polarity switching
+		if(xac ==1) {
+			d_posIon[IDion].z *= -1;
+			d_accIon[IDion].z *= -1;
+		}
 
 		// reset the acceleration
 		d_accIon[IDion].x = 0;
@@ -517,7 +524,8 @@ __global__ void injectIonCylinder_101(
 		float* const d_TEMP_ELC,
 		float* const d_MACH,
 		float* const d_MASS_SINGLE_ION,
-		float* const d_BOLTZMANN){
+		float* const d_BOLTZMANN,
+		int xac){
 	
 	// thread ID 
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
@@ -639,13 +647,13 @@ __global__ void injectIonCylinder_101(
 		//location is on the side, so choose a random z 
 		// get a random number from 0 to 1
 		randNum = curand_uniform(&randStates[IDion]);
-      		d_posIon[IDion].z =  rfrac * (randNum * 2 - 1) * *d_HT_CYL;
+      		d_posIon[IDion].z =  rfrac * (randNum * 2 - 1) * *d_HT_CYL * rfrac;
       		d_posIon[IDion].y = *d_RAD_CYL * rfrac * sinTheta * sinPhi;
       		d_posIon[IDion].x = *d_RAD_CYL * rfrac * sinTheta * cosPhi;
 	        }
 	else {
 		//location is on the top or bottom, so choose random x and y
-		d_posIon[IDion].z = rfrac * cosTheta * *d_HT_CYL;
+		d_posIon[IDion].z = rfrac * cosTheta * *d_HT_CYL * rfrac;
 
 		float dist = 1.1  * *d_RAD_CYL * *d_RAD_CYL;
 		while (dist > *d_RAD_CYL * *d_RAD_CYL) {
@@ -661,7 +669,12 @@ __global__ void injectIonCylinder_101(
 		}
 
 	}
-
+		// polarity switching
+		if(xac ==1) {
+			d_posIon[IDion].z *= -1;
+			d_accIon[IDion].z *= -1;
+		}	
+		
 		// reset the acceleration
 		d_accIon[IDion].x = 0;
 		d_accIon[IDion].y = 0;
@@ -752,7 +765,7 @@ __global__ void init_101(unsigned int seed, curandState_t* states)
 }
 
 /*
-* Name: initInjectIonPiel_101
+* Name: initInjectIonSphere_101
 * Created: 9/21/2017
 * last edit: 11/14/2017
 *
@@ -804,7 +817,7 @@ __global__ void init_101(unsigned int seed, curandState_t* states)
 *
 */
 
-void initInjectIonPiel_101(
+void initInjectIonSphere_101(
 		const int NUM_DIV_QTH,
 		const int NUM_DIV_VEL,
 		const float TEMP_ELC,
