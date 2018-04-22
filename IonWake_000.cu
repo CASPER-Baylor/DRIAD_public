@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 26;
+	const int NUM_USER_PARAMS = 27;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -290,19 +290,20 @@ int main(int argc, char* argv[])
 	const float TIME_STEP = params[11];
 	const int   NUM_TIME_STEP = params[12];
 	const int   GEOMETRY = params[13]; 
-	const float RAD_SIM_DEBYE = params[14];
-	const int   NUM_DIV_VEL = params[15];
-	const int   NUM_DIV_QTH = params[16];
-  	const float RAD_CYL_DEBYE = params[17];
-	const float HT_CYL_DEBYE = params[18];
-	const float P10X = params[19];
-	const float P12X = params[20];
-	const float P14X = params[21];
-	const float P01Z = params[22];
-	const float P21Z = params[23];
-	const float P03Z = params[24];
-	const float P23Z = params[25];
-	const float P05Z = params[26];
+	const int   FREQ = params[14];
+	const float RAD_SIM_DEBYE = params[15];
+	const int   NUM_DIV_VEL = params[16];
+	const int   NUM_DIV_QTH = params[17];
+  	const float RAD_CYL_DEBYE = params[18];
+	const float HT_CYL_DEBYE = params[19];
+	const float P10X = params[20];
+	const float P12X = params[21];
+	const float P14X = params[22];
+	const float P01Z = params[23];
+	const float P21Z = params[24];
+	const float P03Z = params[25];
+	const float P23Z = params[26];
+	const float P05Z = params[27];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -410,6 +411,7 @@ int main(int argc, char* argv[])
 		<< "CHARGE_SINGLE_ION " << CHARGE_SINGLE_ION << '\n'
 		<< "TIME_STEP         " << TIME_STEP         << '\n'
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
+		<< "FREQ              " << FREQ              << '\n'
 		<< "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
 		<< "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
@@ -480,6 +482,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << CHARGE_SINGLE_ION << " % CHARGE_SINGLE_ION" << '\n'
 	<< std::setw(14) << TIME_STEP         << " % TIME_STEP"         << '\n'
 	<< std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
+	<< std::setw(14) << FREQ              << " % FREQ"              << '\n'
 	<< std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
@@ -1078,10 +1081,10 @@ int main(int argc, char* argv[])
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
-	//inject ions on the boundary
 	//polarity switching of electric field
-	//int FREQ = 500; //should be defined in parameter file
 	int xac = 0;
+
+	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
 		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_posIon.getDevPtr(),
@@ -1280,11 +1283,10 @@ int main(int argc, char* argv[])
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 		}
 
-		// inject ions on the boundary
 		//polarity switching of electric field
-		int FREQ = 10000; //should be defined in parameter file
-        int temp = floor(2*FREQ*i*TIME_STEP);
-		int xac = temp % 2;
+        int xac = int(floor(2*FREQ*i*TIME_STEP)) % 2;
+
+		// inject ions on the boundary of the simulation
 		if(GEOMETRY == 0) {
 			// inject ions into the simulation sphere
 			injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
