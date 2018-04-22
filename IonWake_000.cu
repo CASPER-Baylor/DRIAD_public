@@ -431,6 +431,10 @@ int main(int argc, char* argv[])
 		<< "P03Z              " << P03Z	             << '\n'
 		<< "P23Z              " << P23Z	             << '\n'
 		<< "P05Z              " << P05Z	             << '\n'
+		<< "PRESSURE          " << PRESSURE          << '\n'
+		<< "E_FIELD           " << E_FIELD	         << '\n'
+		<< "FREQ              " << FREQ	             << '\n'
+		<< "DUST_CONFINEMENT  " << DUST_CONFINEMENT	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -472,7 +476,7 @@ int main(int argc, char* argv[])
 	paramOutFile.precision(7);
 	paramOutFile << std::showpoint << std::left;
 
-	// ouput all of the parameters such that matlab can read them in
+	// output all of the parameters such that matlab can read them in
 	paramOutFile
 	<< std::setw(14) << NUM_ION           << " % NUM_ION"           << '\n'
 	<< std::setw(14) << DEN_FAR_PLASMA    << " % DEN_FAR_PLASMA"    << '\n'
