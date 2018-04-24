@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 27;
+	const int NUM_USER_PARAMS = 30;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -289,21 +289,24 @@ int main(int argc, char* argv[])
 	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
 	const float TIME_STEP = params[11];
 	const int   NUM_TIME_STEP = params[12];
-	const int   GEOMETRY = params[13]; 
-	const int   FREQ = params[14];
-	const float RAD_SIM_DEBYE = params[15];
-	const int   NUM_DIV_VEL = params[16];
-	const int   NUM_DIV_QTH = params[17];
-  	const float RAD_CYL_DEBYE = params[18];
-	const float HT_CYL_DEBYE = params[19];
-	const float P10X = params[20];
-	const float P12X = params[21];
-	const float P14X = params[22];
-	const float P01Z = params[23];
-	const float P21Z = params[24];
-	const float P03Z = params[25];
-	const float P23Z = params[26];
-	const float P05Z = params[27];
+	const int  GEOMETRY = params[13]; 
+	const float RAD_SIM_DEBYE = params[14];
+	const int   NUM_DIV_VEL = params[15];
+	const int   NUM_DIV_QTH = params[16];
+  	const float RAD_CYL_DEBYE = params[17];
+	const float HT_CYL_DEBYE = params[18];
+	const float P10X = params[19];
+	const float P12X = params[20];
+	const float P14X = params[21];
+	const float P01Z = params[22];
+	const float P21Z = params[23];
+	const float P03Z = params[24];
+	const float P23Z = params[25];
+	const float P05Z = params[26];
+	const float PRESSURE = params[27];
+	const float FREQ = params[28];
+	const float E_FIELD = params[29];
+	const float DUST_CONFINEMENT = params[30];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -370,6 +373,9 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to Ion Dust forces
 	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
+	
+	// a constant muliplier for accleration due to Dust Dust forces
+	const float DUST_DUST_ACC_MULT = 8.9877e9 / MASS_DUST;
 
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
@@ -426,6 +432,10 @@ int main(int argc, char* argv[])
 		<< "P03Z              " << P03Z	             << '\n'
 		<< "P23Z              " << P23Z	             << '\n'
 		<< "P05Z              " << P05Z	             << '\n'
+		<< "PRESSURE          " << PRESSURE          << '\n'
+		<< "E_FIELD           " << E_FIELD	         << '\n'
+		<< "FREQ              " << FREQ	             << '\n'
+		<< "DUST_CONFINEMENT  " << DUST_CONFINEMENT	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -467,7 +477,7 @@ int main(int argc, char* argv[])
 	paramOutFile.precision(7);
 	paramOutFile << std::showpoint << std::left;
 
-	// ouput all of the parameters such that matlab can read them in
+	// output all of the parameters such that matlab can read them in
 	paramOutFile
 	<< std::setw(14) << NUM_ION           << " % NUM_ION"           << '\n'
 	<< std::setw(14) << DEN_FAR_PLASMA    << " % DEN_FAR_PLASMA"    << '\n'
@@ -500,7 +510,10 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
 	<< std::setw(14) << P23Z              << " % P23Z"              << '\n'
 	<< std::setw(14) << P05Z              << " % P05Z"              << '\n'
-	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
+	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
+	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
+	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
+	<< std::setw(14) << DUST_CONFINEMENT  << " % DUST_CONFINEMENT"  << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
 	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
@@ -524,10 +537,11 @@ int main(int argc, char* argv[])
 	Dust Parameters
 	*************************/
 
-	// pointer for dust positions,velcoties, and accels
+	// pointer for dust positions,velocities, and accels
 	float3* posDust = NULL;
 	float3* velDust = NULL;
 	float3* accDust = NULL;
+	float3* accDust2 = NULL;
 
 	// pointer for dust charges;
 	float* chargeDust = NULL;
@@ -564,6 +578,7 @@ int main(int argc, char* argv[])
 		chargeDust = (float*)malloc(memFloatDust);
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
+		accDust2 = (float3*)malloc(memFloat3Dust);
 
 		// clear the end of file error flag
 		dustParamFile.clear();
@@ -599,21 +614,6 @@ int main(int argc, char* argv[])
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
 	}
-
-	// initialize the dust velocities and accelerations to zero
-	for (int i = 0; i < NUM_DUST; i++)
-	{
-		velDust[i].x = 0;
-		velDust[i].y = 0;
-		velDust[i].z = 0;
-		accDust[i].x = 0;
-		accDust[i].y = 0;
-		accDust[i].z = 0;
-	}
-
-	// a constant multiplier for the radial dust acceleration due to
-	// external confinement
-	const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
 
 	// check if any of the dust particles are outside of
 	// the simulation
@@ -811,6 +811,37 @@ int main(int argc, char* argv[])
 
 	// holds the distance of each ion from the center of the simulation sphere
 	float dist;
+	
+	// allocate variables used in dust-dust forces
+	float3 distdd;
+	float distSquared;
+	float linForce;
+	int N = 10; //update dust pos'n every N ion timesteps
+	float dust_dt = N * 10 * TIME_STEP;
+	float half_dust_dt = dust_dt * 0.5;	
+	// a constant multiplier for the radial dust acceleration due to
+	// external confinement
+	//const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
+	const float OMEGA2 = DUST_CONFINEMENT / MASS_DUST;
+	// Damping factor for dust
+	const float BETA = 1.44 * 4 /3 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
+		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+	//Thermal bath or Brownian motion of dust
+	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
+	
+		
+	// initialize the dust velocities and accelerations 
+	for (int i = 0; i < NUM_DUST; i++)
+	{
+		velDust[i].x = 0;
+		velDust[i].y = 0;
+		velDust[i].z = 0;
+		accDust[i].x -= OMEGA2 * chargeDust[i] * posDust[i].x;
+		accDust[i].y -= OMEGA2 * chargeDust[i] * posDust[i].y;
+		accDust[i].z -= OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
+		//polarity switching
+		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
+	}
 
 	// loop over all the ions and initialize their velocity, acceleration,
 	// and position
@@ -1210,7 +1241,7 @@ int main(int argc, char* argv[])
 	// time step
 	for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-		//statusFile << "In the timestep loop " << std::endl;
+		statusFile << "In the timestep loop " << std::endl;
 
 		// print the time step number to the status file
 		statusFile << i << ": ";
@@ -1284,7 +1315,7 @@ int main(int argc, char* argv[])
 		}
 
 		//polarity switching of electric field
-        int xac = int(floor(2*FREQ*i*TIME_STEP)) % 2;
+        xac = int(floor(2*FREQ*i*TIME_STEP)) % 2;
 
 		// inject ions on the boundary of the simulation
 		if(GEOMETRY == 0) {
@@ -1433,31 +1464,33 @@ int main(int argc, char* argv[])
 
 			// move the dust
 			} else if (commands[j] == 5) {
-				// update dust positions every 10 timesteps
-				//Thus dust timestep = 10*TIME_STEP
-				if ( i % 10 == 0 ) {
+				// update dust positions every N timesteps
+				//Thus dust timestep = N*TIME_STEP
+				if ( i % N == 0 ) {
+					// Print the command number to the status file 
+					statusFile << "5 ";
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
 					for (int j =0; j< NUM_DUST; j++) {
 						//print vel and acc before the timestep
-						dustTraceFile << "Before the dust timestep" << std::endl;
-						dustTraceFile << velDust[j].x;
-						dustTraceFile << ", " << velDust[j].y;
-						dustTraceFile << ", " << velDust[j].z;
-						dustTraceFile << ", " << accDust[j].x;
-						dustTraceFile << ", " << accDust[j].y;
-						dustTraceFile << ", " << accDust[j].z << std::endl;
+						//dustTraceFile << "Before the dust timestep" << std::endl;
+						//dustTraceFile << velDust[j].x;
+						//dustTraceFile << ", " << velDust[j].y;
+						//dustTraceFile << ", " << velDust[j].z;
+						//dustTraceFile << ", " << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << std::endl;
 
 						//kick half a  time step
-						velDust[j].x += accDust[j].x * 5 * TIME_STEP;
-						velDust[j].y += accDust[j].y * 5 * TIME_STEP;
-						velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+						velDust[j].x += accDust[j].x * half_dust_dt;
+						velDust[j].y += accDust[j].y * half_dust_dt;
+						velDust[j].z += accDust[j].z * half_dust_dt;
 
 						// drift a whole step
-						posDust[j].x += velDust[j].x * 10 * TIME_STEP;
-						posDust[j].y += velDust[j].y * 10 * TIME_STEP;
-						posDust[j].z += velDust[j].z * 10 * TIME_STEP;
+						posDust[j].x += velDust[j].x * dust_dt;
+						posDust[j].y += velDust[j].y * dust_dt;
+						posDust[j].z += velDust[j].z * dust_dt;
 
 						// CHECK TO SEE IF ANY IONS INSIDE A DUST GRAIN
 
@@ -1465,32 +1498,77 @@ int main(int argc, char* argv[])
 						accDust[j].x = 0;
 						accDust[j].y = 0;
 						accDust[j].z = 0;
+						if(j ==1) {
+							for (int g = 0;  g < NUM_DUST; g++) {
+								accDust2[g].x = 0;
+								accDust2[g].y = 0;
+								accDust2[g].z = 0;
+							}
+						}
 
 						// calculate acceleration of the dust
 						//radial acceleration from confinement
 						accDust[j].x -= OMEGA2 * chargeDust[j] * posDust[j].x;
 						accDust[j].y -= OMEGA2 * chargeDust[j] * posDust[j].y;
-
-						//vertical acceleration from confinement, with softening
-						if( abs(posDust[j].z) > 4 * DEBYE ){
-							accDust[j].z -= OMEGA2 * chargeDust[j] * posDust[j].z;
-						}
+						//weaker axial confinement in z
+						accDust[j].z -= OMEGA2 /250 * chargeDust[j] * posDust[j].z;				
+						//polarity switching
+						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * (2*floor(FREQ*dust_dt*i) -floor(2*FREQ*dust_dt*i)+.5);
+						
 
 						// forces between the dust grains
+						for(int g = j+1; g < NUM_DUST; g++) {
+        					// calculate the distance between current dust grain
+							//and all other grains
+							distdd.x = posDust[j].x - posDust[g].x;
+							distdd.y = posDust[j].y - posDust[g].y;
+							distdd.z = posDust[j].z - posDust[g].z;
+        
+							distSquared = distdd.x*distdd.x + distdd.y*distdd.y 
+								+ distdd.z*distdd.z;
+        
+							// calculate the hard distance
+							dist = sqrt(distSquared);
+        
+							//calculate a scalar intermediate
+							linForce = DUST_DUST_ACC_MULT * chargeDust[j] * chargeDust[g] / 
+							(dist*dist*dist)*(1+dist/DEBYE)*exp(-dist/DEBYE);
+        
+							// add the acceleration to the current dust grain
+							accDust[j].x += linForce * distdd.x;
+							accDust[j].y += linForce * distdd.y;
+							accDust[j].z += linForce * distdd.z;
+							// add -acceleration to other dust grain
+							accDust2[g].x -= linForce * distdd.x;
+							accDust2[g].y -= linForce * distdd.y;
+							accDust2[g].z -= linForce * distdd.z;     
+						}
+    
+						accDust[j].x +=  accDust2[j].x;
+						accDust[j].y +=  accDust2[j].y;
+						accDust[j].z +=  accDust2[j].z;
 
 						// forces from ions inside simulation
 
 						// forces from ions outside simulation region
 
 						// drag force
-
+						accDust[j].x -= BETA*velDust[j].x;
+						accDust[j].y -= BETA*velDust[j].y;
+						accDust[j].z -= BETA*velDust[j].z;
+    
+						// Add Brownian motion
+						accDust[j].x += (2*rand()-1)*SIGMA;
+						accDust[j].y += (2*rand()-1)*SIGMA;
+						accDust[j].z += (2*rand()-1)*SIGMA;
+						
 						//kick half a  time step
-						velDust[j].x += accDust[j].x * 5 * TIME_STEP;
-						velDust[j].y += accDust[j].y * 5 * TIME_STEP;
-						velDust[j].z += accDust[j].z * 5 * TIME_STEP;
+						velDust[j].x += accDust[j].x * half_dust_dt;
+						velDust[j].y += accDust[j].y * half_dust_dt;
+						velDust[j].z += accDust[j].z * half_dust_dt;
 
 						// print the dust position to the dustPosTrace file
-						dustTraceFile << "After the dust timestep" << std::endl;
+						//dustTraceFile << "After the dust timestep" << std::endl;
 						dustTraceFile << posDust[j].x;
 						dustTraceFile << ", " << posDust[j].y;
 						dustTraceFile << ", " << posDust[j].z;
@@ -1741,6 +1819,7 @@ int main(int argc, char* argv[])
 	free(posDust);
 	free(velDust);
 	free(accDust);
+	free(accDust2);
 	free(chargeDust);
 	free(commands);
 	free(posIon);

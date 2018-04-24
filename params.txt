@@ -12,18 +12,20 @@
  [11]         TIME_STEP   1.0e-8
  [12]     NUM_TIME_STEP   20000
  [13]          GEOMETRY	  1
- [14]              FREQ   0
- [15]     RAD_SIM_DEBYE   3.0
- [16]       NUM_VEL_DIV   50
- [17]       NUM_QTH_DIV   3
- [18]     RAD_CYL_DEBYE	  1.5
- [19]      HT_CYL_DEBYE	  3.0
- [20]              P10X	  -2.6024e6
- [21]              P12X   -1.4021e10
- [22]              P14X	  9.0082e16
- [23]	           P01Z   -1.5879e5
- [24]	           P21Z	  -3.5188e9	
- [25]              P03Z   -1.6907e11
- [26]              P23Z	  1.7786e17
- [27]  		       P05Z	  -3.8253e16
-  
+ [14]     RAD_SIM_DEBYE   3.0
+ [15]       NUM_VEL_DIV   50
+ [16]       NUM_QTH_DIV   3
+ [17]     RAD_CYL_DEBYE	  1.5
+ [18]      HT_CYL_DEBYE	  3.0
+ [19]              P10X	  -2.6024e6
+ [20]              P12X   -1.4021e10
+ [21]              P14X	  9.0082e16
+ [22]    		   P01Z   -1.5879e5
+ [23]		       P21Z	  -3.5188e9	
+ [24]		       P03Z	  -1.6907e11
+ [25]		       P23Z	  1.7786e17
+ [26]		       P05Z	  -3.8253e16
+ [27]	       PRESSURE	  100
+ [28]	           FREQ	  500
+ [29]	        E_FIELD	  350
+ [30]  DUST_CONFINEMENT	  2.63e6
