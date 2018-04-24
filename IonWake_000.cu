@@ -1248,14 +1248,14 @@ int main(int argc, char* argv[])
 
 		//Select the time step depth
 		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_velIon.getDevPtr(),
-			d_minDistDust.getDevPtr(),
+			(d_velIon.getDevPtr(), // <--
+			d_minDistDust.getDevPtr(), // <--
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
-			d_M_FACTOR.getDevPtr(),
-			d_m.getDevPtr(),
-			d_timeStepFactor.getDevPtr());
+			d_M_FACTOR.getDevPtr(), // ?? doesn't appear to be used ??
+			d_m.getDevPtr(), // -->
+			d_timeStepFactor.getDevPtr()); // -->
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "select_100", false);
 
@@ -1513,7 +1513,8 @@ int main(int argc, char* argv[])
 						//weaker axial confinement in z
 						accDust[j].z -= OMEGA2 /250 * chargeDust[j] * posDust[j].z;				
 						//polarity switching
-						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * (2*floor(FREQ*dust_dt*i) -floor(2*FREQ*dust_dt*i)+.5);
+						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * 
+							(2*floor(FREQ*dust_dt*i) -floor(2*FREQ*dust_dt*i)+.5);
 						
 
 						// forces between the dust grains
