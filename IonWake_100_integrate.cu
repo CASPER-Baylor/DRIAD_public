@@ -172,59 +172,69 @@ __global__ void drift_100
 *
 */
 __global__ void select_100
-       (float3* vel, 
-	float* minDistDust,
-	const float* d_RAD_DUST,
-        const float* d_TIME_STEP,
-	const int* d_MAX_DEPTH,
-	const float* d_M_FACTOR,
-	int* m,
-	int* tsFactor)
-{
+    (float3* velIon, 
+	 float* minDistDust,
+	 const float* d_RAD_DUST,
+     const float* d_TIME_STEP,
+	 const int* d_MAX_DEPTH,
+	 const float* d_M_FACTOR,
+	 int* m,
+	 int* timeStepFactor) {
+	
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	// initialize variables
 	float v2;
-	float v;
+	float speed;
 	int mtemp;
 	int tsf;
 
-	/* calculate timestep depth
-	* m = ceil(ln(*d_M_FACTOR * dT * v / abs(dist - dustRadius))/ln(2))
-	*******************
-	* dT - time step
-	* v  - magnitude of velocity
-	* dist - distance to closest dust particle
-	* dustRadius  - radius of dust particles
-	* 30 is a factor which initial tests showed to work well
-	*******************/
+	//                Calculate Timestep Depth
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 *      m = ceil(ln( M * dT * v / abs(r - R))/ln(2))       *
+	 * ------------------------------------------------------- *
+	 * m  - timestep depth                                     *
+	 * M  - d_M_FACTOR                                         *
+	 * dT - time step                                          *
+	 * v  - magnitude of velocity                              *
+	 * r  - distance to closest dust particle                  *
+	 * R  - radius of the dust particles                       *
+	 *                                                         *
+	 * 30 is a factor which initial tests showed to work well  *
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	
-	v2 = vel[threadID].x * vel[threadID].x + 
-		vel[threadID].y * vel[threadID].y + 
-		vel[threadID].z * vel[threadID].z; 
-		
-	v =__fsqrt_rn(v2);
+	// ion speed squared 
+	v2 = velIon[threadID].x * velIon[threadID].x + 
+		 velIon[threadID].y * velIon[threadID].y + 
+		 velIon[threadID].z * velIon[threadID].z; 
 	
-	v2 = __logf(30 * *d_TIME_STEP * v /(minDistDust[threadID] - *d_RAD_DUST))
-		/ __logf(2);
+	// ion speed
+	speed = __fsqrt_rn(v2);
+	
+	// m = ceil(v2)
+	// v2 is being used to as an intermediat step in calculating m 
+	v2 = __logf(30 * *d_TIME_STEP * speed /(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
+
+	// timestep depth
 	mtemp = ceil(v2);
 	
+	// check that the timestep depth is within allowed bounds
 	if (mtemp < 0){
 		mtemp = 0;
-	}
-	else if (mtemp > *d_MAX_DEPTH) {
+	} else if (mtemp > *d_MAX_DEPTH) {
 		mtemp = *d_MAX_DEPTH;
 	}
 	
+	// calculate 2^(time step depth)
 	tsf = 1;
-	for(int i = 0; i < mtemp; i++)
-	{
+	for(int i = 0; i < mtemp; i++) {
 		tsf = tsf * 2;
 	}
 	
+	// save to global memory
 	m[threadID] = mtemp;
-	tsFactor[threadID] = tsf;
+	timeStepFactor[threadID] = tsf;
 }
 
 /*
