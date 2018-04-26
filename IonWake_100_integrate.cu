@@ -327,44 +327,46 @@ __global__ void KDK_100
             // check if any ions are outside of the simulation sphere
 			checkIonSphereBounds_101_dev
                           (pos+threadID, d_boundsIon+threadID, d_bndry_sqrd);
-                   }
-
-            if(GEOMETRY == 1) {
-                    // check if any ions are outside of the simulation cylinder
-                    checkIonCylinderBounds_101_dev 
-                          (pos+threadID, d_boundsIon+threadID, 
-                           d_bndry_sqrd, d_HT_CYL);
-					}
+        } else if(GEOMETRY == 1) {
+        	// check if any ions are outside of the simulation cylinder
+            checkIonCylinderBounds_101_dev 
+            	(pos+threadID, 
+				d_boundsIon+threadID, 
+                d_bndry_sqrd, d_HT_CYL);
+		}
 			
-			// check if any ions are inside a dust particle 
-			checkIonDustBounds_101_dev
-                       (pos+threadID, d_boundsIon+threadID,
-                        d_RAD_DUST_SQRD, d_NUM_DUST, d_posDust);
+		// check if any ions are inside a dust particle 
+		checkIonDustBounds_101_dev
+        	(pos + threadID, 
+			d_boundsIon + threadID,
+            d_RAD_DUST_SQRD, 
+			d_NUM_DUST, 
+			d_posDust);
 						
-			if(d_boundsIon[threadID] ==0){
-				// calculate the acceleration due to ion-dust interactions
-				calcIonDustAcc_102_dev
-                       (pos+threadID, 
-                        acc+threadID,
-                        d_posDust,
-                        d_NUM_ION,
-                        d_NUM_DUST, 
-                        d_SOFT_RAD_SQRD, 
-                        d_ION_DUST_ACC_MULT, 
-                        d_chargeDust);
+		if(d_boundsIon[threadID] ==0){
+			// calculate the acceleration due to ion-dust interactions
+			calcIonDustAcc_102_dev
+            	(pos + threadID, 
+                acc + threadID,
+                d_posDust,
+                d_NUM_ION,
+                d_NUM_DUST, 
+                d_SOFT_RAD_SQRD, 
+                d_ION_DUST_ACC_MULT, 
+                d_chargeDust);
     
-				// Kick with IonDust accels for deltat/2^(m-1)
-				if(depth == tsf){
-					// on last time step, do a half kick
-					kick_dev(vel+threadID, acc+threadID, half_ts);
-				} else {
-					kick_dev(vel+threadID, acc+threadID, ts);
-				}
+			// Kick with IonDust accels for deltat/2^(m-1)
+			if(depth == tsf){
+				// on last time step, do a half kick
+				kick_dev(vel+threadID, acc+threadID, half_ts);
 			} else {
-				stopflag = true;
+				kick_dev(vel+threadID, acc+threadID, ts);
 			}
-		}// end for loop over depth			
-	}
+		} else {
+			stopflag = true;
+		}
+	}// end for loop over depth			
+}
 	 
 /*
 * Name: kick_dev
@@ -396,7 +398,7 @@ __global__ void KDK_100
 */
 __device__ void kick_dev
        (float3* vel, 
-	float3* acc,
+		float3* acc,
         float timestep)
 {
 	// thread ID

@@ -1272,44 +1272,44 @@ int main(int argc, char* argv[])
 
 		if(GEOMETRY == 0) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				d_velIon.getDevPtr(),
-				d_accIonDust.getDevPtr(),
-				d_m.getDevPtr(),
-				d_timeStepFactor.getDevPtr(),
-				d_boundsIon.getDevPtr(),
-				d_TIME_STEP.getDevPtr(),
+				(d_posIon.getDevPtr(), // <-->
+				d_velIon.getDevPtr(), // <-->
+				d_accIonDust.getDevPtr(), // <--
+				d_m.getDevPtr(), // <
+				d_timeStepFactor.getDevPtr(), // <
+				d_boundsIon.getDevPtr(), // <-->
+				d_TIME_STEP.getDevPtr(), 
 				GEOMETRY,
 				d_RAD_SIM_SQRD.getDevPtr(),
 				NULL,
 				d_RAD_DUST_SQRD.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
-				d_posDust.getDevPtr(),
+				d_posDust.getDevPtr(), // <--
 				d_NUM_ION.getDevPtr(),
 				d_SOFT_RAD_SQRD.getDevPtr(),
 				d_ION_DUST_ACC_MULT.getDevPtr(),
-				d_chargeDust.getDevPtr());
+				d_chargeDust.getDevPtr()); // <--
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 		} else if(GEOMETRY == 1) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				d_velIon.getDevPtr(),
-				d_accIonDust.getDevPtr(),
-				d_m.getDevPtr(),
-				d_timeStepFactor.getDevPtr(),
-				d_boundsIon.getDevPtr(),
+				(d_posIon.getDevPtr(), // <-->
+				d_velIon.getDevPtr(), // <-->
+				d_accIonDust.getDevPtr(),// <--
+				d_m.getDevPtr(), // <
+				d_timeStepFactor.getDevPtr(), // <
+				d_boundsIon.getDevPtr(), // <-->
 				d_TIME_STEP.getDevPtr(),
 				GEOMETRY,
 				d_RAD_CYL_SQRD.getDevPtr(),
 				d_HT_CYL.getDevPtr(),
 				d_RAD_DUST_SQRD.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
-				d_posDust.getDevPtr(),
+				d_posDust.getDevPtr(), // <--
 				d_NUM_ION.getDevPtr(),
 				d_SOFT_RAD_SQRD.getDevPtr(),
 				d_ION_DUST_ACC_MULT.getDevPtr(),
-				d_chargeDust.getDevPtr());
+				d_chargeDust.getDevPtr()); // <--
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 		}
