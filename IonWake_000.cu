@@ -1195,7 +1195,7 @@ int main(int argc, char* argv[])
 			d_INV_DEBYE.getDevPtr());
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
-	} if(GEOMETRY == 1) {
+	} else if(GEOMETRY == 1) {
 		// calculate the forces between all ions
 		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_accIon.getDevPtr(),
