@@ -7,7 +7,7 @@
  [6]               MACH   0.16
  [7]           SOFT_RAD   1e-6
  [8]           RAD_DUST   5.20e-6
- [9]           M_FACTOR   50.
+ [9]           M_FACTOR   30
  [10] CHARGE_SINGLE_ION   -1
  [11]         TIME_STEP   1.0e-8
  [12]     NUM_TIME_STEP   20000
