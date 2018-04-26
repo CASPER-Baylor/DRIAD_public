@@ -504,32 +504,32 @@ __global__ void injectIonSphere_101(
 *
 */
 __global__ void injectIonCylinder_101(
-		float3* d_posIon, 
-		float3* d_velIon,
-		float3* d_accIon,		
-		curandState_t* const randStates, 
-		float* const d_RAD_CYL, 
-		float* const d_HT_CYL, 
-		int* const d_boundsIon,
-		float* const d_GCOM,
-		float* const d_QCOM,
-		float* const d_VCOM,
-		int* const d_NUM_DIV_QTH,
-		int* const d_NUM_DIV_VEL,
-		float* const d_SOUND_SPEED,
-		float* const d_TEMP_ION,
-		float* const d_PI,
-		float* const d_TEMP_ELC,
-		float* const d_MACH,
-		float* const d_MASS_SINGLE_ION,
-		float* const d_BOLTZMANN,
-		int xac){
+	float3* d_posIon, 
+	float3* d_velIon,
+	float3* d_accIon,		
+	curandState_t* const randStates, 
+	float* const d_RAD_CYL, 
+	float* const d_HT_CYL, 
+	int* const d_boundsIon,
+	float* const d_GCOM,
+	float* const d_QCOM,
+	float* const d_VCOM,
+	int* const d_NUM_DIV_QTH,
+	int* const d_NUM_DIV_VEL,
+	float* const d_SOUND_SPEED,
+	float* const d_TEMP_ION,
+	float* const d_PI,
+	float* const d_TEMP_ELC,
+	float* const d_MACH,
+	float* const d_MASS_SINGLE_ION,
+	float* const d_BOLTZMANN,
+	int xac){
 	
 	// thread ID 
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
 		
 	// check if the ion is out of bounds 
-	if (d_boundsIon[IDion] != 0){
+	if (d_boundsIon[IDion] != 0) {
 	
 		float randNum,
                 QIndex,
@@ -560,11 +560,9 @@ __global__ void injectIonCylinder_101(
 		// find the index of randNum in d_Qcom 
 		if (randNum < d_QCOM[0]) {
 			QIndex = 0;
-			}
-		else if(randNum < d_QCOM[1]) {
+		} else if(randNum < d_QCOM[1]) {
 			QIndex = 1;
-			}
-		else {
+		} else {
 			QIndex = 2;
 		}
 		
@@ -574,34 +572,36 @@ __global__ void injectIonCylinder_101(
 		// Pick normal velocity from cumulative G.
 		tempIndex = static_cast<int>(QIndex) * *d_NUM_DIV_VEL;
 		lowerFloatGIndex = invertFind_101(
-				&d_GCOM[tempIndex],
-				*d_NUM_DIV_VEL,
-				randNum);
+			&d_GCOM[tempIndex],
+			*d_NUM_DIV_VEL,
+			randNum);
 				
-/*		tempIndex = static_cast<int>(QIndex + 1) * *d_NUM_DIV_VEL;
-*		upperFloatGIndex = invertFind_101(
-*				&d_GCOM[tempIndex],
-*				*d_NUM_DIV_VEL,
-*				randNum);
-*		
-*		// interpolate between upperFloatGIndex and lowerFloatGIndex to get 
-*       // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
-*		radVel = (partQIndex * upperFloatGIndex) + 
-*                ( 1 - partQIndex ) * lowerFloatGIndex;
-*/
+		/*
+		* tempIndex = static_cast<int>(QIndex + 1) * *d_NUM_DIV_VEL;
+		* upperFloatGIndex = invertFind_101(
+		* &d_GCOM[tempIndex],
+		* *d_NUM_DIV_VEL,
+		* randNum);
+		*		
+		* // interpolate between upperFloatGIndex and lowerFloatGIndex to get 
+		* // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
+		* radVel = (partQIndex * upperFloatGIndex) + 
+		* ( 1 - partQIndex ) * lowerFloatGIndex;
+		*/
 
-	radVel = lowerFloatGIndex; //This may not be right
+		radVel = lowerFloatGIndex; //This may not be right
 		
         // integer part of radVel 
 		tempIndex = static_cast<int>(radVel); 
-        // fractional part of radvel
+        
+		// fractional part of radvel
 		part_radVel = radVel - tempIndex; 
         
         tempIndex1 = tempIndex + 1;
 		
         // interpolate the value of radVel from Vcom 
         radVel = part_radVel * d_VCOM[tempIndex1] + 
-                 (1-part_radVel) * d_VCOM[tempIndex];
+        	(1-part_radVel) * d_VCOM[tempIndex];
 		
 		
 		// cos(theta), where theta is the angle of the velocity 
@@ -633,40 +633,39 @@ __global__ void injectIonCylinder_101(
 		// convert the velocity from spherical to cartesian 
       	d_velIon[IDion].z = -(radVel*cosTheta - thetaVel*sinTheta)*velScale;
       	d_velIon[IDion].y = -((radVel*sinTheta + thetaVel*cosTheta)*sinPhi + 
-                            phiVel*cosPhi)* velScale;
+        	phiVel*cosPhi)* velScale;
       	d_velIon[IDion].x = -((radVel*sinTheta + thetaVel*cosTheta)*cosPhi - 
-                            phiVel*sinPhi)* velScale;
+        	phiVel*sinPhi)* velScale;
 		
-	// Select a random location on the top or side 
+		// Select a random location on the top or side 
         // Multiply by rfrac so that the position is within the simulation boundary
       	float rfrac = 0.9999;
 	
-	if(QIndex == 1) {
-		//location is on the side, so choose a random z 
-		// get a random number from 0 to 1
-		randNum = curand_uniform(&randStates[IDion]);
-      		d_posIon[IDion].z =  rfrac * (randNum * 2 - 1) * *d_HT_CYL * rfrac;
-      		d_posIon[IDion].y = *d_RAD_CYL * rfrac * sinTheta * sinPhi;
-      		d_posIon[IDion].x = *d_RAD_CYL * rfrac * sinTheta * cosPhi;
-	        }
-	else {
-		//location is on the top or bottom, so choose random x and y
-		d_posIon[IDion].z = rfrac * cosTheta * *d_HT_CYL * rfrac;
-
-		float dist = 1.1  * *d_RAD_CYL * *d_RAD_CYL;
-		while (dist > *d_RAD_CYL * *d_RAD_CYL) {
+		if(QIndex == 1) {
+			//location is on the side, so choose a random z 
+			// get a random number from 0 to 1
 			randNum = curand_uniform(&randStates[IDion]);
-			d_posIon[IDion].x = (randNum*2-1) * *d_RAD_CYL;
-			randNum = curand_uniform(&randStates[IDion]);
-			d_posIon[IDion].y = (randNum*2-1) * *d_RAD_CYL;
+      			d_posIon[IDion].z =  rfrac * (randNum * 2 - 1) * *d_HT_CYL * rfrac;
+      			d_posIon[IDion].y = *d_RAD_CYL * rfrac * sinTheta * sinPhi;
+      			d_posIon[IDion].x = *d_RAD_CYL * rfrac * sinTheta * cosPhi;
+		} else {
+			//location is on the top or bottom, so choose random x and y
+			d_posIon[IDion].z = rfrac * cosTheta * *d_HT_CYL * rfrac;
 
-		// See if this position is inside the cylinder
-			dist = d_posIon[IDion].x * d_posIon[IDion].x + 
+			float dist = 1.1  * *d_RAD_CYL * *d_RAD_CYL;
+			while (dist > *d_RAD_CYL * *d_RAD_CYL) {
+				randNum = curand_uniform(&randStates[IDion]);
+				d_posIon[IDion].x = (randNum*2-1) * *d_RAD_CYL;
+				randNum = curand_uniform(&randStates[IDion]);
+				d_posIon[IDion].y = (randNum*2-1) * *d_RAD_CYL;
+
+				// See if this position is inside the cylinder
+				dist = d_posIon[IDion].x * d_posIon[IDion].x + 
 				   d_posIon[IDion].y * d_posIon[IDion].y;
+			}
 
 		}
-
-	}
+		
 		// polarity switching
 		if(xac ==1) {
 			d_posIon[IDion].z *= -1;

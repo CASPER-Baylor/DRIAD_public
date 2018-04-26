@@ -1104,11 +1104,11 @@ int main(int argc, char* argv[])
 
 	//First make sure that no ions are inside dust
 	checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_posIon.getDevPtr(),
-		d_boundsIon.getDevPtr(),
+		(d_posIon.getDevPtr(), // <--
+		d_boundsIon.getDevPtr(), // <-->
 		d_RAD_DUST_SQRD.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
-		d_posDust.getDevPtr());
+		d_posDust.getDevPtr()); // <--
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
