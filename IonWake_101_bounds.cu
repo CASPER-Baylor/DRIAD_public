@@ -532,17 +532,17 @@ __global__ void injectIonCylinder_101(
 	if (d_boundsIon[IDion] != 0) {
 	
 		float randNum,
-                QIndex,
-                lowerFloatGIndex,
-                radVel,
-                part_radVel,
-                phi,
-                cosPhi,
-                sinPhi,
-                sinTheta,
-                thetaVel,
-                phiVel,
-                cosTheta;
+        	QIndex,
+            lowerFloatGIndex,
+            radVel,
+            part_radVel,
+            phi,
+            cosPhi,
+            sinPhi,
+            sinTheta,
+            thetaVel,
+            phiVel,
+            cosTheta;
 			  
 		int tempIndex,
 			tempIndex1;
@@ -667,7 +667,7 @@ __global__ void injectIonCylinder_101(
 		}
 		
 		// polarity switching
-		if(xac ==1) {
+		if(xac == 1) {
 			d_posIon[IDion].z *= -1;
 			d_accIon[IDion].z *= -1;
 		}	

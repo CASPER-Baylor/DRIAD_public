@@ -1118,7 +1118,7 @@ int main(int argc, char* argv[])
 	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
 		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(),
+			(d_posIon.getDevPtr(), 
 			d_velIon.getDevPtr(),
 			d_accIon.getDevPtr(),
 			randStates.getDevPtr(),
@@ -1142,13 +1142,13 @@ int main(int argc, char* argv[])
 
 	} else if(GEOMETRY == 1) {
 		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(),
-			d_velIon.getDevPtr(),
-			d_accIon.getDevPtr(),
+			(d_posIon.getDevPtr(), // -->
+			d_velIon.getDevPtr(), // -->
+			d_accIon.getDevPtr(), // -->
 			randStates.getDevPtr(),
 			d_RAD_CYL.getDevPtr(),
 			d_HT_CYL.getDevPtr(),
-			d_boundsIon.getDevPtr(),
+			d_boundsIon.getDevPtr(), // <-- 
 			d_GCOM.getDevPtr(),
 			d_QCOM.getDevPtr(),
 			d_VCOM.getDevPtr(),
@@ -1161,7 +1161,7 @@ int main(int argc, char* argv[])
 			d_MACH.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
-			xac);
+			xac); // <--
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 	}
