@@ -1270,7 +1270,7 @@ int main(int argc, char* argv[])
 		//	}
 		//KDK using just the ion-dust acceleration for s^m iterations
 
-		if(GEOMETRY ==0) {
+		if(GEOMETRY == 0) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_posIon.getDevPtr(),
 				d_velIon.getDevPtr(),
@@ -1291,7 +1291,7 @@ int main(int argc, char* argv[])
 				d_chargeDust.getDevPtr());
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
-		} if(GEOMETRY ==1) {
+		} else if(GEOMETRY == 1) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_posIon.getDevPtr(),
 				d_velIon.getDevPtr(),
