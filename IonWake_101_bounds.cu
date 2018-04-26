@@ -200,11 +200,11 @@ __global__ void checkIonCylinderBounds_101
 *
 */
 __global__ void checkIonDustBounds_101(
-		float3* const d_posIon, 
-		int* d_boundsIon,
-		float* const d_RAD_DUST_SQRD,
-		int* const d_NUM_DUST,
-		float3* const d_posDust){
+	float3* const d_posIon, 
+	int* d_boundsIon,
+	float* const d_RAD_DUST_SQRD,
+	int* const d_NUM_DUST,
+	float3* const d_posDust) {
 	
 	// distance
 	float dist;
@@ -213,7 +213,7 @@ __global__ void checkIonDustBounds_101(
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
 
 	// Only check ions which are in bounds
-	if (d_boundsIon[IDion] == 0){
+	if (d_boundsIon[IDion] == 0) {
 		// position of the current ion
 		float3 posCrntIon = d_posIon[IDion];
 
@@ -221,8 +221,7 @@ __global__ void checkIonDustBounds_101(
 		float deltaX, deltaY, deltaZ;
 		
 		// loop over all of the dust particles
-		for (int i = 0; i < *d_NUM_DUST; i++)
-		{
+		for (int i = 0; i < *d_NUM_DUST; i++) {
 			// x, y, and z distances between the current
 			// ion and dust particle
 			deltaX = posCrntIon.x - d_posDust[i].x;
@@ -236,8 +235,7 @@ __global__ void checkIonDustBounds_101(
 				deltaZ * deltaZ;
 
 			// check if the dust particle and ion have collided
-			if (dist < *d_RAD_DUST_SQRD)
-			{
+			if (dist < *d_RAD_DUST_SQRD) {
 				// flag which dust particle the ion is in
 				d_boundsIon[IDion] = (i + 1);
 			}
