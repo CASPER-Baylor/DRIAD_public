@@ -235,7 +235,7 @@ __global__ void checkIonDustBounds_101(
 				deltaZ * deltaZ;
 
 			// check if the dust particle and ion have collided
-			if (dist < *d_RAD_DUST_SQRD) {
+			if (dist <= *d_RAD_DUST_SQRD) {
 				// flag which dust particle the ion is in
 				d_boundsIon[IDion] = (i + 1);
 			}
