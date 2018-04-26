@@ -293,11 +293,10 @@ __global__ void calcIonDustAcc_102(
 *
 */
 __global__ void calcExtrnElcAcc_102
-       (float3* d_accIon, 
-        float3* d_posIon, 
-        float* const d_EXTERN_ELC_MULT, 
-        float* const d_INV_DEBYE)
-{
+	(float3* d_accIon, 
+    float3* d_posIon, 
+    float* const d_EXTERN_ELC_MULT, 
+    float* const d_INV_DEBYE) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -378,18 +377,23 @@ __global__ void calcExtrnElcAcc_102
 *
 */
 __global__ void calcExtrnElcAccCyl_102
-       (float3* d_accIon, 
-        float3* d_posIon, 
+	(float3* d_accIon, 
+    float3* d_posIon, 
 	float* d_Q_DIV_M,
-	float* d_p10x, float* d_p12x,float* d_p14x,
-	float* d_p01z, float* d_p21z,float* d_p03z, float* d_p23z,float* d_p05z)
-{
+	float* d_p10x, 
+	float* d_p12x,
+	float* d_p14x,
+	float* d_p01z, 
+	float* d_p21z,
+	float* d_p03z, 
+	float* d_p23z,
+	float* d_p05z) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// get the radius of the ion from the center of the
-	// simulation sphere. The center is assumed to be (0,0,0)
+	// get the radius of the ion from the center axis of the
+	// simulation cylinder. The center is assumed to be (0,0,z)
 	float rad = __fsqrt_rn(
 		(d_posIon[ID].x * d_posIon[ID].x) +
 		(d_posIon[ID].y * d_posIon[ID].y)) ;
@@ -401,9 +405,7 @@ __global__ void calcExtrnElcAccCyl_102
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
 	// it divided by rad.
-	float radAcc = *d_p10x  +
-			*d_p12x * zsq +
-			*d_p14x * zsq * zsq;
+	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
 
 	// calculate vertical component of the acceleration
 	float vertAcc = *d_p01z * z +

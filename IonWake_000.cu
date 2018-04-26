@@ -1198,8 +1198,8 @@ int main(int argc, char* argv[])
 	} else if(GEOMETRY == 1) {
 		// calculate the forces between all ions
 		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_accIon.getDevPtr(),
-			d_posIon.getDevPtr(),
+			(d_accIon.getDevPtr(), // <-->
+			d_posIon.getDevPtr(), // <--
 			d_Q_DIV_M.getDevPtr(),
 			d_P10X.getDevPtr(),
 			d_P12X.getDevPtr(),
