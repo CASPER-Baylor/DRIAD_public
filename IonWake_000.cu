@@ -1216,12 +1216,11 @@ int main(int argc, char* argv[])
 	//Any other external forces acting on ions would be calc'd here
 	// Kick for 1/2 a timestep -- using just ion-ion accels
 	kick_100<<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_velIon.getDevPtr(),
-		d_accIon.getDevPtr(),
+		(d_velIon.getDevPtr(), // <-->
+		d_accIon.getDevPtr(), // <-->
 		d_HALF_TIME_STEP.getDevPtr());
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "kick_100", false);
-
 
 	// calculate the acceleration due to ion-dust interactions
 	// also save the distance to the closest dust particle for each ion

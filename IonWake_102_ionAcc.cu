@@ -190,16 +190,15 @@ __global__ void calcIonIonAcc_102
 *
 */
 __global__ void calcIonDustAcc_102(
-		float3* d_posIon, 
-		float3* d_accIon, 
-        float3* d_posDust,
-		int* const d_NUM_ION,
-        int* const d_NUM_DUST, 
-		float* const d_SOFT_RAD_SQRD, 
-		float* const d_ION_DUST_ACC_MULT, 
-		float* const d_chargeDust,
-		float* d_minDistDust)
-{
+	float3* d_posIon, 
+	float3* d_accIon, 
+    float3* d_posDust,
+	int* const d_NUM_ION,
+    int* const d_NUM_DUST, 
+	float* const d_SOFT_RAD_SQRD, 
+	float* const d_ION_DUST_ACC_MULT, 
+	float* const d_chargeDust,
+	float* d_minDistDust) {
 
 	// index of the current ion
 	int IDcrntIon = blockIdx.x * blockDim.x + threadIdx.x;
@@ -221,31 +220,31 @@ __global__ void calcIonDustAcc_102(
 	// loop over all of the dust particles
 	for (int h = 0; h < *d_NUM_DUST; h++) {
 
-			// calculate the distance between the ion in shared
-			// memory and the current thread's ion
-			dist.x = d_posIon[IDcrntIon].x - d_posDust[h].x;
-			dist.y = d_posIon[IDcrntIon].y - d_posDust[h].y;
-			dist.z = d_posIon[IDcrntIon].z - d_posDust[h].z;
+		// calculate the distance between the ion in shared
+		// memory and the current thread's ion
+		dist.x = d_posIon[IDcrntIon].x - d_posDust[h].x;
+		dist.y = d_posIon[IDcrntIon].y - d_posDust[h].y;
+		dist.z = d_posIon[IDcrntIon].z - d_posDust[h].z;
 
-			// calculate the distance squared
-			distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+		// calculate the distance squared
+		distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
 
-			// calculate the hard distance
-			hardDist = __fsqrt_rn(distSquared);
+		// calculate the hard distance
+		hardDist = __fsqrt_rn(distSquared);
 
-			// calculate a scaler intermediate
-			linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
-                        (hardDist*hardDist*hardDist);
+		// calculate a scaler intermediate
+		linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
+        	(hardDist*hardDist*hardDist);
 
-			// add the acceleration to the current ion's acceleration
-			d_accIon[IDcrntIon].x += linForce * dist.x;
-			d_accIon[IDcrntIon].y += linForce * dist.y;
-			d_accIon[IDcrntIon].z += linForce * dist.z;
-			
-			// save the distance to the closest dust particle
-			if (hardDist < min_dist){
-			   min_dist = hardDist;
-			}	
+		// add the acceleration to the current ion's acceleration
+		d_accIon[IDcrntIon].x += linForce * dist.x;
+		d_accIon[IDcrntIon].y += linForce * dist.y;
+		d_accIon[IDcrntIon].z += linForce * dist.z;
+		
+		// save the distance to the closest dust particle
+		if (hardDist < min_dist){
+		   min_dist = hardDist;
+		}	
 
 	} // end loop over dust
 	
