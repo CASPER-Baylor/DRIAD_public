@@ -59,13 +59,12 @@
 *
 */
 __global__ void calcIonIonAcc_102
-       (float3* d_posIon, 
-        float3* d_accIon, 
-        int * const d_NUM_ION,
-        float * const d_SOFT_RAD_SQRD, 
-        float * const d_ION_ION_ACC_MULT,
-        float * const d_INV_DEBYE)
-{
+	(float3* d_posIon, 
+    float3* d_accIon, 
+    int * const d_NUM_ION,
+    float * const d_SOFT_RAD_SQRD, 
+    float * const d_ION_ION_ACC_MULT,
+    float * const d_INV_DEBYE) {
 
 	// index of the current ion
 	int IDcrntIon = blockIdx.x * blockDim.x + threadIdx.x;
@@ -79,9 +78,9 @@ __global__ void calcIonIonAcc_102
 	float linForce;
 	int tileThreadID;
 
-  	d_accIon[IDcrntIon].x =0;
-  	d_accIon[IDcrntIon].y =0;
-  	d_accIon[IDcrntIon].z =0;
+  	d_accIon[IDcrntIon].x = 0;
+  	d_accIon[IDcrntIon].y = 0;
+  	d_accIon[IDcrntIon].z = 0;
 
 	// allocate shared memory
 	extern __shared__ float3 sharedPos[];
@@ -106,10 +105,10 @@ __global__ void calcIonIonAcc_102
 
 		// DEBUGING // 
 		/*
-		// PTX code used to access shared memory sizes
-		// which are save to "ret"
-		unsigned ret;
-		asm volatile ("mov.u32 %0, %total_smem_size;" : "=r"(ret));
+		* // PTX code used to access shared memory sizes
+		* // which are save to "ret"
+		* unsigned ret;
+		* asm volatile ("mov.u32 %0, %total_smem_size;" : "=r"(ret));
 		*/
 
 		// loop over all of the ions loaded in the tile

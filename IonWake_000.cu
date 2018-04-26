@@ -1175,9 +1175,9 @@ int main(int argc, char* argv[])
 	//Ions inside the simulation region
 	// calculate the acceleration due to ion-ion interactions
 	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>
-		(d_posIon.getDevPtr(),
-		d_accIon.getDevPtr(),
-		d_NUM_ION.getDevPtr(),
+		(d_posIon.getDevPtr(), // <--
+		d_accIon.getDevPtr(), // <-->
+		d_NUM_ION.getDevPtr(), 
 		d_SOFT_RAD_SQRD.getDevPtr(),
 		d_ION_ION_ACC_MULT.getDevPtr(),
 		d_INV_DEBYE.getDevPtr());
