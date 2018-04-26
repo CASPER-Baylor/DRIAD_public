@@ -160,7 +160,7 @@ __global__ void drift_100
 *   d_MAX_DEPTH: maximum divisions of time step
 *
 * Output (void):
-*	m: the number of times timestep is divided by factor of 2
+*	m: the nuspeedber of times timestep is divided by factor of 2
 *   tsFactor: 2^(m-1)
 *
 * Assumptions:
@@ -214,7 +214,8 @@ __global__ void select_100
 	
 	// m = ceil(v2)
 	// v2 is being used to as an intermediat step in calculating m 
-	v2 = __logf(30 * *d_TIME_STEP * speed /(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
+	v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / 
+		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
 
 	// timestep depth
 	mtemp = ceil(v2);
@@ -300,30 +301,30 @@ __global__ void KDK_100
 	 const int* d_NUM_ION,
 	 const float* d_SOFT_RAD_SQRD,
 	 const float* d_ION_DUST_ACC_MULT,
-	 const float* d_chargeDust)
-	 {
-		// thread ID
-		int threadID = blockIdx.x * blockDim.x + threadIdx.x;
+	 const float* d_chargeDust) {
+
+	// thread ID
+	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 		
-		//local variables
-		int tsf = *d_tsFactor;
-		float ts = *d_TIME_STEP * tsf;
-		float half_ts = ts * 0.5;
-		bool stopflag = false;
+	//local variables
+	int tsf = *d_tsFactor;
+	float ts = *d_TIME_STEP * tsf;
+	float half_ts = ts * 0.5;
+	bool stopflag = false;
 	 	 
-		// Kick for 1/2 a timestep to get started
-		kick_dev(vel+threadID, acc+threadID, half_ts); 
+	// Kick for 1/2 a timestep to get started
+	kick_dev(vel+threadID, acc+threadID, half_ts); 
 		
 	// now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
-		int depth = 0;
-		while(d_boundsIon[threadID] == 0 && depth <= tsf && !stopflag){
+	int depth = 0;
+	while(d_boundsIon[threadID] == 0 && depth <= tsf && !stopflag){
 			
-			depth++;
-			drift_dev(pos+threadID,vel+threadID,ts);
+		depth++;
+		drift_dev(pos+threadID,vel+threadID,ts);
 	
-			//Check outside bounds
-			if(GEOMETRY == 0) {
-                    // check if any ions are outside of the simulation sphere
+		//Check outside bounds
+		if(GEOMETRY == 0) {
+            // check if any ions are outside of the simulation sphere
 			checkIonSphereBounds_101_dev
                           (pos+threadID, d_boundsIon+threadID, d_bndry_sqrd);
                    }

@@ -1253,7 +1253,7 @@ int main(int argc, char* argv[])
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
-			d_M_FACTOR.getDevPtr(), // ?? doesn't appear to be used ??
+			d_M_FACTOR.getDevPtr(), 
 			d_m.getDevPtr(), // -->
 			d_timeStepFactor.getDevPtr()); // -->
 
