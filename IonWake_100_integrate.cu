@@ -297,7 +297,7 @@ __global__ void KDK_100
 		
 		//local variables
 		int tsf = *d_tsFactor;
-		float ts = *d_TIME_STEP * tsf;
+		float ts = *d_TIME_STEP / tsf;
 		float half_ts = ts * 0.5;
 		bool stopflag = false;
 	 	 
