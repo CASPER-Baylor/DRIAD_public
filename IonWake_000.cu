@@ -432,6 +432,7 @@ int main(int argc, char* argv[])
 		<< "CHARGE_SINGLE_ION " << CHARGE_SINGLE_ION << '\n'
 		<< "TIME_STEP         " << TIME_STEP         << '\n'
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
+		<< "FREQ              " << FREQ              << '\n'
 		<< "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
 		<< "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
@@ -509,6 +510,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << CHARGE_SINGLE_ION << " % CHARGE_SINGLE_ION" << '\n'
 	<< std::setw(14) << TIME_STEP         << " % TIME_STEP"         << '\n'
 	<< std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
+	<< std::setw(14) << FREQ              << " % FREQ"              << '\n'
 	<< std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
@@ -832,7 +834,6 @@ int main(int argc, char* argv[])
 	float3 distdd;
 	float distSquared;
 	float linForce;
-	
 		
 	// initialize the dust velocities and accelerations 
 	for (int i = 0; i < NUM_DUST; i++)
@@ -1108,21 +1109,21 @@ int main(int argc, char* argv[])
 
 	//First make sure that no ions are inside dust
 	checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_posIon.getDevPtr(),
-		d_boundsIon.getDevPtr(),
+		(d_posIon.getDevPtr(), // <--
+		d_boundsIon.getDevPtr(), // <-->
 		d_RAD_DUST_SQRD.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
-		d_posDust.getDevPtr());
+		d_posDust.getDevPtr()); // <--
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
-	//inject ions on the boundary
 	//polarity switching of electric field
-	//int FREQ = 500; //should be defined in parameter file
 	int xac = 0;
+
+	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
 		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(),
+			(d_posIon.getDevPtr(), 
 			d_velIon.getDevPtr(),
 			d_accIon.getDevPtr(),
 			randStates.getDevPtr(),
@@ -1146,13 +1147,13 @@ int main(int argc, char* argv[])
 
 	} else if(GEOMETRY == 1) {
 		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(),
-			d_velIon.getDevPtr(),
-			d_accIon.getDevPtr(),
+			(d_posIon.getDevPtr(), // -->
+			d_velIon.getDevPtr(), // -->
+			d_accIon.getDevPtr(), // -->
 			randStates.getDevPtr(),
 			d_RAD_CYL.getDevPtr(),
 			d_HT_CYL.getDevPtr(),
-			d_boundsIon.getDevPtr(),
+			d_boundsIon.getDevPtr(), // <-- 
 			d_GCOM.getDevPtr(),
 			d_QCOM.getDevPtr(),
 			d_VCOM.getDevPtr(),
@@ -1165,7 +1166,7 @@ int main(int argc, char* argv[])
 			d_MACH.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
-			xac);
+			xac); // <--
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 	}
@@ -1179,9 +1180,9 @@ int main(int argc, char* argv[])
 	//Ions inside the simulation region
 	// calculate the acceleration due to ion-ion interactions
 	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>
-		(d_posIon.getDevPtr(),
-		d_accIon.getDevPtr(),
-		d_NUM_ION.getDevPtr(),
+		(d_posIon.getDevPtr(), // <--
+		d_accIon.getDevPtr(), // <-->
+		d_NUM_ION.getDevPtr(), 
 		d_SOFT_RAD_SQRD.getDevPtr(),
 		d_ION_ION_ACC_MULT.getDevPtr(),
 		d_INV_DEBYE.getDevPtr());
@@ -1199,11 +1200,11 @@ int main(int argc, char* argv[])
 			d_INV_DEBYE.getDevPtr());
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
-	} if(GEOMETRY == 1) {
+	} else if(GEOMETRY == 1) {
 		// calculate the forces between all ions
 		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_accIon.getDevPtr(),
-			d_posIon.getDevPtr(),
+			(d_accIon.getDevPtr(), // <-->
+			d_posIon.getDevPtr(), // <--
 			d_Q_DIV_M.getDevPtr(),
 			d_P10X.getDevPtr(),
 			d_P12X.getDevPtr(),
@@ -1220,12 +1221,11 @@ int main(int argc, char* argv[])
 	//Any other external forces acting on ions would be calc'd here
 	// Kick for 1/2 a timestep -- using just ion-ion accels
 	kick_100<<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_velIon.getDevPtr(),
-		d_accIon.getDevPtr(),
+		(d_velIon.getDevPtr(), // <-->
+		d_accIon.getDevPtr(), // <-->
 		d_HALF_TIME_STEP.getDevPtr());
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "kick_100", false);
-
 
 	// calculate the acceleration due to ion-dust interactions
 	// also save the distance to the closest dust particle for each ion
@@ -1252,14 +1252,14 @@ int main(int argc, char* argv[])
 
 		//Select the time step depth
 		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_velIon.getDevPtr(),
-			d_minDistDust.getDevPtr(),
+			(d_velIon.getDevPtr(), // <--
+			d_minDistDust.getDevPtr(), // <--
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
-			d_M_FACTOR.getDevPtr(),
-			d_m.getDevPtr(),
-			d_timeStepFactor.getDevPtr());
+			d_M_FACTOR.getDevPtr(), 
+			d_m.getDevPtr(), // -->
+			d_timeStepFactor.getDevPtr()); // -->
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "select_100", false);
 
@@ -1274,54 +1274,54 @@ int main(int argc, char* argv[])
 		//	}
 		//KDK using just the ion-dust acceleration for s^m iterations
 
-		if(GEOMETRY ==0) {
+		if(GEOMETRY == 0) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				d_velIon.getDevPtr(),
-				d_accIonDust.getDevPtr(),
-				d_m.getDevPtr(),
-				d_timeStepFactor.getDevPtr(),
-				d_boundsIon.getDevPtr(),
-				d_TIME_STEP.getDevPtr(),
+				(d_posIon.getDevPtr(), // <-->
+				d_velIon.getDevPtr(), // <-->
+				d_accIonDust.getDevPtr(), // <--
+				d_m.getDevPtr(), // <
+				d_timeStepFactor.getDevPtr(), // <
+				d_boundsIon.getDevPtr(), // <-->
+				d_TIME_STEP.getDevPtr(), 
 				GEOMETRY,
 				d_RAD_SIM_SQRD.getDevPtr(),
 				NULL,
 				d_RAD_DUST_SQRD.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
-				d_posDust.getDevPtr(),
+				d_posDust.getDevPtr(), // <--
 				d_NUM_ION.getDevPtr(),
 				d_SOFT_RAD_SQRD.getDevPtr(),
 				d_ION_DUST_ACC_MULT.getDevPtr(),
-				d_chargeDust.getDevPtr());
+				d_chargeDust.getDevPtr()); // <--
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
-		} if(GEOMETRY ==1) {
+		} else if(GEOMETRY == 1) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				d_velIon.getDevPtr(),
-				d_accIonDust.getDevPtr(),
-				d_m.getDevPtr(),
-				d_timeStepFactor.getDevPtr(),
-				d_boundsIon.getDevPtr(),
+				(d_posIon.getDevPtr(), // <-->
+				d_velIon.getDevPtr(), // <-->
+				d_accIonDust.getDevPtr(),// <--
+				d_m.getDevPtr(), // <
+				d_timeStepFactor.getDevPtr(), // <
+				d_boundsIon.getDevPtr(), // <-->
 				d_TIME_STEP.getDevPtr(),
 				GEOMETRY,
 				d_RAD_CYL_SQRD.getDevPtr(),
 				d_HT_CYL.getDevPtr(),
 				d_RAD_DUST_SQRD.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
-				d_posDust.getDevPtr(),
+				d_posDust.getDevPtr(), // <--
 				d_NUM_ION.getDevPtr(),
 				d_SOFT_RAD_SQRD.getDevPtr(),
 				d_ION_DUST_ACC_MULT.getDevPtr(),
-				d_chargeDust.getDevPtr());
+				d_chargeDust.getDevPtr()); // <--
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 		}
 
-		// inject ions on the boundary
 		//polarity switching of electric field
-		int temp_var = (floor(2*FREQ*i*TIME_STEP));
-		xac = temp_var % 2;
+        xac = int(floor(2*FREQ*i*TIME_STEP)) % 2;
+
+		// inject ions on the boundary of the simulation
 		if(GEOMETRY == 0) {
 			// inject ions into the simulation sphere
 			injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
@@ -1480,7 +1480,7 @@ int main(int argc, char* argv[])
 					dustTraceFile << dust_time << std::endl;
 
 					for (int j =0; j< NUM_DUST; j++) {
-						//print vel and acc before the time step
+						//print vel and acc before the timestep
 						//dustTraceFile << "Before the dust timestep" << std::endl;
 						//dustTraceFile << velDust[j].x;
 						//dustTraceFile << ", " << velDust[j].y;

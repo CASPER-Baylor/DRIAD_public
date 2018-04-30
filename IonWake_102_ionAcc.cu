@@ -59,13 +59,12 @@
 *
 */
 __global__ void calcIonIonAcc_102
-       (float3* d_posIon, 
-        float3* d_accIon, 
-        int * const d_NUM_ION,
-        float * const d_SOFT_RAD_SQRD, 
-        float * const d_ION_ION_ACC_MULT,
-        float * const d_INV_DEBYE)
-{
+	(float3* d_posIon, 
+    float3* d_accIon, 
+    int * const d_NUM_ION,
+    float * const d_SOFT_RAD_SQRD, 
+    float * const d_ION_ION_ACC_MULT,
+    float * const d_INV_DEBYE) {
 
 	// index of the current ion
 	int IDcrntIon = blockIdx.x * blockDim.x + threadIdx.x;
@@ -79,9 +78,9 @@ __global__ void calcIonIonAcc_102
 	float linForce;
 	int tileThreadID;
 
-  	d_accIon[IDcrntIon].x =0;
-  	d_accIon[IDcrntIon].y =0;
-  	d_accIon[IDcrntIon].z =0;
+  	d_accIon[IDcrntIon].x = 0;
+  	d_accIon[IDcrntIon].y = 0;
+  	d_accIon[IDcrntIon].z = 0;
 
 	// allocate shared memory
 	extern __shared__ float3 sharedPos[];
@@ -106,10 +105,10 @@ __global__ void calcIonIonAcc_102
 
 		// DEBUGING // 
 		/*
-		// PTX code used to access shared memory sizes
-		// which are save to "ret"
-		unsigned ret;
-		asm volatile ("mov.u32 %0, %total_smem_size;" : "=r"(ret));
+		* // PTX code used to access shared memory sizes
+		* // which are save to "ret"
+		* unsigned ret;
+		* asm volatile ("mov.u32 %0, %total_smem_size;" : "=r"(ret));
 		*/
 
 		// loop over all of the ions loaded in the tile
@@ -191,16 +190,15 @@ __global__ void calcIonIonAcc_102
 *
 */
 __global__ void calcIonDustAcc_102(
-		float3* d_posIon, 
-		float3* d_accIon, 
-        float3* d_posDust,
-		int* const d_NUM_ION,
-        int* const d_NUM_DUST, 
-		float* const d_SOFT_RAD_SQRD, 
-		float* const d_ION_DUST_ACC_MULT, 
-		float* const d_chargeDust,
-		float* d_minDistDust)
-{
+	float3* d_posIon, 
+	float3* d_accIon, 
+    float3* d_posDust,
+	int* const d_NUM_ION,
+    int* const d_NUM_DUST, 
+	float* const d_SOFT_RAD_SQRD, 
+	float* const d_ION_DUST_ACC_MULT, 
+	float* const d_chargeDust,
+	float* d_minDistDust) {
 
 	// index of the current ion
 	int IDcrntIon = blockIdx.x * blockDim.x + threadIdx.x;
@@ -222,31 +220,31 @@ __global__ void calcIonDustAcc_102(
 	// loop over all of the dust particles
 	for (int h = 0; h < *d_NUM_DUST; h++) {
 
-			// calculate the distance between the ion in shared
-			// memory and the current thread's ion
-			dist.x = d_posIon[IDcrntIon].x - d_posDust[h].x;
-			dist.y = d_posIon[IDcrntIon].y - d_posDust[h].y;
-			dist.z = d_posIon[IDcrntIon].z - d_posDust[h].z;
+		// calculate the distance between the ion in shared
+		// memory and the current thread's ion
+		dist.x = d_posIon[IDcrntIon].x - d_posDust[h].x;
+		dist.y = d_posIon[IDcrntIon].y - d_posDust[h].y;
+		dist.z = d_posIon[IDcrntIon].z - d_posDust[h].z;
 
-			// calculate the distance squared
-			distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+		// calculate the distance squared
+		distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
 
-			// calculate the hard distance
-			hardDist = __fsqrt_rn(distSquared);
+		// calculate the hard distance
+		hardDist = __fsqrt_rn(distSquared);
 
-			// calculate a scaler intermediate
-			linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
-                        (hardDist*hardDist*hardDist);
+		// calculate a scaler intermediate
+		linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
+        	(hardDist*hardDist*hardDist);
 
-			// add the acceleration to the current ion's acceleration
-			d_accIon[IDcrntIon].x += linForce * dist.x;
-			d_accIon[IDcrntIon].y += linForce * dist.y;
-			d_accIon[IDcrntIon].z += linForce * dist.z;
-			
-			// save the distance to the closest dust particle
-			if (hardDist < min_dist){
-			   min_dist = hardDist;
-			}	
+		// add the acceleration to the current ion's acceleration
+		d_accIon[IDcrntIon].x += linForce * dist.x;
+		d_accIon[IDcrntIon].y += linForce * dist.y;
+		d_accIon[IDcrntIon].z += linForce * dist.z;
+		
+		// save the distance to the closest dust particle
+		if (hardDist < min_dist){
+		   min_dist = hardDist;
+		}	
 
 	} // end loop over dust
 	
@@ -294,11 +292,10 @@ __global__ void calcIonDustAcc_102(
 *
 */
 __global__ void calcExtrnElcAcc_102
-       (float3* d_accIon, 
-        float3* d_posIon, 
-        float* const d_EXTERN_ELC_MULT, 
-        float* const d_INV_DEBYE)
-{
+	(float3* d_accIon, 
+    float3* d_posIon, 
+    float* const d_EXTERN_ELC_MULT, 
+    float* const d_INV_DEBYE) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -379,18 +376,23 @@ __global__ void calcExtrnElcAcc_102
 *
 */
 __global__ void calcExtrnElcAccCyl_102
-       (float3* d_accIon, 
-        float3* d_posIon, 
+	(float3* d_accIon, 
+    float3* d_posIon, 
 	float* d_Q_DIV_M,
-	float* d_p10x, float* d_p12x,float* d_p14x,
-	float* d_p01z, float* d_p21z,float* d_p03z, float* d_p23z,float* d_p05z)
-{
+	float* d_p10x, 
+	float* d_p12x,
+	float* d_p14x,
+	float* d_p01z, 
+	float* d_p21z,
+	float* d_p03z, 
+	float* d_p23z,
+	float* d_p05z) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
 
-	// get the radius of the ion from the center of the
-	// simulation sphere. The center is assumed to be (0,0,0)
+	// get the radius of the ion from the center axis of the
+	// simulation cylinder. The center is assumed to be (0,0,z)
 	float rad = __fsqrt_rn(
 		(d_posIon[ID].x * d_posIon[ID].x) +
 		(d_posIon[ID].y * d_posIon[ID].y)) ;
@@ -402,9 +404,7 @@ __global__ void calcExtrnElcAccCyl_102
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
 	// it divided by rad.
-	float radAcc = *d_p10x  +
-			*d_p12x * zsq +
-			*d_p14x * zsq * zsq;
+	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
 
 	// calculate vertical component of the acceleration
 	float vertAcc = *d_p01z * z +

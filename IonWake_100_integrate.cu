@@ -160,7 +160,7 @@ __global__ void drift_100
 *   d_MAX_DEPTH: maximum divisions of time step
 *
 * Output (void):
-*	m: the number of times timestep is divided by factor of 2
+*	m: the nuspeedber of times timestep is divided by factor of 2
 *   tsFactor: 2^(m-1)
 *
 * Assumptions:
@@ -172,59 +172,70 @@ __global__ void drift_100
 *
 */
 __global__ void select_100
-       (float3* vel, 
-	float* minDistDust,
-	const float* d_RAD_DUST,
-        const float* d_TIME_STEP,
-	const int* d_MAX_DEPTH,
-	const float* d_M_FACTOR,
-	int* m,
-	int* tsFactor)
-{
+    (float3* velIon, 
+	 float* minDistDust,
+	 const float* d_RAD_DUST,
+     const float* d_TIME_STEP,
+	 const int* d_MAX_DEPTH,
+	 const float* d_M_FACTOR,
+	 int* m,
+	 int* timeStepFactor) {
+	
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 	
 	// initialize variables
 	float v2;
-	float v;
+	float speed;
 	int mtemp;
 	int tsf;
 
-	/* calculate timestep depth
-	* m = ceil(ln(*d_M_FACTOR * dT * v / abs(dist - dustRadius))/ln(2))
-	*******************
-	* dT - time step
-	* v  - magnitude of velocity
-	* dist - distance to closest dust particle
-	* dustRadius  - radius of dust particles
-	* 30 is a factor which initial tests showed to work well
-	*******************/
+	//                Calculate Timestep Depth
+	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+	 *      m = ceil(ln( M * dT * v / abs(r - R))/ln(2))       *
+	 * ------------------------------------------------------- *
+	 * m  - timestep depth                                     *
+	 * M  - d_M_FACTOR                                         *
+	 * dT - time step                                          *
+	 * v  - magnitude of velocity                              *
+	 * r  - distance to closest dust particle                  *
+	 * R  - radius of the dust particles                       *
+	 *                                                         *
+	 * 30 is a factor which initial tests showed to work well  *
+	 * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 	
-	v2 = vel[threadID].x * vel[threadID].x + 
-		vel[threadID].y * vel[threadID].y + 
-		vel[threadID].z * vel[threadID].z; 
-		
-	v =__fsqrt_rn(v2);
+	// ion speed squared 
+	v2 = velIon[threadID].x * velIon[threadID].x + 
+		 velIon[threadID].y * velIon[threadID].y + 
+		 velIon[threadID].z * velIon[threadID].z; 
 	
-	v2 = __logf(30 * *d_TIME_STEP * v /(minDistDust[threadID] - *d_RAD_DUST))
-		/ __logf(2);
+	// ion speed
+	speed = __fsqrt_rn(v2);
+	
+	// m = ceil(v2)
+	// v2 is being used to as an intermediat step in calculating m 
+	v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / 
+		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
+
+	// timestep depth
 	mtemp = ceil(v2);
 	
+	// check that the timestep depth is within allowed bounds
 	if (mtemp < 0){
 		mtemp = 0;
-	}
-	else if (mtemp > *d_MAX_DEPTH) {
+	} else if (mtemp > *d_MAX_DEPTH) {
 		mtemp = *d_MAX_DEPTH;
 	}
 	
+	// calculate 2^(time step depth)
 	tsf = 1;
-	for(int i = 0; i < mtemp; i++)
-	{
+	for(int i = 0; i < mtemp; i++) {
 		tsf = tsf * 2;
 	}
 	
+	// save to global memory
 	m[threadID] = mtemp;
-	tsFactor[threadID] = tsf;
+	timeStepFactor[threadID] = tsf;
 }
 
 /*
@@ -290,70 +301,72 @@ __global__ void KDK_100
 	 const int* d_NUM_ION,
 	 const float* d_SOFT_RAD_SQRD,
 	 const float* d_ION_DUST_ACC_MULT,
-	 const float* d_chargeDust)
-	 {
-		// thread ID
-		int threadID = blockIdx.x * blockDim.x + threadIdx.x;
+	 const float* d_chargeDust) {
+
+	// thread ID
+	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 		
-		//local variables
-		int tsf = *d_tsFactor;
-		float ts = *d_TIME_STEP / tsf;
-		float half_ts = ts * 0.5;
-		bool stopflag = false;
+	//local variables
+	int tsf = *d_tsFactor;
+	float ts = *d_TIME_STEP / tsf;
+	float half_ts = ts * 0.5;
+	bool stopflag = false;
 	 	 
-		// Kick for 1/2 a timestep to get started
-		kick_dev(vel+threadID, acc+threadID, half_ts); 
+	// Kick for 1/2 a timestep to get started
+	kick_dev(vel+threadID, acc+threadID, half_ts); 
 		
 	// now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
-		int depth = 0;
-		while(d_boundsIon[threadID] == 0 && depth <= tsf && !stopflag){
+	int depth = 0;
+	while(d_boundsIon[threadID] == 0 && depth <= tsf && !stopflag){
 			
-			depth++;
-			drift_dev(pos+threadID,vel+threadID,ts);
+		depth++;
+		drift_dev(pos+threadID,vel+threadID,ts);
 	
-			//Check outside bounds
-			if(GEOMETRY == 0) {
-                    // check if any ions are outside of the simulation sphere
+		//Check outside bounds
+		if(GEOMETRY == 0) {
+            // check if any ions are outside of the simulation sphere
 			checkIonSphereBounds_101_dev
                           (pos+threadID, d_boundsIon+threadID, d_bndry_sqrd);
-                   }
-
-            if(GEOMETRY == 1) {
-                    // check if any ions are outside of the simulation cylinder
-                    checkIonCylinderBounds_101_dev 
-                          (pos+threadID, d_boundsIon+threadID, 
-                           d_bndry_sqrd, d_HT_CYL);
-					}
+        } else if(GEOMETRY == 1) {
+        	// check if any ions are outside of the simulation cylinder
+            checkIonCylinderBounds_101_dev 
+            	(pos+threadID, 
+				d_boundsIon+threadID, 
+                d_bndry_sqrd, d_HT_CYL);
+		}
 			
-			// check if any ions are inside a dust particle 
-			checkIonDustBounds_101_dev
-                       (pos+threadID, d_boundsIon+threadID,
-                        d_RAD_DUST_SQRD, d_NUM_DUST, d_posDust);
+		// check if any ions are inside a dust particle 
+		checkIonDustBounds_101_dev
+        	(pos + threadID, 
+			d_boundsIon + threadID,
+            d_RAD_DUST_SQRD, 
+			d_NUM_DUST, 
+			d_posDust);
 						
-			if(d_boundsIon[threadID] ==0){
-				// calculate the acceleration due to ion-dust interactions
-				calcIonDustAcc_102_dev
-                       (pos+threadID, 
-                        acc+threadID,
-                        d_posDust,
-                        d_NUM_ION,
-                        d_NUM_DUST, 
-                        d_SOFT_RAD_SQRD, 
-                        d_ION_DUST_ACC_MULT, 
-                        d_chargeDust);
+		if(d_boundsIon[threadID] ==0){
+			// calculate the acceleration due to ion-dust interactions
+			calcIonDustAcc_102_dev
+            	(pos + threadID, 
+                acc + threadID,
+                d_posDust,
+                d_NUM_ION,
+                d_NUM_DUST, 
+                d_SOFT_RAD_SQRD, 
+                d_ION_DUST_ACC_MULT, 
+                d_chargeDust);
     
-				// Kick with IonDust accels for deltat/2^(m-1)
-				if(depth == tsf){
-					// on last time step, do a half kick
-					kick_dev(vel+threadID, acc+threadID, half_ts);
-				} else {
-					kick_dev(vel+threadID, acc+threadID, ts);
-				}
+			// Kick with IonDust accels for deltat/2^(m-1)
+			if(depth == tsf){
+				// on last time step, do a half kick
+				kick_dev(vel+threadID, acc+threadID, half_ts);
 			} else {
-				stopflag = true;
+				kick_dev(vel+threadID, acc+threadID, ts);
 			}
-		}// end for loop over depth			
-	}
+		} else {
+			stopflag = true;
+		}
+	}// end for loop over depth			
+}
 	 
 /*
 * Name: kick_dev
@@ -385,7 +398,7 @@ __global__ void KDK_100
 */
 __device__ void kick_dev
        (float3* vel, 
-	float3* acc,
+		float3* acc,
         float timestep)
 {
 	// thread ID
