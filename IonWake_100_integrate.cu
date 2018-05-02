@@ -308,7 +308,7 @@ __global__ void KDK_100
 		
 	//local variables
 	int timeStepFactor = *d_tsFactor;
-	float timeStep = *d_TIME_STEP * timeStepFactor;
+	float timeStep = *d_TIME_STEP / timeStepFactor;
 	float halfTimeStep = timeStep * 0.5;
 	bool stopflag = false;
 	 	 

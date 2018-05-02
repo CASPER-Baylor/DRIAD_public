@@ -401,6 +401,21 @@ int main(int argc, char* argv[])
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
+	
+	// a constant multiplier for the radial dust acceleration due to
+	// external confinement
+	//const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
+	const float OMEGA2 = DUST_CONFINEMENT / MASS_DUST;
+	// Damping factor for dust
+	const float BETA = 1.44 * 4 /3 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
+		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+	int N = 1; //update dust pos'n every N ion timesteps
+	float dust_dt = N * 10000 * TIME_STEP;
+	float half_dust_dt = dust_dt * 0.5;	
+	float dust_time = 0;
+	int num = 1000; //Random number for Brownian kick
+	//Thermal bath or Brownian motion of dust
+	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
 
 	if (debugMode) {
 		debugFile << "-- User Parameters --" << '\n'
@@ -465,7 +480,10 @@ int main(int argc, char* argv[])
 		<< "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
-		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' << '\n';
+		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
+		<< "OMEGA2			  " << OMEGA2			 << '\n'
+		<< "BETA			  " << BETA				 << '\n' 
+		<< "SIGMA			  " << SIGMA			 << '\n' << '\n';
 		debugFile.flush();
 	}
 
@@ -816,19 +834,6 @@ int main(int argc, char* argv[])
 	float3 distdd;
 	float distSquared;
 	float linForce;
-	int N = 10; //update dust pos'n every N ion timesteps
-	float dust_dt = N * 10 * TIME_STEP;
-	float half_dust_dt = dust_dt * 0.5;	
-	// a constant multiplier for the radial dust acceleration due to
-	// external confinement
-	//const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
-	const float OMEGA2 = DUST_CONFINEMENT / MASS_DUST;
-	// Damping factor for dust
-	const float BETA = 1.44 * 4 /3 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
-	//Thermal bath or Brownian motion of dust
-	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
-	
 		
 	// initialize the dust velocities and accelerations 
 	for (int i = 0; i < NUM_DUST; i++)
@@ -1471,6 +1476,9 @@ int main(int argc, char* argv[])
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
+					dust_time = dust_time + dust_dt;
+					dustTraceFile << dust_time << std::endl;
+
 					for (int j =0; j< NUM_DUST; j++) {
 						//print vel and acc before the timestep
 						//dustTraceFile << "Before the dust timestep" << std::endl;
@@ -1507,14 +1515,12 @@ int main(int argc, char* argv[])
 
 						// calculate acceleration of the dust
 						//radial acceleration from confinement
-						accDust[j].x -= OMEGA2 * chargeDust[j] * posDust[j].x;
-						accDust[j].y -= OMEGA2 * chargeDust[j] * posDust[j].y;
+						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
+						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
 						//weaker axial confinement in z
-						accDust[j].z -= OMEGA2 /250 * chargeDust[j] * posDust[j].z;				
+						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;				
 						//polarity switching
-						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * 
-							(2*floor(FREQ*dust_dt*i) -floor(2*FREQ*dust_dt*i)+.5);
-						
+						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);					
 
 						// forces between the dust grains
 						for(int g = j+1; g < NUM_DUST; g++) {
@@ -1558,9 +1564,12 @@ int main(int argc, char* argv[])
 						accDust[j].z -= BETA*velDust[j].z;
     
 						// Add Brownian motion
-						accDust[j].x += (2*rand()-1)*SIGMA;
-						accDust[j].y += (2*rand()-1)*SIGMA;
-						accDust[j].z += (2*rand()-1)*SIGMA;
+						randNum = (((rand() % (num*2)) - num) / (float)num);
+						accDust[j].x += randNum * SIGMA;
+						randNum = (((rand() % (num*2)) - num) / (float)num);
+						accDust[j].y += randNum * SIGMA;
+						randNum = (((rand() % (num*2)) - num) / (float)num);
+						accDust[j].z += randNum * SIGMA;
 						
 						//kick half a  time step
 						velDust[j].x += accDust[j].x * half_dust_dt;
