@@ -316,6 +316,11 @@ int main(int argc, char* argv[])
 		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
 
+	//  ion debye length (m) used for dust shielding
+	const float DEBYE_I = 
+		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ION)/
+		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
+
 	// dust particle mass assumes spherical particle (Kg)
 	const float MASS_DUST =
 		DEN_DUST * (4 / 3) * PI * RAD_DUST * RAD_DUST * RAD_DUST;
@@ -409,10 +414,11 @@ int main(int argc, char* argv[])
 	// Damping factor for dust
 	const float BETA = 1.44 * 4 /3 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
-	int N = 1; //update dust pos'n every N ion timesteps
-	float dust_dt = N * 10000 * TIME_STEP;
+	int N = 100; //update dust pos'n every N ion timesteps
+	float dust_dt = N * 100 * TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
+	float ionTime = 0;
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
 	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
@@ -455,6 +461,7 @@ int main(int argc, char* argv[])
 
 		debugFile << "-- Derived Parameters --"  << '\n'
 		<< "DEBYE         " << DEBYE         << '\n'
+		<< "DEBYE_I       " << DEBYE_I         << '\n'
 		<< "RAD_SIM       " << RAD_SIM       << '\n'
 		<< "RAD_CYL       " << RAD_CYL     << '\n'
 		<< "HT_CYL        " << HT_CYL      << '\n'
@@ -518,6 +525,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
+	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
 	<< std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
 	<< std::setw(14) << P10X              << " % P10X"              << '\n'
@@ -1176,7 +1184,7 @@ int main(int argc, char* argv[])
 
 	roadBlock_000( statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
 
-	//Calculate ion-ion forcest
+	//Calculate ion-ion forces
 	//Ions inside the simulation region
 	// calculate the acceleration due to ion-ion interactions
 	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>
@@ -1245,7 +1253,7 @@ int main(int argc, char* argv[])
 	// time step
 	for (int i = 1; i <= NUM_TIME_STEP; i++)
 	{
-		statusFile << "In the timestep loop " << std::endl;
+		//statusFile << "In the timestep loop " << std::endl;
 
 		// print the time step number to the status file
 		statusFile << i << ": ";
@@ -1319,7 +1327,9 @@ int main(int argc, char* argv[])
 		}
 
 		//polarity switching of electric field
-        xac = int(floor(2*FREQ*i*TIME_STEP)) % 2;
+		// Need to track dust_time + ion_time
+		ionTime = dust_time + (i % N)* TIME_STEP;
+        xac = int(floor(2*FREQ*ionTime)) % 2;
 
 		// inject ions on the boundary of the simulation
 		if(GEOMETRY == 0) {
@@ -1537,8 +1547,9 @@ int main(int argc, char* argv[])
 							dist = sqrt(distSquared);
         
 							//calculate a scalar intermediate
-							linForce = DUST_DUST_ACC_MULT * chargeDust[j] * chargeDust[g] / 
-							(dist*dist*dist)*(1+dist/DEBYE)*exp(-dist/DEBYE);
+							linForce = DUST_DUST_ACC_MULT * chargeDust[j] 
+								* chargeDust[g] / (dist*dist*dist)
+								*(1+dist/DEBYE_I)*exp(-dist/DEBYE_I);
         
 							// add the acceleration to the current dust grain
 							accDust[j].x += linForce * distdd.x;
@@ -1590,8 +1601,20 @@ int main(int argc, char* argv[])
 					} //end of for loop over dust particles
 				} // End of dust timestep
 
-				// copy the dust charge to the GPU
+				// copy the dust position to the GPU
 				d_posDust.hostToDev();
+
+				// check ion dust bounds
+     			checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+         			(d_posIon.getDevPtr(), // <--
+         			d_boundsIon.getDevPtr(), // <-->
+         			d_RAD_DUST_SQRD.getDevPtr(),
+        			d_NUM_DUST.getDevPtr(),
+         			d_posDust.getDevPtr()); // <--
+
+     			roadBlock_000(  statusFile, __LINE__, __FILE__, 
+					"checkIonBounds_101", false);
+
 
 			// if the command number does not exist throw an error
 			} else {

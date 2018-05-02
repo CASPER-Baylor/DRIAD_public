@@ -240,8 +240,8 @@ __global__ void select_100
 
 /*
 * Name: KDK_100
-* Created: 3/14/2017
-* last edit: 3/14/2018
+* Created: 3/14/2018
+* last edit: 4/30/2018
 *
 * Editors
 *	Name: Lorin Matthews
