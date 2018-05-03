@@ -316,8 +316,8 @@ __global__ void KDK_100
 	kick_dev(velIon+threadID, ionDustAcc+threadID, halfTimeStep); 
 		
 	// now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
-	int depth = 0;
-	while(d_boundsIon[threadID] == 0 && depth <= timeStepFactor && !stopflag){
+	int depth = 1;
+	while(d_boundsIon[threadID] == 0 && depth <= timeStepFactor){
 			
 		depth++;
 		drift_dev(posIon+threadID, velIon+threadID, timeStep);
@@ -343,7 +343,7 @@ __global__ void KDK_100
 			d_NUM_DUST, 
 			d_posDust);
 						
-		if(d_boundsIon[threadID] ==0){
+		if(d_boundsIon[threadID] == 0){
 			// calculate the acceleration due to ion-dust interactions
 			calcIonDustAcc_102_dev
             	(posIon + threadID, 
@@ -362,8 +362,6 @@ __global__ void KDK_100
 			} else {
 				kick_dev(velIon+threadID, ionDustAcc+threadID, timeStep);
 			}
-		} else {
-			stopflag = true;
 		}
 	}// end for loop over depth			
 }
