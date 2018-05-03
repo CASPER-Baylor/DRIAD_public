@@ -1465,12 +1465,14 @@ int main(int argc, char* argv[])
 				d_chargeDust.hostToDev();
 
 				// print all the dust charges to the trace file
-				for (int k = 0; k < NUM_DUST; k++){
-					dustChargeFile << chargeDust[k];
-					dustChargeFile << ", ";
-				}
+				if ( i % N == 0 ) {
+					for (int k = 0; k < NUM_DUST; k++){
+						dustChargeFile << chargeDust[k];
+						dustChargeFile << ", ";
+					}
 
-				dustChargeFile << std::endl;
+					dustChargeFile << std::endl;
+				}
 
 				// print the ion current to the first dust particle to
 				// the trace file
