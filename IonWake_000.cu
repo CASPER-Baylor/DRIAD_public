@@ -1433,16 +1433,16 @@ int main(int argc, char* argv[])
 
 				// calculate the ion currents to the dust particles
 				// set initial currents to 0
-				for (int i = 0; i < NUM_DUST; i++){
-					ionCurrent[i] = 0;
+				for (int k = 0; k < NUM_DUST; k++){
+					ionCurrent[k] = 0;
 				}
 
 				// loop over all of the ion bounds
-				for (int i = 0; i < NUM_ION; i++){
+				for (int k = 0; k < NUM_ION; k++){
 					// if the ion was collected by a dust particle
-					if (boundsIon[i] > 0){
+					if (boundsIon[k] > 0){
 						// increase the current to that dust particle by 1
-						ionCurrent[boundsIon[i] - 1] += 1;
+						ionCurrent[boundsIon[k] - 1] += 1;
 					}
 				}
 
