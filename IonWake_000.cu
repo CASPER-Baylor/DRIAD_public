@@ -1238,15 +1238,15 @@ int main(int argc, char* argv[])
 	// calculate the acceleration due to ion-dust interactions
 	// also save the distance to the closest dust particle for each ion
 	calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_posIon.getDevPtr(),
-		d_accIonDust.getDevPtr(),
-		d_posDust.getDevPtr(),
+		(d_posIon.getDevPtr(), // <--
+		d_accIonDust.getDevPtr(), // <-->
+		d_posDust.getDevPtr(), // <--
 		d_NUM_ION.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
 		d_SOFT_RAD_SQRD.getDevPtr(),
 		d_ION_DUST_ACC_MULT.getDevPtr(),
-		d_chargeDust.getDevPtr(),
-		d_minDistDust.getDevPtr());
+		d_chargeDust.getDevPtr(), // <--
+		d_minDistDust.getDevPtr()); // -->
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
 
@@ -1260,8 +1260,8 @@ int main(int argc, char* argv[])
 
 		//Select the time step depth
 		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_velIon.getDevPtr(), // <--
-			d_minDistDust.getDevPtr(), // <--
+			(d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
+			d_minDistDust.getDevPtr(), // <-- (TS1: good)
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
@@ -1305,12 +1305,12 @@ int main(int argc, char* argv[])
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 		} else if(GEOMETRY == 1) {
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(), // <-->
-				d_velIon.getDevPtr(), // <-->
-				d_accIonDust.getDevPtr(),// <--
-				d_m.getDevPtr(), // <
-				d_timeStepFactor.getDevPtr(), // <
-				d_boundsIon.getDevPtr(), // <-->
+				(d_posIon.getDevPtr(), // <--> (TS1: rand + inject (dust bounds))
+				d_velIon.getDevPtr(), // <--> (TS1: rand + 1/2 kick ion-ion)
+				d_accIonDust.getDevPtr(),// <-- (TS1: from calcIonDustAcc before time step)
+				d_m.getDevPtr(), // < (TS1 = TS+: select)
+				d_timeStepFactor.getDevPtr(), // < (TS1 = TS+: select)
+				d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
 				d_TIME_STEP.getDevPtr(),
 				GEOMETRY,
 				d_RAD_CYL_SQRD.getDevPtr(),
