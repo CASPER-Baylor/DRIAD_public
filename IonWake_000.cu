@@ -1115,7 +1115,7 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_posDust.getDevPtr()); // <--
 
-	roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
+	roadBlock_000(statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
 	//polarity switching of electric field
 	int xac = 0;
@@ -1299,7 +1299,7 @@ int main(int argc, char* argv[])
 			KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_posIon.getDevPtr(), // <--> (TS1: rand + inject (dust bounds))
 				d_velIon.getDevPtr(), // <--> (TS1: rand + 1/2 kick ion-ion)
-				d_accIonDust.getDevPtr(),// <-- (TS1: from calcIonDustAcc before time step)
+				d_accIonDust.getDevPtr(),// <--> (TS1: from calcIonDustAcc before time step)
 				d_m.getDevPtr(), // < (TS1 = TS+: select)
 				d_timeStepFactor.getDevPtr(), // < (TS1 = TS+: select)
 				d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
@@ -1349,13 +1349,13 @@ int main(int argc, char* argv[])
 		} if(GEOMETRY == 1) {
 			// inject ions into the simulation sphere
 			injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				d_velIon.getDevPtr(),
-				d_accIon.getDevPtr(),
-				randStates.getDevPtr(),
+				(d_posIon.getDevPtr(), // -->
+				d_velIon.getDevPtr(), // -->
+				d_accIon.getDevPtr(), // -->
+				randStates.getDevPtr(), 
 				d_RAD_CYL.getDevPtr(),
 				d_HT_CYL.getDevPtr(),
-				d_boundsIon.getDevPtr(),
+				d_boundsIon.getDevPtr(), // <--
 				d_GCOM.getDevPtr(),
 				d_QCOM.getDevPtr(),
 				d_VCOM.getDevPtr(),
@@ -1368,7 +1368,7 @@ int main(int argc, char* argv[])
 				d_MACH.getDevPtr(),
 				d_MASS_SINGLE_ION.getDevPtr(),
 				d_BOLTZMANN.getDevPtr(),
-				xac);
+				xac); // <--
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 		}
@@ -1518,9 +1518,10 @@ int main(int argc, char* argv[])
 						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
 						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
 						//weaker axial confinement in z
-						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;				
+						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
 						//polarity switching
-						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD * (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);					
+						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
+							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
 
 						// forces between the dust grains
 						for(int g = j+1; g < NUM_DUST; g++) {
@@ -1610,21 +1611,22 @@ int main(int argc, char* argv[])
 		//Ions inside the simulation region
 		// calculate the acceleration due to ion-ion interactions
 		calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
-			(d_posIon.getDevPtr(),
-			d_accIon.getDevPtr(),
+			(d_posIon.getDevPtr(), // <--
+			d_accIon.getDevPtr(), // <-->
 			d_NUM_ION.getDevPtr(),
 			d_SOFT_RAD_SQRD.getDevPtr(),
 			d_ION_ION_ACC_MULT.getDevPtr(),
 			d_INV_DEBYE.getDevPtr());
-			roadBlock_000( statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+
+		roadBlock_000( statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
 
 		// Calculate the ion accelerations due to the ions outside of
 		// the simulation cavity
 		if(GEOMETRY == 0) {
 			// calculate the forces between all ions
 			calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_accIon.getDevPtr(),
-				d_posIon.getDevPtr(),
+				(d_accIon.getDevPtr(), // <-->
+				d_posIon.getDevPtr(), // <--
 				d_EXTERN_ELC_MULT.getDevPtr(),
 				d_INV_DEBYE.getDevPtr());
 
@@ -1632,8 +1634,8 @@ int main(int argc, char* argv[])
 		} else if(GEOMETRY == 1) {
 			// calculate the forces between all ions
 			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_accIon.getDevPtr(),
-				d_posIon.getDevPtr(),
+				(d_accIon.getDevPtr(), // <-->
+				d_posIon.getDevPtr(), // <--
 				d_Q_DIV_M.getDevPtr(),
 				d_P10X.getDevPtr(),
 				d_P12X.getDevPtr(),
@@ -1655,8 +1657,8 @@ int main(int argc, char* argv[])
 
 		// Kick for one timestep -- using just ion-ion accels
 		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_velIon.getDevPtr(),
-			d_accIon.getDevPtr(),
+			(d_velIon.getDevPtr(), // <-->
+			d_accIon.getDevPtr(), // <-->
 			d_TIME_STEP.getDevPtr()); //lsm 1.23.18
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "kick_100", false);
