@@ -458,15 +458,15 @@ __global__ void calcExtrnElcAccCyl_102
 */
 
 __global__ void calcIonDensityPotential_102
-	(float3* const d_posIon,
-	 float3* const d_gridPos,
+	(float3* d_gridPos,
+	 float3* d_posIon,
 	 float * const d_ION_POTENTIAL_MULT,
 	 float * const d_INV_DEBYE,
 	 int * const d_NUM_ION,
 	 float * d_ionPotential,
 	 float * d_ionDensity){
 
-	//  This is done for every grid point, so  threadIdx, blockDim, and blockIdx
+	//  This is done for every grid point, so threadIdx, blockDim, and blockIdx
 	// need to be calculated based on the number of grid points.
 	// grid point ID 
 	int IDgrid = threadIdx.x + blockDim.x * blockIdx.x;
@@ -475,11 +475,14 @@ __global__ void calcIonDensityPotential_102
 	float3 dist;
 	float distSquared;
 	float hardDist;
+	float potCrntGrid = 0;
+	float densCrntGrid = 0;
 	int tileThreadID;
 	float r_dens = 1 / *d_INV_DEBYE / 6;
 	float volume = 4/3 * 3.141593 * r_dens * r_dens * r_dens;
 	
 	d_ionDensity[IDgrid] = 0;
+	d_ionPotential[IDgrid] = 0;
 	
 	// allocate shared memory
 	extern __shared__ float3 sharedPos[];
@@ -488,8 +491,7 @@ __global__ void calcIonDensityPotential_102
 	// of the ions that is loaded into shared memory. Each tile consists of 
 	// as many ions as the block size. Each thread is responsible for loading 
 	// one ion position for the tile.
-	for (int tileOffset = 0; tileOffset < *d_NUM_ION; tileOffset += blockDim.x) 
-    {	
+	for (int tileOffset = 0; tileOffset< *d_NUM_ION; tileOffset += blockDim.x){
 		// the index of the ion for the thread to load
 		// for the current tile
 		tileThreadID = tileOffset + threadIdx.x; 
@@ -505,7 +507,6 @@ __global__ void calcIonDensityPotential_102
 		// loop over all of the ions loaded in the tile
 		for (int h = 0; h < blockDim.x; h++) {
 			
-
 			// calculate the distance between the ion in shared
 			// memory and the current grid point
 			dist.x = d_gridPos[IDgrid].x - sharedPos[h].x;
@@ -519,18 +520,20 @@ __global__ void calcIonDensityPotential_102
 			hardDist = __fsqrt_rn(distSquared);
 			
 			// Calculate the potential
-			d_ionPotential[IDgrid] = *d_ION_POTENTIAL_MULT / hardDist
+			potCrntGrid += *d_ION_POTENTIAL_MULT / hardDist
 				* __expf(-hardDist * *d_INV_DEBYE);
 			
 			if(hardDist <= r_dens){
-				d_ionDensity[IDgrid] = d_ionDensity[IDgrid] + 1;
-			} // end loop over ion in tile
+				densCrntGrid += 1;
+			} 
 
-		}
+		} // end loop over ion in tile
 
 		//wait for all threads to finish calculations
 		__syncthreads();
 	} //end loop over tiles
 	
-	d_ionDensity[IDgrid] = d_ionDensity[IDgrid] / volume;
+    // save to global memory
+	d_ionPotential[IDgrid] = potCrntGrid;
+	d_ionDensity[IDgrid] += densCrntGrid / volume;
 }

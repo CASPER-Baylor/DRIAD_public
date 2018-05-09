@@ -1126,6 +1126,8 @@ int main(int argc, char* argv[])
 	d_m.hostToDev();
 	d_timeStepFactor.hostToDev();
 	d_minDistDust.hostToDev();
+	d_gridPos.hostToDev();
+
 
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
@@ -1447,11 +1449,11 @@ int main(int argc, char* argv[])
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 		}
 
-		if (i % 1000 == 0) {
+		if (i % 500 == 0) {
 		// calc ion number density and ion potential
 			calcIonDensityPotential_102 <<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
-				(d_posIon.getDevPtr(),
-				 d_gridPos.getDevPtr(),
+				(d_gridPos.getDevPtr(),
+				 d_posIon.getDevPtr(),
 				 d_ION_POTENTIAL_MULT.getDevPtr(),
 				 d_INV_DEBYE.getDevPtr(),
 				 d_NUM_ION.getDevPtr(),
