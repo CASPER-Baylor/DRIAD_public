@@ -28,6 +28,9 @@
 *	calcExtrnElcAccCyl_102()
 *		cuda_runtime.h
 *		device_launch_parameters.h
+*	calcIonDensityPotential_102()
+*		cuda_runtime.h
+*		device_launch_parameters.h
 */
 
 #ifndef IONWAKE_102_IONACC
@@ -39,6 +42,7 @@
     *	calcIonDustAcc_102()
     *	calcExtrnElcAcc_102()
     *	calcExtrnElcAccCyl_102()
+	*	calcIonDensityPotential_102()
 	* For:
 	*	CUDA
 	*/
@@ -50,6 +54,7 @@
     *	calcIonDustAcc_102()
     *	calcExtrnElcAcc_102()
     *	calcExtrnElcAccCyl_102()
+	*	calcIonDensityPotential_102()
 	* For:
 	*	CUDA
 	*/
@@ -235,4 +240,46 @@ __global__ void calcExtrnElcAccCyl_102
         float*, float*,float* ,
         float*, float*,float*, float*,float*);
 
+/*
+ *  Name: calcIonDensityPotential_102
+ *  Created: 5/4/2018
+ *  Last Modified: 5/4/2018
+ * 
+ *  Editors
+ * 	Name: Lorin Matthews
+ * 	Contact: Lorin_Matthews@baylor.edu
+ * 	last edit: 5/4/2018
+ * 
+ *  Description:
+ * 	Calculates electric potential from ions at points on grid in 
+ *  	the xz-plane.  Also calculates the number density at each grid 
+ * 	point by counting the number of ions in a sphere of radius r_dens
+ *  	centered at each grid point.
+ * 
+ *  Input:
+ * 	d_posIion: ion positions
+ * 	d_gridPos: the grid points in xz-plane
+ * 	d_ION_POTENTIAL_MULT
+ * 	d_INV_DEBYE
+ * 
+ *  Output (void):
+ * 	d_ionPotential: potential at each grid point
+ * 	d_ionDenisty: ion number density at each grid point
+ * 
+ *  Assumptions: 
+ *    The number of grid points is a multiple of the block size?????
+ * 
+ *  Includes:
+ *	cuda_runtime.h
+ *	device_launch_parameters.h
+ * 
+ */
+__global__ void calcIonDensityPotential_102
+	(float3*,
+	 float3*,
+	 float* const,
+	 float* const,
+	 int* const,
+	 float*,
+	 float*);
 #endif

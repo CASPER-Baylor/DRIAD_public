@@ -436,7 +436,7 @@ __global__ void injectIonSphere_101(
 		// polarity switching
 		if(xac ==1) {
 			d_posIon[IDion].z *= -1;
-			d_accIon[IDion].z *= -1;
+			d_velIon[IDion].z *= -1;
 		}
 
 		// reset the acceleration
@@ -669,7 +669,7 @@ __global__ void injectIonCylinder_101(
 		// polarity switching
 		if(xac == 1) {
 			d_posIon[IDion].z *= -1;
-			d_accIon[IDion].z *= -1;
+			d_velIon[IDion].z *= -1;
 		}	
 		
 		// reset the acceleration
