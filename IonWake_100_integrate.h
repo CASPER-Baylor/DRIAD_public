@@ -118,6 +118,8 @@
 *	Select timestep division for adaptive time step
 *
 * Input:
+*	pos: ion positions 
+*	posDust: dust positions
 *	vel: ion velocities
 *   minDistDust: distance to closest dust grain
 *   d_RAD_DUST: radius of dust grains
@@ -138,11 +140,14 @@
 */
 __global__ void select_100
        (float3*, 
+	float3*,
+	float3*,
 	float*,
 	const float*,
         const float*,
 	const int*,
 	const float*,
+	int* const,
 	int*,
 	int*);
 	

@@ -1325,12 +1325,15 @@ int main(int argc, char* argv[])
 
 		//Select the time step depth
 		select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
+			(d_posIon.getDevPtr(), // <--
+			d_posDust.getDevPtr(), // <--
+			d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
 			d_minDistDust.getDevPtr(), // <-- (TS1: good)
 			d_RAD_DUST.getDevPtr(),
 			d_TIME_STEP.getDevPtr(),
 			d_MAX_DEPTH.getDevPtr(),
 			d_M_FACTOR.getDevPtr(), 
+			d_NUM_DUST.getDevPtr(),
 			d_m.getDevPtr(), // -->
 			d_timeStepFactor.getDevPtr()); // -->
 
