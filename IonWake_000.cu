@@ -1594,7 +1594,8 @@ int main(int argc, char* argv[])
 					dust_time = dust_time + dust_dt;
 					dustTraceFile << dust_time << std::endl;
 
-					for (int j =0; j< NUM_DUST; j++) {
+					// loop over dust particles 
+					for (int j = 0; j < NUM_DUST; j++) {
 						//print vel and acc before the timestep
 						//dustTraceFile << "Before the dust timestep" << std::endl;
 						//dustTraceFile << velDust[j].x;
@@ -1618,7 +1619,9 @@ int main(int argc, char* argv[])
 						accDust[j].x = 0;
 						accDust[j].y = 0;
 						accDust[j].z = 0;
-						if(j ==1) {
+
+						// 
+						if(j == 0) {
 							for (int g = 0;  g < NUM_DUST; g++) {
 								accDust2[g].x = 0;
 								accDust2[g].y = 0;
@@ -1708,16 +1711,7 @@ int main(int argc, char* argv[])
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
 
-				// check ion dust bounds
-     			checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-         			(d_posIon.getDevPtr(), // <--
-         			d_boundsIon.getDevPtr(), // <-->
-         			d_RAD_DUST_SQRD.getDevPtr(),
-        			d_NUM_DUST.getDevPtr(),
-         			d_posDust.getDevPtr()); // <--
-
-     			roadBlock_000(  statusFile, __LINE__, __FILE__, 
-					"checkIonBounds_101", false);
+     			roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
 
 			// if the command number does not exist throw an error
