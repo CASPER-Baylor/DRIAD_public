@@ -49,7 +49,7 @@ __global__ void calcDustIonAcc_103(
 	float* const d_chargeDust,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION,
-	float* const d_ION_DUST_ACC_MULT) {
+	float* const d_DUST_ION_ACC_MULT) {
 
 	// index of the current ion
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -74,7 +74,7 @@ __global__ void calcDustIonAcc_103(
 		scalerDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
 		// calculate a scaler intermediate
-		linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[i] / 
+		linForce = *d_DUST_ION_ACC_MULT * d_chargeDust[i] / 
 			(scalerDist * scalerDist * scalerDist);
 
 		// ion dust acceleration acceleration 

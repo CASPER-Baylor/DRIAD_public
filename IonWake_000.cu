@@ -382,6 +382,9 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to Ion Dust forces
 	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
+
+	// a constant multiplier for accelerations due to Dust Ion forces
+	const float DUST_ION_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_DUST;
 	
 	// a constant muliplier for accleration due to Dust Dust forces
 	const float DUST_DUST_ACC_MULT = 8.9877e9 / MASS_DUST;
@@ -1083,6 +1086,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
+	constCUDAvar<float> d_DUST_ION_ACC_MULT(&DUST_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
 	constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
@@ -1592,7 +1596,7 @@ int main(int argc, char* argv[])
 						d_chargeDust.getDevPtr(), // <--
 						d_NUM_DUST.getDevPtr(),
 						d_NUM_ION.getDevPtr(),
-						d_ION_DUST_ACC_MULT.getDevPtr()); 
+						d_DUST_ION_ACC_MULT.getDevPtr()); 
 
 					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 				
@@ -1600,18 +1604,20 @@ int main(int argc, char* argv[])
 						(d_accDustIon.getDevPtr(),
 						d_NUM_DUST.getDevPtr(),
 						d_NUM_ION.getDevPtr()); 
-
+					
 					roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
-	
+			
 					d_accDustIon.devToHost();
-
+					dustTraceFile << std::endl << accDustIon[0]..xx << std::endl;
 					for (int j = 0; j < NUM_DUST; j++) {
 						for(int w = 0; w < blocksPerGridIon; w++) {
 							accDust[j].x += accDustIon[j*NUM_ION + w].x;
 							accDust[j].y += accDustIon[j*NUM_ION + w].y;
 							accDust[j].z += accDustIon[j*NUM_ION + w].z;
 						}
+						dustTraceFile << j << " " << accDust[j].x << " " << accDust[j].y << " " << accDust[j].z << std::endl;
 					}
+					dustTraceFile << std::endl;
 
 					// copy the dust positions to the host
 					d_posDust.devToHost();
