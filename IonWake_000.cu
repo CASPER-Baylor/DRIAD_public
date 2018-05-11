@@ -1595,7 +1595,12 @@ int main(int argc, char* argv[])
 						d_ION_DUST_ACC_MULT.getDevPtr()); 
 
 					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
-					
+				
+					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+						(d_accDustIon.getDevPtr(),
+						d_NUM_DUST.getDevPtr(),
+						d_NUM_ION.getDevPtr()); 
+	
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
