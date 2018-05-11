@@ -1059,6 +1059,9 @@ int main(int argc, char* argv[])
 	initialize device variables
 	***************************/
 
+	
+	roadBlock_000(statusFile, __LINE__, __FILE__, "before variables", false);
+
 	// create constant device variables
 	constCUDAvar<int> d_NUM_DIV_QTH(&NUM_DIV_QTH, 1);
 	constCUDAvar<int> d_NUM_DIV_VEL(&NUM_DIV_VEL, 1);
@@ -1137,6 +1140,7 @@ int main(int argc, char* argv[])
 	d_minDistDust.hostToDev();
 	d_gridPos.hostToDev();
 
+	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
@@ -2074,7 +2078,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 	if (cudaStatus != cudaSuccess) {
 		// print an error
 		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
-		// fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
+		fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
 		fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
 
 		// terminate the program
