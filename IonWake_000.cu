@@ -1600,6 +1600,8 @@ int main(int argc, char* argv[])
 						(d_accDustIon.getDevPtr(),
 						d_NUM_DUST.getDevPtr(),
 						d_NUM_ION.getDevPtr()); 
+
+					roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 	
 					// copy the dust positions to the host
 					d_posDust.devToHost();
