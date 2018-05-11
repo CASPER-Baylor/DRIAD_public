@@ -1603,6 +1603,16 @@ int main(int argc, char* argv[])
 
 					roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 	
+					d_accDustIon.devToHost();
+
+					for (int j = 0; j < NUM_DUST; j++) {
+						for(int w = 0; w < blocksPerGridIon; w++) {
+							accDust[j].x += accDustIon[j*NUM_ION + w].x;
+							accDust[j].y += accDustIon[j*NUM_ION + w].y;
+							accDust[j].z += accDustIon[j*NUM_ION + w].z;
+						}
+					}
+
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
