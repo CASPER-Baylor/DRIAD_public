@@ -120,31 +120,31 @@ __global__ void sumDustIonAcc_103(
 
 	extern __shared__ float3 sumData[];
 
-	int threadID = threadIdx.x;
-	int i = blockIdx.x * blockDim.x * 2 + threadIdx.x; 
+	int localID = threadIdx.x;
+	int globalID = blockIdx.x * blockDim.x * 2 + threadIdx.x; 
 	
 	for(int j = 0; j < *d_NUM_DUST; j++) {
 
-		sumData[threadID].x = d_accDustIon[i].x + d_accDustIon[i + blockDim.x].x;
-		sumData[threadID].y = d_accDustIon[i].y + d_accDustIon[i + blockDim.x].y;
-		sumData[threadID].z = d_accDustIon[i].z + d_accDustIon[i + blockDim.x].z;
+		sumData[localID].x = d_accDustIon[globalID].x + d_accDustIon[globalID + blockDim.x].x;
+		sumData[localID].y = d_accDustIon[globalID].y + d_accDustIon[globalID + blockDim.x].y;
+		sumData[localID].z = d_accDustIon[globalID].z + d_accDustIon[globalID + blockDim.x].z;
 	
 		__syncthreads();
 	
-		for(int s = blockDim.x / 2; s > 0; s>>=1){
-			if (threadID < s) {
-				sumData[threadID].x += sumData[threadID + s].x;
-				sumData[threadID].y += sumData[threadID + s].y;
-				sumData[threadID].z += sumData[threadID + s].z;
+		for(int i = blockDim.x / 2; i > 0; i>>=1){
+			if (localID < i) {
+				sumData[localID].x += sumData[localID + i].x;
+				sumData[localID].y += sumData[localID + i].y;
+				sumData[localID].z += sumData[localID + i].z;
 				__syncthreads();
 			}
 		}
 	
-		if (threadID == 0) {
-			d_accDustIon[i] = sumData[0];
+		if (localID == 0) {
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION] = sumData[0];
 		}
 
-		i += *d_NUM_ION;
+		globalID += *d_NUM_ION;
 	}
 }
 
