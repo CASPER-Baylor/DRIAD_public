@@ -859,6 +859,9 @@ int main(int argc, char* argv[])
 	// allocate memory for ion accel due to dust
 	float3* accIonDust = (float3*)malloc(memFloat3Ion);
 
+	// allocate memory for dust accel due to ion
+	float3* accDustIon = (float3*)malloc(memFloat3Ion * NUM_DUST);
+
 	// allocate memory for the ion bounds flag
 	int* boundsIon = (int*)malloc(NUM_ION * sizeof(int));
 
@@ -1107,6 +1110,8 @@ int main(int argc, char* argv[])
 	CUDAvar<float3> d_accIonDust(accIonDust, NUM_ION);
 	CUDAvar<float3> d_posDust(posDust, NUM_DUST);
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
+	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
+	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
