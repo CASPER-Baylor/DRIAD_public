@@ -113,7 +113,7 @@ __global__ void calcDustIonAcc_103(
 *
 */
 
-__global__ void sumDustIonAcc(
+__global__ void sumDustIonAcc_103(
 	float3* d_accDustIon,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION) {
