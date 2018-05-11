@@ -1584,17 +1584,17 @@ int main(int argc, char* argv[])
 					// Print the command number to the status file 
 					statusFile << "5 ";
 					
-				// Calculate the ion forces on the dust
-				//	calcDustIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				//		(d_posIon.getDevPtr(), // <--
-				//		d_accDust.getDevPtr(), // <-->
-				//		d_posDust.getDevPtr(), // <--
-				//		d_NUM_ION.getDevPtr(),
-				//		d_NUM_DUST.getDevPtr(),
-				//		d_DUST_ACC_MULT2.getDevPtr(),
-				//		d_chargeDust.getDevPtr()); // <--
+				    // Calculate the ion forces on the dust
+					calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
+						(d_posIon.getDevPtr(), // <--
+						d_posDust.getDevPtr(), // <-->
+						d_accDustIon.getDevPtr(), // <--
+						d_chargeDust.getDevPtr(), // <--
+						d_NUM_DUST.getDevPtr(),
+						d_NUM_ION.getDevPtr(),
+						d_ION_DUST_ACC_MULT.getDevPtr()); 
 
-				//	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_102", false);
+					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 					
 					// copy the dust positions to the host
 					d_posDust.devToHost();
