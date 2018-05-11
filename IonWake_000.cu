@@ -1608,7 +1608,7 @@ int main(int argc, char* argv[])
 					roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 			
 					d_accDustIon.devToHost();
-					dustTraceFile << std::endl << accDustIon[0]..xx << std::endl;
+					dustTraceFile << std::endl << accDustIon[0].x << std::endl;
 					for (int j = 0; j < NUM_DUST; j++) {
 						for(int w = 0; w < blocksPerGridIon; w++) {
 							accDust[j].x += accDustIon[j*NUM_ION + w].x;
