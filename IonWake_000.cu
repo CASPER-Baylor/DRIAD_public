@@ -2062,7 +2062,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 		// print an error
 		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
 		fprintf(stderr, "Kernel launch failed: %s\n", name.c_str());
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+		fprintf(stderr, "Error code : %s\n\n", cudaGetErrorString(cudaStatus));
 
 		// terminate the program
 		fatalError();
@@ -2074,8 +2074,8 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 	if (cudaStatus != cudaSuccess) {
 		// print an error
 		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
-		fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+		// fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
+		fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
 
 		// terminate the program
 		fatalError();
