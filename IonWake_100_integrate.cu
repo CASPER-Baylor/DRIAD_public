@@ -152,6 +152,8 @@ __global__ void drift_100
 *	Select timestep division for adaptive time step
 *
 * Input:
+*	pos: ion positions 
+*	posDust: dust positions
 *	vel: ion velocities
 *   minDistDust: distance to closest dust grain
 *   d_RAD_DUST: radius of dust grains
@@ -172,12 +174,15 @@ __global__ void drift_100
 *
 */
 __global__ void select_100
-    (float3* velIon, 
+    (float3* d_posIon, 
+     float3* d_posDust, 
+     float3* velIon, 
 	 float* minDistDust,
 	 const float* d_RAD_DUST,
      const float* d_TIME_STEP,
 	 const int* d_MAX_DEPTH,
 	 const float* d_M_FACTOR,
+	 int* const d_NUM_DUST,
 	 int* m,
 	 int* timeStepFactor) {
 	
@@ -189,6 +194,32 @@ __global__ void select_100
 	float speed;
 	int mtemp;
 	int tsf;
+	float3 dist;
+	float distSquared;
+	float hardDist;
+	float min_dist = 1000; //Set at initial large value
+
+	// loop over all of the dust particles to find closest dust to the ion
+	for (int h = 0; h < *d_NUM_DUST; h++) {
+		
+		// calculate the distance between the ion in shared memory
+		// and the current thread's ion
+		dist.x = d_posIon[threadID].x - d_posDust[h].x;
+		dist.y = d_posIon[threadID].y - d_posDust[h].y;
+		dist.z = d_posIon[threadID].z - d_posDust[h].z;
+
+		// calculate the distance squared
+		distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+
+		// calculate the hard distance
+		hardDist = __fsqrt_rn(distSquared);
+
+		// save the distance to the closest dust particle
+		if (hardDist < min_dist){
+		   min_dist = hardDist;
+		}	
+	}
+
 
 	//                Calculate Timestep Depth
 	/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -236,6 +267,7 @@ __global__ void select_100
 	// save to global memory
 	m[threadID] = mtemp;
 	timeStepFactor[threadID] = tsf;
+
 }
 
 /*
@@ -310,7 +342,7 @@ __global__ void KDK_100
 	int timeStepFactor = *d_tsFactor;
 	float timeStep = *d_TIME_STEP / timeStepFactor;
 	float halfTimeStep = timeStep * 0.5;
-	bool stopflag = false;
+	//bool stopflag = false;
 	 	 
 	// Kick for 1/2 a timestep to get started
 	kick_dev(velIon+threadID, ionDustAcc+threadID, halfTimeStep); 
