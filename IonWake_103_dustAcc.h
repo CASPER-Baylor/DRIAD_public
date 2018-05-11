@@ -72,7 +72,7 @@
            (float3 *, 
             float3 *,
 			float3 *, 
-            int * const,
+            float * const,
 			int * const,
 			int * const, 
             float * const);

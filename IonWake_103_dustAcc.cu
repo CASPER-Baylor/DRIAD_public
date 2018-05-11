@@ -46,7 +46,7 @@ __global__ void calcDustIonAcc_103(
 	float3* d_posIon,
 	float3* d_posDust,
 	float3* d_accDustIon,
-	int* const d_chargeDust,
+	float* const d_chargeDust,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION,
 	float* const d_ION_DUST_ACC_MULT) {
