@@ -87,7 +87,61 @@ __global__ void calcDustIonAcc_103(
 }
 
 
+/*
+* Name: sumDustIonAcc() 
+*
+* Description:
+*	Sums the forces on each dust particle due to each ion. 
+*
+* Inputs:
+*	d_accDustIon: dust accleration due to each dust-ion pair
+*	d_accDust: acceleration of each dust particle 
+*	d_NUM_DUST: the number of dust particles
+*	d_NUM_ION: the number of ions
+*
+* Output (void):
+*	d_accDust: the acceleration due to the ions in the simulation is 
+*		added to the input accDust
+*	
+* Assumptions:
+*	The number of ions is a multiple of the block size
+*	The number of threads is equal to half the number of ions
+*
+* Includes:
+*	cuda_runtime.h
+* 	device_launch_parameters.h
+*
+*/
 
+__global__ void sumDustIonAcc(
+	float3* d_accDustIon,
+	int* const d_NUM_DUST,
+	int* const d_NUM_ION) {
+
+	int threadID = threadIdx.x;
+	int i = blockIdx.x * blockDim.x * 2 + threadIdx.x; 
+
+	extern __shared__ float3 sumData[];
+	
+	sumData[threadID].x = d_accDustIon[i].x + d_accDustIon[i + blockDim.x].x;
+	sumData[threadID].y = d_accDustIon[i].y + d_accDustIon[i + blockDim.x].y;
+	sumData[threadID].z = d_accDustIon[i].z + d_accDustIon[i + blockDim.x].z;
+
+	__syncthreads();
+
+	for(int s = blockDim.x / 2; s > 0; s>>=1){
+		if (threadID < s) {
+			sumData[threadID].x += sumData[threadID + s].x;
+			sumData[threadID].y += sumData[threadID + s].y;
+			sumData[threadID].z += sumData[threadID + s].z;
+			__syncthreads();
+		}
+	}
+
+	if (threadID == 0) {
+		d_accDustIon[i] = sumData[0];
+	}
+}
 
 
 

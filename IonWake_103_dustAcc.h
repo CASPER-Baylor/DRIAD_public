@@ -34,40 +34,6 @@
 	*/
 	#include "device_launch_parameters.h"
 
-    /*
-    * calcIonIonAcc_102
-    *
-    * Editors
-    *	Dustin Sanford
-    *
-    * Description:
-    *	Calculates the accelerations due to ion-ion 
-    *	interactions modeled as Yakawa particles.
-    *
-    * Input:
-    *	d_posIon: the positions of the ions
-    *	d_accIon: the accelerations of the ions
-    *	d_NUM_ION: the number of ions
-    *	d_SOFT_RAD_SQRD: the squared softening radius squared
-    *	d_ION_ION_ACC_MULT: a constant multiplier for the yakawa interaction
-    *	d_INV_DEBYE: the inverse of the debye
-    *
-    * Output (void):
-    *	d_accIon: the acceleration due to all of the other ions
-    *		is added to the initial ion acceleration
-    *
-    * Asumptions:
-    *	All inputs are real values
-    *	All ions have the parameters specified in the creation of the 
-    *		d_ION_ION_ACC_MULT value
-    *   The ion potential is a Yukawa potential
-    *   The number of ions is a multiple of the block size 
-    *
-    * Includes:
-    *	cuda_runtime.h
-    *	device_launch_parameters.h
-    *
-    */
 	__global__ void calcDustIonAcc_103
            (float3 *, 
             float3 *,
@@ -76,4 +42,9 @@
 			int * const,
 			int * const, 
             float * const);
+   
+	__global__ void sumDustIonAcc_103
+           (float3 *, 
+			int * const,
+			int * const);
 #endif
