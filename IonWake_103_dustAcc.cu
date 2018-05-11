@@ -118,28 +118,33 @@ __global__ void sumDustIonAcc_103(
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION) {
 
+	extern __shared__ float3 sumData[];
+
 	int threadID = threadIdx.x;
 	int i = blockIdx.x * blockDim.x * 2 + threadIdx.x; 
-
-	extern __shared__ float3 sumData[];
 	
-	sumData[threadID].x = d_accDustIon[i].x + d_accDustIon[i + blockDim.x].x;
-	sumData[threadID].y = d_accDustIon[i].y + d_accDustIon[i + blockDim.x].y;
-	sumData[threadID].z = d_accDustIon[i].z + d_accDustIon[i + blockDim.x].z;
+	for(int j = 0; j < *d_NUM_DUST; j++) {
 
-	__syncthreads();
-
-	for(int s = blockDim.x / 2; s > 0; s>>=1){
-		if (threadID < s) {
-			sumData[threadID].x += sumData[threadID + s].x;
-			sumData[threadID].y += sumData[threadID + s].y;
-			sumData[threadID].z += sumData[threadID + s].z;
-			__syncthreads();
+		sumData[threadID].x = d_accDustIon[i].x + d_accDustIon[i + blockDim.x].x;
+		sumData[threadID].y = d_accDustIon[i].y + d_accDustIon[i + blockDim.x].y;
+		sumData[threadID].z = d_accDustIon[i].z + d_accDustIon[i + blockDim.x].z;
+	
+		__syncthreads();
+	
+		for(int s = blockDim.x / 2; s > 0; s>>=1){
+			if (threadID < s) {
+				sumData[threadID].x += sumData[threadID + s].x;
+				sumData[threadID].y += sumData[threadID + s].y;
+				sumData[threadID].z += sumData[threadID + s].z;
+				__syncthreads();
+			}
 		}
-	}
+	
+		if (threadID == 0) {
+			d_accDustIon[i] = sumData[0];
+		}
 
-	if (threadID == 0) {
-		d_accDustIon[i] = sumData[0];
+		i += *d_NUM_ION;
 	}
 }
 
