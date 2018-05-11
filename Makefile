@@ -247,7 +247,7 @@ else
 endif
 
 IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
-    IonWake_102_ionAcc.o IonWake_106_Utilities.o 
+    IonWake_102_ionAcc.o IonWake_103_dustAcc.o IonWake_106_Utilities.o 
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES) -Wno-deprecated-gpu-targets
 	@echo " "
 
@@ -265,6 +265,10 @@ IonWake_101_bounds.o: IonWake_101_bounds.cu IonWake_101_bounds.h
 	@echo " "
 	
 IonWake_102_ionAcc.o: IonWake_102_ionAcc.cu IonWake_102_ionAcc.h
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
+	@echo " "		
+
+IonWake_103_dustAcc.o: IonWake_103_dustAcc.cu IonWake_103_dustAcc.h 
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "		
 	

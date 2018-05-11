@@ -34,6 +34,8 @@
 	// includes functions used for calculating
 	// the ion accelerations
 	#include "IonWake_102_ionAcc.h"
+	// includes function for calculating dust accelerations
+	#include "IonWake_103_dustAcc.h"
 	// includes utility functions
 	#include "IonWake_106_Utilities.h"
 
