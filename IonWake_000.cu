@@ -382,6 +382,9 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to Ion Dust forces
 	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
+
+	// a constant multiplier for accelerations due to Dust Ion forces
+	const float DUST_ION_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_DUST;
 	
 	// a constant muliplier for accleration due to Dust Dust forces
 	const float DUST_DUST_ACC_MULT = 8.9877e9 / MASS_DUST;
@@ -859,6 +862,9 @@ int main(int argc, char* argv[])
 	// allocate memory for ion accel due to dust
 	float3* accIonDust = (float3*)malloc(memFloat3Ion);
 
+	// allocate memory for dust accel due to ion
+	float3* accDustIon = (float3*)malloc(memFloat3Ion * NUM_DUST);
+
 	// allocate memory for the ion bounds flag
 	int* boundsIon = (int*)malloc(NUM_ION * sizeof(int));
 
@@ -1053,6 +1059,9 @@ int main(int argc, char* argv[])
 	initialize device variables
 	***************************/
 
+	
+	roadBlock_000(statusFile, __LINE__, __FILE__, "before variables", false);
+
 	// create constant device variables
 	constCUDAvar<int> d_NUM_DIV_QTH(&NUM_DIV_QTH, 1);
 	constCUDAvar<int> d_NUM_DIV_VEL(&NUM_DIV_VEL, 1);
@@ -1080,6 +1089,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
+	constCUDAvar<float> d_DUST_ION_ACC_MULT(&DUST_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
 	constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
@@ -1107,6 +1117,8 @@ int main(int argc, char* argv[])
 	CUDAvar<float3> d_accIonDust(accIonDust, NUM_ION);
 	CUDAvar<float3> d_posDust(posDust, NUM_DUST);
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
+	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
+	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
@@ -1128,6 +1140,7 @@ int main(int argc, char* argv[])
 	d_minDistDust.hostToDev();
 	d_gridPos.hostToDev();
 
+	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
@@ -1580,25 +1593,45 @@ int main(int argc, char* argv[])
 					// Print the command number to the status file 
 					statusFile << "5 ";
 					
-				// Calculate the ion forces on the dust
-				//	calcDustIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-				//		(d_posIon.getDevPtr(), // <--
-				//		d_accDust.getDevPtr(), // <-->
-				//		d_posDust.getDevPtr(), // <--
-				//		d_NUM_ION.getDevPtr(),
-				//		d_NUM_DUST.getDevPtr(),
-				//		d_DUST_ACC_MULT2.getDevPtr(),
-				//		d_chargeDust.getDevPtr()); // <--
+				    // Calculate the ion forces on the dust
+					calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
+						(d_posIon.getDevPtr(), // <--
+						d_posDust.getDevPtr(), // <-->
+						d_accDustIon.getDevPtr(), // <--
+						d_chargeDust.getDevPtr(), // <--
+						d_NUM_DUST.getDevPtr(),
+						d_NUM_ION.getDevPtr(),
+						d_DUST_ION_ACC_MULT.getDevPtr()); 
 
-				//	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_102", false);
+					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
+				
+					d_accDustIon.devToHost();
 					
+					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+						(d_accDustIon.getDevPtr(),
+						d_NUM_DUST.getDevPtr(),
+						d_NUM_ION.getDevPtr()); 
+					
+					roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
+			
+					d_accDustIon.devToHost();
+					
+					for (int j = 0; j < NUM_DUST; j++) {
+						for(int w = 0; w < blocksPerGridIon; w++) {
+							accDust[j].x += accDustIon[j*NUM_ION + w].x;
+							accDust[j].y += accDustIon[j*NUM_ION + w].y;
+							accDust[j].z += accDustIon[j*NUM_ION + w].z;
+						}
+					}
+
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
 					dust_time = dust_time + dust_dt;
 					dustTraceFile << dust_time << std::endl;
 
-					for (int j =0; j< NUM_DUST; j++) {
+					// loop over dust particles 
+					for (int j = 0; j < NUM_DUST; j++) {
 						//print vel and acc before the timestep
 						//dustTraceFile << "Before the dust timestep" << std::endl;
 						//dustTraceFile << velDust[j].x;
@@ -1622,7 +1655,9 @@ int main(int argc, char* argv[])
 						accDust[j].x = 0;
 						accDust[j].y = 0;
 						accDust[j].z = 0;
-						if(j ==1) {
+
+						// 
+						if(j == 0) {
 							for (int g = 0;  g < NUM_DUST; g++) {
 								accDust2[g].x = 0;
 								accDust2[g].y = 0;
@@ -1712,16 +1747,7 @@ int main(int argc, char* argv[])
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
 
-				// check ion dust bounds
-     			checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-         			(d_posIon.getDevPtr(), // <--
-         			d_boundsIon.getDevPtr(), // <-->
-         			d_RAD_DUST_SQRD.getDevPtr(),
-        			d_NUM_DUST.getDevPtr(),
-         			d_posDust.getDevPtr()); // <--
-
-     			roadBlock_000(  statusFile, __LINE__, __FILE__, 
-					"checkIonBounds_101", false);
+     			roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
 
 			// if the command number does not exist throw an error
@@ -2041,7 +2067,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 		// print an error
 		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
 		fprintf(stderr, "Kernel launch failed: %s\n", name.c_str());
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+		fprintf(stderr, "Error code : %s\n\n", cudaGetErrorString(cudaStatus));
 
 		// terminate the program
 		fatalError();
@@ -2054,7 +2080,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 		// print an error
 		fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
 		fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
-		fprintf(stderr, "Error code : %s\n\n", cudaStatus);
+		fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
 
 		// terminate the program
 		fatalError();
