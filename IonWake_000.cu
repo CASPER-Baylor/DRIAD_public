@@ -998,6 +998,13 @@ int main(int argc, char* argv[])
 		accIonDust[i].x = 0;
 		accIonDust[i].y = 0;
 		accIonDust[i].z = 0;
+
+		// set the initial DustIon acceleration to 0
+		for(int d = 0; d < NUM_DUST; d++) {
+		accDustIon[d * NUM_DUST + i].x = 0;
+		accDustIon[d * NUM_DUST + i].y = 0;
+		accDustIon[d * NUM_DUST + i].z = 0;
+		}
 	}
 
 	if (debugMode) {
@@ -1606,8 +1613,15 @@ int main(int argc, char* argv[])
 
 					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 				
-					//d_accDustIon.devToHost();
+					d_accDustIon.devToHost();
 					
+					dustTraceFile << "ionDustAcc before sum" << std::endl;
+					for(int w = 0; w < NUM_DUST; w++) {
+						dustTraceFile << ", " << accDustIon[w*NUM_ION].x;
+						dustTraceFile << ", " << accDustIon[w*NUM_ION].y;
+						dustTraceFile << ", " << accDustIon[w*NUM_ION].z << std::endl;
+					}
+
 					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 						(d_accDustIon.getDevPtr(),
 						d_NUM_DUST.getDevPtr(),

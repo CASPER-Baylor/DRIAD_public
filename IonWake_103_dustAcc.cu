@@ -63,6 +63,11 @@ __global__ void calcDustIonAcc_103(
 	float3 posIon = d_posIon[threadID];
 	int index = threadID;
 
+	//reset the acceleration
+	d_accDustIon[index].x = 0;
+	d_accDustIon[index].y = 0;
+	d_accDustIon[index].z = 0;
+	
 	// loop over all of the dust particles
 	for(int i = 0; i < *d_NUM_DUST; i++) {
 		
@@ -143,7 +148,7 @@ __global__ void sumDustIonAcc_103(
 		}
 	
 		if (localID == 0) {
-			d_accDustIon[blockIdx.x + j * *d_NUM_ION].x = sumData[0].x;
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION] = sumData[0];
 			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].y = sumData[0].y;
 			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].z = sumData[0].z;
 		}
