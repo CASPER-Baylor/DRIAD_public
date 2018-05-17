@@ -41,6 +41,7 @@
             float * const,
 			int * const,
 			int * const, 
+			float * const,
             float * const);
    
 	__global__ void sumDustIonAcc_103

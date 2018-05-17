@@ -1491,9 +1491,9 @@ int main(int argc, char* argv[])
 		}		
 
 		//Loop over optional commands
-		for(int j = 0; j < numCommands; j++){
+		for(int c = 0; c < numCommands; c++){
 			// copy ion positions to the host
-			if (commands[j] == 1) {
+			if (commands[c] == 1) {
 				// print the command number to the status file
 				statusFile << "1 ";
 
@@ -1506,7 +1506,7 @@ int main(int argc, char* argv[])
 				traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
 
 			// copy the ion velocities to the host
-			} else if (commands[j] == 2) {
+			} else if (commands[c] == 2) {
 				statusFile << "2 ";
 
 				// copy ion velocities to host
@@ -1518,7 +1518,7 @@ int main(int argc, char* argv[])
 				traceFile << ", " << velIon[ionTraceIndex].z << std::endl;
 
 			// copy the ion accelerations to the host
-			} else if (commands[j] == 3) {
+			} else if (commands[c] == 3) {
 				// print the command number to the status file
 				statusFile << "3 ";
 
@@ -1531,7 +1531,7 @@ int main(int argc, char* argv[])
 				traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 
 			// update the charge on the dust grains
-			} else if (commands[j] == 4) {
+			} else if (commands[c] == 4) {
 				// copy ion bounds to host
 				d_boundsIon.devToHost();
 
@@ -1586,7 +1586,7 @@ int main(int argc, char* argv[])
 				//traceFile << ionCurrent[0] << std::endl;
 
 			// move the dust
-			} else if (commands[j] == 5) {
+			} else if (commands[c] == 5) {
 				// update dust positions every N timesteps
 				//Thus dust timestep = N*TIME_STEP
 				if ( i % N == 0 ) {
@@ -1601,6 +1601,7 @@ int main(int argc, char* argv[])
 						d_chargeDust.getDevPtr(), // <--
 						d_NUM_DUST.getDevPtr(),
 						d_NUM_ION.getDevPtr(),
+						d_INV_DEBYE.getDevPtr(),
 						d_DUST_ION_ACC_MULT.getDevPtr()); 
 
 					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
@@ -1616,19 +1617,24 @@ int main(int argc, char* argv[])
 			
 					d_accDustIon.devToHost();
 					
-						dustTraceFile << "Before IonDust" << std::endl;
-					for (int j = 0; j < NUM_DUST; j++) {
-						dustTraceFile << ", " << accDust[j].x;
-						dustTraceFile << ", " << accDust[j].y;
-						dustTraceFile << ", " << accDust[j].z << std::endl;
-						for(int w = 0; w < blocksPerGridIon; w++) {
-							accDust[j].x += accDustIon[j*NUM_ION + w].x;
-							accDust[j].y += accDustIon[j*NUM_ION + w].y;
-							accDust[j].z += accDustIon[j*NUM_ION + w].z;
-						}
-					}
+					//	dustTraceFile << "IonDust1" << std::endl;
+					//for (int j = 0; j < NUM_DUST; j++) {
+						//dustTraceFile << ", " << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << std::endl;
+					//	accDust[j].x = 0;
+					//	accDust[j].y = 0;
+					//	accDust[j].z = 0;
+					//	for(int w = 0; w < blocksPerGridIon; w++) {
+					//		accDust[j].x += accDustIon[j*NUM_ION + w].x;
+					//		accDust[j].y += accDustIon[j*NUM_ION + w].y;
+					//		accDust[j].z += accDustIon[j*NUM_ION + w].z;
+					//	}
+					//	dustTraceFile << ", " << accDust[j].x;
+					//	dustTraceFile << ", " << accDust[j].y;
+					//	dustTraceFile << ", " << accDust[j].z << std::endl;
+					//}
 
-						dustTraceFile << "After IonDust" << std::endl;
 
 					// copy the dust positions to the host
 					d_posDust.devToHost();
@@ -1643,9 +1649,9 @@ int main(int argc, char* argv[])
 						//dustTraceFile << velDust[j].x;
 						//dustTraceFile << ", " << velDust[j].y;
 						//dustTraceFile << ", " << velDust[j].z;
-						dustTraceFile << ", " << accDust[j].x;
-						dustTraceFile << ", " << accDust[j].y;
-						dustTraceFile << ", " << accDust[j].z << std::endl;
+						//dustTraceFile << ", " << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << std::endl;
 
 						//kick half a  time step
 						velDust[j].x += accDust[j].x * half_dust_dt;
@@ -1662,7 +1668,18 @@ int main(int argc, char* argv[])
 						accDust[j].y = 0;
 						accDust[j].z = 0;
 
-						// 
+						for(int w = 0; w < blocksPerGridIon; w++) {
+							accDust[j].x += accDustIon[j*NUM_ION + w].x;
+							accDust[j].y += accDustIon[j*NUM_ION + w].y;
+							accDust[j].z += accDustIon[j*NUM_ION + w].z;
+						}
+
+						dustTraceFile << "After IonDust2 ";
+						dustTraceFile << ", " << accDust[j].x;
+						dustTraceFile << ", " << accDust[j].y;
+						dustTraceFile << ", " << accDust[j].z << std::endl;
+
+						// Calculate dust-dust acceleration 
 						if(j == 0) {
 							for (int g = 0;  g < NUM_DUST; g++) {
 								accDust2[g].x = 0;
@@ -1705,6 +1722,7 @@ int main(int argc, char* argv[])
 						accDust[j].y +=  accDust2[j].y;
 						accDust[j].z +=  accDust2[j].z;
 						
+						dustTraceFile << "After DustDust ";
 						dustTraceFile << ", " << accDust[j].x;
 						dustTraceFile << ", " << accDust[j].y;
 						dustTraceFile << ", " << accDust[j].z << std::endl;
@@ -1765,7 +1783,7 @@ int main(int argc, char* argv[])
 				fprintf(stderr, "ERROR on line number %d in file %s\n",
 					__LINE__, __FILE__);
 				fprintf(stderr, "Command number %d of %d does not exist\n\n",
-					commands[j], j);
+					commands[c], c);
 
 				// terminate the program
 				fatalError();

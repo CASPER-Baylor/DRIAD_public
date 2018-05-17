@@ -49,6 +49,7 @@ __global__ void calcDustIonAcc_103(
 	float* const d_chargeDust,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION,
+	float* const d_INV_DEBYE,
 	float* const d_DUST_ION_ACC_MULT) {
 
 	// index of the current ion
@@ -56,7 +57,7 @@ __global__ void calcDustIonAcc_103(
 	
 	// allocate variables 
 	float3 dist;
-	float scalerDist;
+	float sDist;
 	float linForce;
 
 	float3 posIon = d_posIon[threadID];
@@ -70,12 +71,13 @@ __global__ void calcDustIonAcc_103(
 		dist.y = posIon.y - d_posDust[i].y;
 		dist.z = posIon.z - d_posDust[i].z;
 	
-		// squared distance between the ion and dust particle
-		scalerDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+		// distance between the ion and dust particle
+		sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
-		// calculate a scaler intermediate
+		// calculate a scalar intermediate
 		linForce = *d_DUST_ION_ACC_MULT * d_chargeDust[i] / 
-			(scalerDist * scalerDist * scalerDist);
+			(sDist * sDist * sDist)
+			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 
 		// ion dust acceleration acceleration 
 		d_accDustIon[index].x = -linForce * dist.x;
@@ -141,7 +143,9 @@ __global__ void sumDustIonAcc_103(
 		}
 	
 		if (localID == 0) {
-			d_accDustIon[blockIdx.x + j * *d_NUM_ION] = sumData[0];
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION].x = sumData[0].x;
+			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].y = sumData[0].y;
+			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].z = sumData[0].z;
 		}
 
 		globalID += *d_NUM_ION;
