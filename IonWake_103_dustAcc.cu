@@ -63,11 +63,6 @@ __global__ void calcDustIonAcc_103(
 	float3 posIon = d_posIon[threadID];
 	int index = threadID;
 
-	//reset the acceleration
-	d_accDustIon[index].x = 0;
-	d_accDustIon[index].y = 0;
-	d_accDustIon[index].z = 0;
-	
 	// loop over all of the dust particles
 	for(int i = 0; i < *d_NUM_DUST; i++) {
 		
@@ -85,9 +80,9 @@ __global__ void calcDustIonAcc_103(
 			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 
 		// ion dust acceleration acceleration 
-		d_accDustIon[index].x = -linForce * dist.x;
-		d_accDustIon[index].y = -linForce * dist.y;
-		d_accDustIon[index].z = -linForce * dist.z;
+		d_accDustIon[index].x -= linForce * dist.x;
+		d_accDustIon[index].y -= linForce * dist.y;
+		d_accDustIon[index].z -= linForce * dist.z;
 	
 		index += *d_NUM_ION;		
 	}
@@ -158,7 +153,45 @@ __global__ void sumDustIonAcc_103(
 }
 
 
+/*
+* Name: zeroDustIonAcc() 
+*
+* Description:
+*	Zeros the forces on each dust particle due to each ion. 
+*
+* Inputs:
+*	d_accDustIon: dust accleration due to each dust-ion pair
+*	d_NUM_DUST: the number of dust particles
+*	d_NUM_ION: the number of ions
+*
+* Output (void):
+*	d_accDustIon: is set to zero 
+*	
+* Assumptions:
+*	The number of ions is a multiple of the block size
+*
+* Includes:
+*	cuda_runtime.h
+* 	device_launch_parameters.h
+*
+*/
+
+__global__ void zeroDustIonAcc_103(
+	float3* d_accDustIon,
+	int* const d_NUM_DUST,
+	int* const d_NUM_ION) {
 
 
+	int threadID = blockIdx.x * blockDim.x  + threadIdx.x; 
+
+	int index = threadID;
+    for(int i = 0; i < *d_NUM_DUST; i++) {
+		d_accDustIon[index].x = 0;
+		d_accDustIon[index].y = 0;
+		d_accDustIon[index].z = 0;
+		
+		index += *d_NUM_ION;
+	}
+}
 
 

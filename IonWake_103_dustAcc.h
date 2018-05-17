@@ -48,4 +48,9 @@
            (float3 *, 
 			int * const,
 			int * const);
+
+	__global__ void zeroDustIonAcc_103
+           (float3 *, 
+			int * const,
+			int * const);
 #endif

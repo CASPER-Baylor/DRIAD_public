@@ -1473,6 +1473,18 @@ int main(int argc, char* argv[])
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 		}
 
+		// Calculate the ion forces on the dust
+		calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_posIon.getDevPtr(), // <--
+			d_posDust.getDevPtr(), // <-->
+			d_accDustIon.getDevPtr(), // <--
+			d_chargeDust.getDevPtr(), // <--
+			d_NUM_DUST.getDevPtr(),
+			d_NUM_ION.getDevPtr(),
+			d_INV_DEBYE.getDevPtr(),
+			d_DUST_ION_ACC_MULT.getDevPtr()); 
+
+		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 		if (i % 4000 == 0) {
 		// calc ion number density and ion potential
 			calcIonDensityPotential_102 <<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
@@ -1601,26 +1613,26 @@ int main(int argc, char* argv[])
 					statusFile << "5 ";
 					
 				    // Calculate the ion forces on the dust
-					calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
-						(d_posIon.getDevPtr(), // <--
-						d_posDust.getDevPtr(), // <-->
-						d_accDustIon.getDevPtr(), // <--
-						d_chargeDust.getDevPtr(), // <--
-						d_NUM_DUST.getDevPtr(),
-						d_NUM_ION.getDevPtr(),
-						d_INV_DEBYE.getDevPtr(),
-						d_DUST_ION_ACC_MULT.getDevPtr()); 
-
-					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
+				//	calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
+				//		(d_posIon.getDevPtr(), // <--
+				//		d_posDust.getDevPtr(), // <-->
+				//		d_accDustIon.getDevPtr(), // <--
+				//		d_chargeDust.getDevPtr(), // <--
+				//		d_NUM_DUST.getDevPtr(),
+				//		d_NUM_ION.getDevPtr(),
+				//		d_INV_DEBYE.getDevPtr(),
+				//		d_DUST_ION_ACC_MULT.getDevPtr()); 
+//
+//	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 				
 					d_accDustIon.devToHost();
 					
-					dustTraceFile << "ionDustAcc before sum" << std::endl;
-					for(int w = 0; w < NUM_DUST; w++) {
-						dustTraceFile << ", " << accDustIon[w*NUM_ION].x;
-						dustTraceFile << ", " << accDustIon[w*NUM_ION].y;
-						dustTraceFile << ", " << accDustIon[w*NUM_ION].z << std::endl;
-					}
+					//dustTraceFile << "ionDustAcc before sum" << std::endl;
+					//for(int w = 0; w < NUM_ION; w++) {
+					//	dustTraceFile << ", " << accDustIon[w].x;
+					//	dustTraceFile << ", " << accDustIon[w].y;
+					//	dustTraceFile << ", " << accDustIon[w].z << std::endl;
+					//}
 
 					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 						(d_accDustIon.getDevPtr(),
@@ -1683,15 +1695,20 @@ int main(int argc, char* argv[])
 						accDust[j].z = 0;
 
 						for(int w = 0; w < blocksPerGridIon; w++) {
-							accDust[j].x += accDustIon[j*NUM_ION + w].x;
-							accDust[j].y += accDustIon[j*NUM_ION + w].y;
-							accDust[j].z += accDustIon[j*NUM_ION + w].z;
+							accDust[j].x += accDustIon[j*NUM_ION + w].x / N;
+							accDust[j].y += accDustIon[j*NUM_ION + w].y / N;
+							accDust[j].z += accDustIon[j*NUM_ION + w].z / N;
 						}
 
-						dustTraceFile << "After IonDust2 ";
-						dustTraceFile << ", " << accDust[j].x;
-						dustTraceFile << ", " << accDust[j].y;
-						dustTraceFile << ", " << accDust[j].z << std::endl;
+						//dustTraceFile << "After IonDust2 ";
+						//dustTraceFile << ", " << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << std::endl;
+						
+						// zero the acceleration
+						//accDust[j].x = 0;
+						//accDust[j].y = 0;
+						//accDust[j].z = 0;
 
 						// Calculate dust-dust acceleration 
 						if(j == 0) {
@@ -1736,10 +1753,10 @@ int main(int argc, char* argv[])
 						accDust[j].y +=  accDust2[j].y;
 						accDust[j].z +=  accDust2[j].z;
 						
-						dustTraceFile << "After DustDust ";
-						dustTraceFile << ", " << accDust[j].x;
-						dustTraceFile << ", " << accDust[j].y;
-						dustTraceFile << ", " << accDust[j].z << std::endl;
+						//dustTraceFile << "After DustDust ";
+						//dustTraceFile << ", " << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << std::endl;
 
 						// calculate acceleration of the dust
 						//radial acceleration from confinement
@@ -1787,8 +1804,15 @@ int main(int argc, char* argv[])
 
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
+				d_accIonDust.hostToDev();
+				
+				// zero the ionDustAcc
+				zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
+						(d_accDustIon.getDevPtr(),
+						d_NUM_DUST.getDevPtr(),
+						d_NUM_ION.getDevPtr());
 
-     			roadBlock_000(  statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
+     			roadBlock_000(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
 
 
 			// if the command number does not exist throw an error
