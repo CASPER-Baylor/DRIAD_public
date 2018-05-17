@@ -1605,7 +1605,7 @@ int main(int argc, char* argv[])
 
 					roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 				
-					d_accDustIon.devToHost();
+					//d_accDustIon.devToHost();
 					
 					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 						(d_accDustIon.getDevPtr(),
@@ -1616,13 +1616,19 @@ int main(int argc, char* argv[])
 			
 					d_accDustIon.devToHost();
 					
+						dustTraceFile << "Before IonDust" << std::endl;
 					for (int j = 0; j < NUM_DUST; j++) {
+						dustTraceFile << ", " << accDust[j].x;
+						dustTraceFile << ", " << accDust[j].y;
+						dustTraceFile << ", " << accDust[j].z << std::endl;
 						for(int w = 0; w < blocksPerGridIon; w++) {
 							accDust[j].x += accDustIon[j*NUM_ION + w].x;
 							accDust[j].y += accDustIon[j*NUM_ION + w].y;
 							accDust[j].z += accDustIon[j*NUM_ION + w].z;
 						}
 					}
+
+						dustTraceFile << "After IonDust" << std::endl;
 
 					// copy the dust positions to the host
 					d_posDust.devToHost();
@@ -1637,9 +1643,9 @@ int main(int argc, char* argv[])
 						//dustTraceFile << velDust[j].x;
 						//dustTraceFile << ", " << velDust[j].y;
 						//dustTraceFile << ", " << velDust[j].z;
-						//dustTraceFile << ", " << accDust[j].x;
-						//dustTraceFile << ", " << accDust[j].y;
-						//dustTraceFile << ", " << accDust[j].z << std::endl;
+						dustTraceFile << ", " << accDust[j].x;
+						dustTraceFile << ", " << accDust[j].y;
+						dustTraceFile << ", " << accDust[j].z << std::endl;
 
 						//kick half a  time step
 						velDust[j].x += accDust[j].x * half_dust_dt;
@@ -1665,25 +1671,16 @@ int main(int argc, char* argv[])
 							}
 						}
 
-						// calculate acceleration of the dust
-						//radial acceleration from confinement
-						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
-						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
-						//weaker axial confinement in z
-						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
-						//polarity switching
-						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
-							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
 
 						// forces between the dust grains
 						for(int g = j+1; g < NUM_DUST; g++) {
-        					// calculate the distance between current dust grain
+        					// calculate the distance between dust grain i
 							//and all other grains
 							distdd.x = posDust[j].x - posDust[g].x;
 							distdd.y = posDust[j].y - posDust[g].y;
 							distdd.z = posDust[j].z - posDust[g].z;
         
-							distSquared = distdd.x*distdd.x + distdd.y*distdd.y 
+							distSquared = distdd.x*distdd.x+distdd.y*distdd.y 
 								+ distdd.z*distdd.z;
         
 							// calculate the hard distance
@@ -1692,7 +1689,7 @@ int main(int argc, char* argv[])
 							//calculate a scalar intermediate
 							linForce = DUST_DUST_ACC_MULT * chargeDust[j] 
 								* chargeDust[g] / (dist*dist*dist);
-								//*(1+dist/DEBYE_I)*exp(-dist/DEBYE_I);
+								// *(1+dist/DEBYE_I)*exp(-dist/DEBYE_I);
         
 							// add the acceleration to the current dust grain
 							accDust[j].x += linForce * distdd.x;
@@ -1707,8 +1704,20 @@ int main(int argc, char* argv[])
 						accDust[j].x +=  accDust2[j].x;
 						accDust[j].y +=  accDust2[j].y;
 						accDust[j].z +=  accDust2[j].z;
+						
+						dustTraceFile << ", " << accDust[j].x;
+						dustTraceFile << ", " << accDust[j].y;
+						dustTraceFile << ", " << accDust[j].z << std::endl;
 
-						// forces from ions inside simulation
+						// calculate acceleration of the dust
+						//radial acceleration from confinement
+						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
+						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
+						//weaker axial confinement in z
+						accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
+						//polarity switching
+						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
+							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
 
 						// forces from ions outside simulation region
 
