@@ -12,8 +12,8 @@ clear
 close all
 
 % constants
-ion_density = 1e14; %number density per cubic m
-TEMP_ELC = 29011; % 1 eV = 29011 K
+ion_density = 6e14; %number density per cubic m
+TEMP_ELC = 51060; % 1 eV = 29011 K
 qe = -1.6022e-19;  % Charge of electron (C)
 epsilon_0 = 8.854e-12; %  Permittivity of Free Space (F/m)
 kb = 1.38044e-23; %  Boltzmann Constant (J/K)
@@ -23,8 +23,8 @@ DEBYE = sqrt(epsilon_0*kb*TEMP_ELC/(ion_density*qe*qe)); % --- Electron Debye le
 %% Set up a grid for calculating potential
 % This is for a single slice in the xz plane
 
-cyl_rad = 2*DEBYE;
-cyl_height = 5*DEBYE; %half the cylinder height as limit in z is -ht:+ht
+cyl_rad = 1.5*DEBYE;
+cyl_height = 6*DEBYE; %half the cylinder height as limit in z is -ht:+ht
 
 resx = 20; %resolution of grid spacing
 resz = 50;  
