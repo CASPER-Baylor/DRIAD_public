@@ -282,4 +282,38 @@ __global__ void calcIonDensityPotential_102
 	 int* const,
 	 float*,
 	 float*);
+
+/*
+ *  Name: zeroIonDensityPotential_102
+ *  Created: 5/21/2018
+ *  Last Modified: 5/21/2018
+ * 
+ *  Editors
+ * 	Name: Lorin Matthews
+ * 	Contact: Lorin_Matthews@baylor.edu
+ * 	last edit: 5/21/2018
+ * 
+ *  Description:
+ * 	Zeros electric potential from ions at points on grid in 
+ *  	the xz-plane.  Also zeros the number density at each grid 
+ * 
+ *  Input:
+ * 	d_ionPotential: potential at each grid point
+ * 	d_ionDenisty: ion number density at each grid point
+ *
+ *  Output (void):
+ * 	d_ionPotential: potential at each grid point
+ * 	d_ionDenisty: ion number density at each grid point
+ * 
+ *  Assumptions: 
+ *    The number of grid points is a multiple of the block size
+ * 
+ *  Includes:
+ *	cuda_runtime.h
+ *	device_launch_parameters.h
+ * 
+ */
+__global__ void zeroIonDensityPotential_102
+	 (float*,
+	 float*);
 #endif

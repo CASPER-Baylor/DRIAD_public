@@ -1149,6 +1149,15 @@ int main(int argc, char* argv[])
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
+	//Set the potential and density on the grid to zero
+	zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
+		(d_ionPotential.getDevPtr(),
+		 d_ionDensity.getDevPtr());
+
+	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
+
+	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
+
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
 
@@ -1485,7 +1494,7 @@ int main(int argc, char* argv[])
 			d_DUST_ION_ACC_MULT.getDevPtr()); 
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
-		if (i % 4000 == 0) {
+
 		// calc ion number density and ion potential
 			calcIonDensityPotential_102 <<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
 				(d_gridPos.getDevPtr(),
@@ -1497,16 +1506,24 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
+		if (i % 1000 == 0) {
 			// copy ion density and potential to host
 			d_ionDensity.devToHost();
 			d_ionPotential.devToHost();
 			
 			// print the data to the ionDensOutFile
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j];
-				ionDensOutFile << ", " << ionPotential[j] << std::endl;
+				ionDensOutFile << ionDensity[j]/1000;
+				ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
 			}
 			ionDensOutFile << "" << std::endl;
+
+			//reset the potential and density to zero
+			zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
+				(d_ionPotential.getDevPtr(),
+				 d_ionDensity.getDevPtr());
+
+			roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
 		}		
 
 		//Loop over optional commands

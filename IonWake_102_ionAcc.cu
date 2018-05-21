@@ -481,8 +481,8 @@ __global__ void calcIonDensityPotential_102
 	float r_dens = 1 / *d_INV_DEBYE / 6;
 	float volume = 4/3 * 3.141593 * r_dens * r_dens * r_dens;
 	
-	d_ionDensity[IDgrid] = 0;
-	d_ionPotential[IDgrid] = 0;
+	//d_ionDensity[IDgrid] = 0;
+	//d_ionPotential[IDgrid] = 0;
 	
 	// allocate shared memory
 	extern __shared__ float3 sharedPos[];
@@ -534,6 +534,50 @@ __global__ void calcIonDensityPotential_102
 	} //end loop over tiles
 	
     // save to global memory
-	d_ionPotential[IDgrid] = potCrntGrid;
+	d_ionPotential[IDgrid] += potCrntGrid;
 	d_ionDensity[IDgrid] += densCrntGrid / volume;
+}
+
+/*
+* Name: zeroIonDensityPotential_102
+* Created: 5/21/2018
+* Last Modified: 5/21/2018
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*	last edit: 5/21/2018
+*
+* Description:
+*	Zeros electric potential from ions at points on grid in 
+* 	the xz-plane.  Also zeros the number density at each grid pt. 
+*
+* Input:
+*	d_ionPotential: potential at each grid point
+*	d_ionDenisty: ion number density at each grid point
+*
+* Output (void):
+*	d_ionPotential: potential at each grid point
+*	d_ionDenisty: ion number density at each grid point
+*
+* Assumptions: 
+*   The number of grid points is a multiple of the block size
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+
+__global__ void zeroIonDensityPotential_102
+	(float * d_ionPotential,
+	 float * d_ionDensity){
+
+	//  This is done for every grid point, so threadIdx, blockDim, and blockIdx
+	// need to be calculated based on the number of grid points.
+	// grid point ID 
+	int IDgrid = threadIdx.x + blockDim.x * blockIdx.x;
+	
+	d_ionDensity[IDgrid] = 0;
+	d_ionPotential[IDgrid] = 0;
 }
