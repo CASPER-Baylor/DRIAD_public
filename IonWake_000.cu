@@ -1938,8 +1938,9 @@ int main(int argc, char* argv[])
 	// loop over all of the dust particles
 	for (int i = 0; i < NUM_DUST; i++) {
 		// print the dust charge
-		dustChargeFile << chargeDust[i] << std::endl;
+		dustChargeFile << chargeDust[i] << ", ";
 	}
+	dustChargeFile << std::endl;
 
 	// print the final dust positions to the dustPosFile
 	// loop over all of the dust particles
