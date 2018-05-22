@@ -1629,28 +1629,6 @@ int main(int argc, char* argv[])
 					// Print the command number to the status file 
 					statusFile << "5 ";
 					
-				    // Calculate the ion forces on the dust
-				//	calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
-				//		(d_posIon.getDevPtr(), // <--
-				//		d_posDust.getDevPtr(), // <-->
-				//		d_accDustIon.getDevPtr(), // <--
-				//		d_chargeDust.getDevPtr(), // <--
-				//		d_NUM_DUST.getDevPtr(),
-				//		d_NUM_ION.getDevPtr(),
-				//		d_INV_DEBYE.getDevPtr(),
-				//		d_DUST_ION_ACC_MULT.getDevPtr()); 
-//
-//	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
-				
-					d_accDustIon.devToHost();
-					
-					//dustTraceFile << "ionDustAcc before sum" << std::endl;
-					//for(int w = 0; w < NUM_ION; w++) {
-					//	dustTraceFile << ", " << accDustIon[w].x;
-					//	dustTraceFile << ", " << accDustIon[w].y;
-					//	dustTraceFile << ", " << accDustIon[w].z << std::endl;
-					//}
-
 					sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 						(d_accDustIon.getDevPtr(),
 						d_NUM_DUST.getDevPtr(),
@@ -1660,25 +1638,6 @@ int main(int argc, char* argv[])
 			
 					d_accDustIon.devToHost();
 					
-					//	dustTraceFile << "IonDust1" << std::endl;
-					//for (int j = 0; j < NUM_DUST; j++) {
-						//dustTraceFile << ", " << accDust[j].x;
-						//dustTraceFile << ", " << accDust[j].y;
-						//dustTraceFile << ", " << accDust[j].z << std::endl;
-					//	accDust[j].x = 0;
-					//	accDust[j].y = 0;
-					//	accDust[j].z = 0;
-					//	for(int w = 0; w < blocksPerGridIon; w++) {
-					//		accDust[j].x += accDustIon[j*NUM_ION + w].x;
-					//		accDust[j].y += accDustIon[j*NUM_ION + w].y;
-					//		accDust[j].z += accDustIon[j*NUM_ION + w].z;
-					//	}
-					//	dustTraceFile << ", " << accDust[j].x;
-					//	dustTraceFile << ", " << accDust[j].y;
-					//	dustTraceFile << ", " << accDust[j].z << std::endl;
-					//}
-
-
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
@@ -1687,14 +1646,6 @@ int main(int argc, char* argv[])
 
 					// loop over dust particles 
 					for (int j = 0; j < NUM_DUST; j++) {
-						//print vel and acc before the timestep
-						//dustTraceFile << "Before the dust timestep" << std::endl;
-						//dustTraceFile << velDust[j].x;
-						//dustTraceFile << ", " << velDust[j].y;
-						//dustTraceFile << ", " << velDust[j].z;
-						//dustTraceFile << ", " << accDust[j].x;
-						//dustTraceFile << ", " << accDust[j].y;
-						//dustTraceFile << ", " << accDust[j].z << std::endl;
 
 						//kick half a  time step
 						velDust[j].x += accDust[j].x * half_dust_dt;
@@ -1716,16 +1667,6 @@ int main(int argc, char* argv[])
 							accDust[j].y += accDustIon[j*NUM_ION + w].y / N;
 							accDust[j].z += accDustIon[j*NUM_ION + w].z / N;
 						}
-
-						//dustTraceFile << "After IonDust2 ";
-						//dustTraceFile << ", " << accDust[j].x;
-						//dustTraceFile << ", " << accDust[j].y;
-						//dustTraceFile << ", " << accDust[j].z << std::endl;
-						
-						// zero the acceleration
-						//accDust[j].x = 0;
-						//accDust[j].y = 0;
-						//accDust[j].z = 0;
 
 						// Calculate dust-dust acceleration 
 						if(j == 0) {
@@ -1770,11 +1711,6 @@ int main(int argc, char* argv[])
 						accDust[j].y +=  accDust2[j].y;
 						accDust[j].z +=  accDust2[j].z;
 						
-						//dustTraceFile << "After DustDust ";
-						//dustTraceFile << ", " << accDust[j].x;
-						//dustTraceFile << ", " << accDust[j].y;
-						//dustTraceFile << ", " << accDust[j].z << std::endl;
-
 						// calculate acceleration of the dust
 						//radial acceleration from confinement
 						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
