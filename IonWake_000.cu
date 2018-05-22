@@ -435,8 +435,8 @@ int main(int argc, char* argv[])
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
-	const int RESZ = static_cast<int>(HT_CYL_DEBYE/RAD_CYL_DEBYE)*RESX;
-	float dx = 2*RAD_CYL/RESX;
+	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
+	float dx = 2*(RAD_CYL/1)/RESX;
 	float dz = 2*HT_CYL/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
@@ -733,7 +733,7 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-RAD_CYL + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL/1) + dx/2 + dx * x);
 			gridPos[RESX* z + x].y = 0;
 			gridPos[RESX* z + x].z = (-HT_CYL + dz/2 + dz * z);
 		}
@@ -1506,15 +1506,15 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
-		if (i % 1000 == 0) {
+		if (i % 2000 == 0) {
 			// copy ion density and potential to host
 			d_ionDensity.devToHost();
 			d_ionPotential.devToHost();
 			
 			// print the data to the ionDensOutFile
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/1000;
-				ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
+				ionDensOutFile << ionDensity[j]/2000;
+				ionDensOutFile << ", " << ionPotential[j]/2000 << std::endl;
 			}
 			ionDensOutFile << "" << std::endl;
 

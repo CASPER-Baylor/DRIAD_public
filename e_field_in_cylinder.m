@@ -76,18 +76,18 @@ for batch = 1:num_batches
     disp(batch)
 end
 
-figure(1)
-contour(X/DEBYE,Z/DEBYE,reshape(V_ionsIn_cyl-2.5, resz, resx));
-axis equal
-title('V_{In_cyl}')
+%figure(1)
+%contour(X/DEBYE,Z/DEBYE,reshape(V_ionsIn_cyl-2.5, resz, resx));
+%axis equal
+%title('V_{In_cyl}')
 
 %% Calculate the electric field
 V_cavity = reshape(V_ionsIn_cyl - 2.5, resz,resx);
-figure
-[C,h] = contour(X/DEBYE,Z/DEBYE,reshape(V_cavity, resz, resx));
-axis equal
-clabel(C,h)
-title('Potential inside cylindrical cavity')
+%figure
+%[C,h] = contour(X/DEBYE,Z/DEBYE,reshape(V_cavity, resz, resx));
+%axis equal
+%clabel(C,h)
+%title('Potential inside cylindrical cavity')
 [Ex, Ez] = gradient(V_cavity, dx*DEBYE, dz*DEBYE);
 
 % Need the range of Ex and Ez to specify contour level lines
@@ -98,13 +98,13 @@ divz = maxEz/5;
 
 levelsx = -maxEx:divx:maxEx;
 levelsz = -maxEz:divz:maxEz;
-figure
-subplot(1,2,1)
-[Cx,hx] =contour(X/DEBYE,Z/DEBYE,Ex,levelsx,'Showtext','on');
-title('Horizontal electric field')
-subplot(1,2,2)
-[Cz,hz] =contour(X/DEBYE,Z/DEBYE,Ez,levelsz,'Showtext','on');
-title('Vertical electric field')
+%figure
+%subplot(1,2,1)
+%[Cx,hx] =contour(X/DEBYE,Z/DEBYE,Ex,levelsx,'Showtext','on');
+%title('Horizontal electric field')
+%subplot(1,2,2)
+%[Cz,hz] =contour(X/DEBYE,Z/DEBYE,Ez,levelsz,'Showtext','on');
+%title('Vertical electric field')
 
 %% Now get fits to the surfaces
 x = reshape(X,num_grid_pts,1);
