@@ -425,10 +425,12 @@ int main(int argc, char* argv[])
 	const float BETA = 1.44 * 4 /3 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	int N = 100; //update dust pos'n every N ion timesteps
-	float dust_dt = N * 200 * TIME_STEP;
+	float dust_dt = 1e-4; //N * 500 * TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
 	float ionTime = 0;
+	float adj_z = 0; //for dust confinement in z
+	float adj_zsq = 0;
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
 	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
@@ -1738,6 +1740,12 @@ int main(int argc, char* argv[])
 						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
 						//weaker axial confinement in z
 						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
+						//strong confinement in z for dust near ends of cylinder
+						if(abs(posDust[j].z) > 0.8*HT_CYL) {
+							adj_z = abs(posDust[j].z) - 0.8*HT_CYL;	
+							adj_zsq = adj_z * adj_z;
+							accDust[j].z += OMEGA2 * chargeDust[j] * adj_zsq; 
+						}
 						//polarity switching
 						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
 							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
