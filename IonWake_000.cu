@@ -775,6 +775,7 @@ int main(int argc, char* argv[])
 	// seek to the beginning of the file
 	timestepFile.seekg(0, std::ios::beg);
 
+	bool MOVE_DUST = 0;
 	// loop over all the commands and save them to the commands array
 	for (int i = 0; i < numCommands; i++) {
 
@@ -799,6 +800,7 @@ int main(int argc, char* argv[])
 		} else if (line == "CH-move-dust") {
 			if (NUM_DUST > 0){
 				commands[i] = 5;
+				MOVE_DUST = 1;
 			} else {
 				fprintf(stderr, "ERROR: cannot 'CH-move-dust'");
 				fprintf(stderr, " without a dust particle");
@@ -1425,12 +1427,12 @@ int main(int argc, char* argv[])
 
 		//polarity switching of electric field
 
-		if (commands[c] == 5) {
+		if (MOVE_DUST  == 1) {
 		// Need to track dust_time + ion_time
 		ionTime = dust_time + (i % N)* TIME_STEP;
 		}
 		else {
-			iontime = i * TIME_STEP;
+			ionTime = i * TIME_STEP;
 		}
         xac = int(floor(2*FREQ*ionTime)) % 2;
 		//xac = 0;
