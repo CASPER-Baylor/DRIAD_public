@@ -435,8 +435,8 @@ int main(int argc, char* argv[])
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
-	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/2))*RESX;
-	float dx = 2*(RAD_CYL/2)/RESX;
+	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
+	float dx = 2*(RAD_CYL/1)/RESX;
 	float dz = 2*HT_CYL/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
@@ -733,7 +733,7 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL/2) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL/1) + dx/2 + dx * x);
 			gridPos[RESX* z + x].y = 0;
 			gridPos[RESX* z + x].z = (-HT_CYL + dz/2 + dz * z);
 		}
@@ -1664,6 +1664,14 @@ int main(int argc, char* argv[])
 						posDust[j].x += velDust[j].x * dust_dt;
 						posDust[j].y += velDust[j].y * dust_dt;
 						posDust[j].z += velDust[j].z * dust_dt;
+
+						// periodic BC in z-dir for dust
+						if(posDust[j].z > HT_CYL) {
+							posDust[j].z -= 2*HT_CYL;
+						} 
+						if(posDust[j].z < -HT_CYL) {
+							posDust[j].z += 2*HT_CYL;
+						}
 
 						// zero the acceleration
 						accDust[j].x = 0;
