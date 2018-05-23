@@ -435,8 +435,8 @@ int main(int argc, char* argv[])
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
-	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
-	float dx = 2*(RAD_CYL/1)/RESX;
+	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/2))*RESX;
+	float dx = 2*(RAD_CYL/2)/RESX;
 	float dz = 2*HT_CYL/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
@@ -733,7 +733,7 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL/1) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL/2) + dx/2 + dx * x);
 			gridPos[RESX* z + x].y = 0;
 			gridPos[RESX* z + x].z = (-HT_CYL + dz/2 + dz * z);
 		}
@@ -1424,8 +1424,14 @@ int main(int argc, char* argv[])
 		}
 
 		//polarity switching of electric field
+
+		if (commands[c] == 5) {
 		// Need to track dust_time + ion_time
 		ionTime = dust_time + (i % N)* TIME_STEP;
+		}
+		else {
+			iontime = i * TIME_STEP;
+		}
         xac = int(floor(2*FREQ*ionTime)) % 2;
 		//xac = 0;
 		//traceFile << ionTime << ", " << xac << ", ";
@@ -1608,7 +1614,7 @@ int main(int argc, char* argv[])
 				d_chargeDust.hostToDev();
 
 				// print all the dust charges to the trace file
-				if ( i % N == 0 ) {
+				if ( i % 100 == 0 ) {
 					for (int k = 0; k < NUM_DUST; k++){
 						dustChargeFile << chargeDust[k];
 						dustChargeFile << ", ";
