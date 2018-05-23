@@ -1649,7 +1649,7 @@ int main(int argc, char* argv[])
 					// copy the dust positions to the host
 					d_posDust.devToHost();
 
-					dust_time = dust_time + dust_dt;
+					dust_time += dust_dt;
 					dustTraceFile << dust_time << std::endl;
 
 					// loop over dust particles 
@@ -1678,11 +1678,16 @@ int main(int argc, char* argv[])
 						accDust[j].y = 0;
 						accDust[j].z = 0;
 
+						// acceleration from the ions
 						for(int w = 0; w < blocksPerGridIon; w++) {
 							accDust[j].x += accDustIon[j*NUM_ION + w].x / N;
 							accDust[j].y += accDustIon[j*NUM_ION + w].y / N;
 							accDust[j].z += accDustIon[j*NUM_ION + w].z / N;
 						}
+						//print this acceleration to the trace file
+						//dustTraceFile << accDust[j].x;
+						//dustTraceFile << ", " << accDust[j].y;
+						//dustTraceFile << ", " << accDust[j].z << ", ";
 
 						// Calculate dust-dust acceleration 
 						if(j == 0) {
@@ -1732,7 +1737,7 @@ int main(int argc, char* argv[])
 						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
 						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
 						//weaker axial confinement in z
-						accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
+						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
 						//polarity switching
 						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
 							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
