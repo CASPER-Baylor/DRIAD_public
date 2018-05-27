@@ -1741,11 +1741,11 @@ int main(int argc, char* argv[])
 						//weaker axial confinement in z
 						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
 						//strong confinement in z for dust near ends of cylinder
-						if(abs(posDust[j].z) > 0.8*HT_CYL) {
+						if(abs(posDust[j].z) > 0.95*HT_CYL) {
 							if(posDust[j].z > 0) {
-							adj_z = posDust[j].z - 0.8*HT_CYL;
+							adj_z = posDust[j].z - 0.95*HT_CYL;
 							} else {
-								adj_z = posDust[j].z + 0.8 * HT_CYL;
+								adj_z = posDust[j].z + 0.95 * HT_CYL;
 							}	
 							accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 
 						}
