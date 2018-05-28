@@ -1752,7 +1752,7 @@ int main(int argc, char* argv[])
 							accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 
 						}
 						//polarity switching
-						accDust[j].z += chargeDust[j] / MASS_DUST * E_FIELD 
+						accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
 							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
 
 						// forces from ions outside simulation region
