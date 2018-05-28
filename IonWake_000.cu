@@ -430,6 +430,8 @@ int main(int argc, char* argv[])
 	float dust_time = 0;
 	float ionTime = 0;
 	float adj_z = 0; //for dust confinement in z
+	//Adjust the dut charge for non-zero plasma potential
+	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_zsq = 0;
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
@@ -1716,8 +1718,8 @@ int main(int argc, char* argv[])
 							dist = sqrt(distSquared);
         
 							//calculate a scalar intermediate
-							linForce = DUST_DUST_ACC_MULT * chargeDust[j] 
-								* chargeDust[g] / (dist*dist*dist);
+							linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
+								* (chargeDust[g] + adj_q) / (dist*dist*dist);
 								// *(1+dist/DEBYE_I)*exp(-dist/DEBYE_I);
         
 							// add the acceleration to the current dust grain
