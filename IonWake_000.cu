@@ -440,8 +440,9 @@ int main(int argc, char* argv[])
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
-	float dx = 2*(RAD_CYL/1)/RESX;
-	float dz = 2*HT_CYL/RESZ;
+	const float grid_factor = 2/5;
+	float dx = 2*(RAD_CYL*grid_factor)/RESX;
+	float dz = 2*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
 	if (debugMode) {
@@ -737,9 +738,9 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL/1) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2 + dx * x);
 			gridPos[RESX* z + x].y = 0;
-			gridPos[RESX* z + x].z = (-HT_CYL + dz/2 + dz * z);
+			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2 + dz * z);
 		}
 	}
 	
@@ -1518,15 +1519,15 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
-		if (i % 2000 == 0) {
+		if (i % 1000 == 0) {
 			// copy ion density and potential to host
 			d_ionDensity.devToHost();
 			d_ionPotential.devToHost();
 			
 			// print the data to the ionDensOutFile
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/2000;
-				ionDensOutFile << ", " << ionPotential[j]/2000 << std::endl;
+				ionDensOutFile << ionDensity[j]/1000;
+				ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
 			}
 			ionDensOutFile << "" << std::endl;
 
@@ -1743,11 +1744,11 @@ int main(int argc, char* argv[])
 						//weaker axial confinement in z
 						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
 						//strong confinement in z for dust near ends of cylinder
-						if(abs(posDust[j].z) > 0.95*HT_CYL) {
+						if(abs(posDust[j].z) > 0.82*HT_CYL) {
 							if(posDust[j].z > 0) {
-							adj_z = posDust[j].z - 0.95*HT_CYL;
+							adj_z = posDust[j].z - 0.82*HT_CYL;
 							} else {
-								adj_z = posDust[j].z + 0.95 * HT_CYL;
+								adj_z = posDust[j].z + 0.82 * HT_CYL;
 							}	
 							accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 
 						}
