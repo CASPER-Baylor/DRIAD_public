@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
 
 	// dust particle mass assumes spherical particle (Kg)
 	const float MASS_DUST =
-		DEN_DUST * (4 / 3) * PI * RAD_DUST * RAD_DUST * RAD_DUST;
+		DEN_DUST * (4.0 / 3.0) * PI * RAD_DUST * RAD_DUST * RAD_DUST;
 
 	// radius of the spherical simulation volume (m)
 	const float RAD_SIM = RAD_SIM_DEBYE * DEBYE;
