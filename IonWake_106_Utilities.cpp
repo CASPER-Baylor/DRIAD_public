@@ -59,7 +59,7 @@ float findMax_106(float val[], int numVals)
 	// loop over each of the ions
 	for (int i = 0; i < numVals; i++)
 	{
-		// check if the current is greator than the max
+		// check if the current is greater than the max
 		if (val[i] > max)
 		{
 			max = val[i];
@@ -76,7 +76,7 @@ int findMax_106(int val[], int numVals)
 	// loop over each of the ions
 	for (int i = 0; i < numVals; i++)
 	{
-		// check if the current is greator than the max
+		// check if the current is greater than the max
 		if (val[i] > max)
 		{
 			max = val[i];
