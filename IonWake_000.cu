@@ -604,6 +604,7 @@ int main(int argc, char* argv[])
 
 	// pointer for dust charges;
 	float* chargeDust = NULL;
+	float* tempCharge = NULL;
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
