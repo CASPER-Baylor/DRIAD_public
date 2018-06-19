@@ -635,6 +635,7 @@ int main(int argc, char* argv[])
 		// allocate memory for the dust variables
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
+		tempCharge = (float*)malloc(memFloatDust);
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -672,6 +673,7 @@ int main(int argc, char* argv[])
 		posDust[i].y *= DEBYE;
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
+		tempCharge[i] = 0;
 	}
 
 	// check if any of the dust particles are outside of
@@ -1617,14 +1619,20 @@ int main(int argc, char* argv[])
 
 					// add current to dust charge
 					chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+					//save charge for averaging
+					tempCharge[g] += chargeDust[g];
 				}
 
 				// copy the dust charge to the GPU
 				d_chargeDust.hostToDev();
 
 				// print all the dust charges to the trace file
-				if ( i % 100 == 0 ) {
+				if ( i % N == 0 ) {
 					for (int k = 0; k < NUM_DUST; k++){
+						//average the charge over last N timesteps
+						// and reset the tempCharge to zero
+						chargeDust[k] = tempCharge[k]/N;
+						tempCharge[k] = 0;
 						dustChargeFile << chargeDust[k];
 						dustChargeFile << ", ";
 					}
