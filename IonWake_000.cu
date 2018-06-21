@@ -427,6 +427,10 @@ int main(int argc, char* argv[])
 	i_cross_section sigma_i1;
 	i_cross_section sigma_i2;
 	i_cross_section sigma_i_tot;
+
+	setIonCrossSection_105( gasType, i_cs_ranges, NUM_DEN_GAS,
+		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
+		&totIonCollFreq, debugMode, debugSpecificFile);
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
@@ -495,6 +499,8 @@ int main(int argc, char* argv[])
 		<< "dx			      " << dx				 << '\n'
 		<< "grid_factor	      " << grid_factor		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
+		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
+		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
