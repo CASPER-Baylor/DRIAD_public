@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_dust-charge.txt";
 	std::ofstream dustChargeFile(fileName.c_str());
 
-	// open an output file for tracing dust positions throughout the simulation
+	// open an output file for tracing dust positions during the simulation
 	fileName = dataDirName + runName + "_dust-pos-trace.txt";
 	std::ofstream dustTraceFile(fileName.c_str());
 
@@ -416,6 +416,17 @@ int main(int argc, char* argv[])
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
+
+	// Set collision cross sections for ion and neutral gas
+	int gasType = 1; // 1 = Neon, 2 = Argon
+	int i_cs_ranges = 1000000;
+	float totIonCollFreq = 0;
+	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
+	// allocate memory for the collision cross sections
+	typedef float i_cross_section [i_cs_ranges+1];
+	i_cross_section sigma_i1;
+	i_cross_section sigma_i2;
+	i_cross_section sigma_i_tot;
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
