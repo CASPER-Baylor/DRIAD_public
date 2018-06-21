@@ -116,13 +116,13 @@ void ionCollisions_105 (
 		const int,
 		float*,
 		const float,
-		float3* ,
 		const float,
 		const float,
 		const int,
 		float*,
 		float*,
 		float*,
+		float3*,
 		const bool,
 		std::ostream&);
 

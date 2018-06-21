@@ -1887,6 +1887,31 @@ int main(int argc, char* argv[])
 		}
 
 		//Any other external forces acting on ions would be calc'd here
+
+		// Collisions between ions and neutral gas particles
+		// copy ion velocities to host
+		d_velIon.devToHost();
+
+		debugFile << "Going to ionCollisions ... ";
+		ionCollisions_105 (
+			NUM_ION,
+			&totIonCollFreq,
+			TIME_STEP,
+			TEMP_ION,
+			MASS_SINGLE_ION,
+			i_cs_ranges,
+			sigma_i1,
+			sigma_i2,
+			sigma_i_tot,
+			velIon,
+			debugMode, debugSpecificFile);
+			//velIon,
+			//debugMode, debugSpecificFile);
+		debugFile << "Returned "<< std::endl;
+
+		// copy ion velocities to device
+		d_velIon.hostToDev();
+
 		// reset the ion bounds flag to 0
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
 
