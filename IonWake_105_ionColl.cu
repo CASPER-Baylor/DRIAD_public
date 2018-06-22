@@ -216,7 +216,7 @@ void ionCollisions_105 (
 	float 		N1;
 	int 		n_coll, index;
 	float	vx_i, vy_i, vz_i, vx_a, vy_a,vz_a, vx_r, vy_r, vz_r;
-	float	g, eps_rel, real_coll_freq, t1, t2, dum;
+	float	g, eps_rel, real_coll_freq, t1, t2, dum, randNum;
 	bool exist;
 	int collision_counter = 0;
 
@@ -225,11 +225,12 @@ void ionCollisions_105 (
 	}
 
 	//seed the random number generator
-	srand (time(NULL));
+	//srand (time(NULL));
 
     N1 = NUM_ION * (1.0 - exp(- *tot_ion_coll_freq * TIME_STEP));
     n_coll = (int)(N1);
-    if ( rand() < (N1 - n_coll) ) {n_coll++;}
+	randNum = (rand() % 100001)/100000.0;
+    if ( randNum < (N1 - n_coll) ) {n_coll++;}
 
 	if (debugMode) {
 		fileName << "Number ions to collide " << n_coll << "\n";
@@ -239,36 +240,27 @@ void ionCollisions_105 (
     for(int j=1;j<=n_coll;j++) coll_list[j]=0;
     for(int j=1;j<=n_coll;j++){
       do{
-        i = (int)(rand()*NUM_ION) +1;
+        i = (int)(rand() % NUM_ION) +1;
         exist = false;
         for(int q=1;q<=j-1;q++) if (coll_list[q]==i) exist = true;
       } while(exist);
       coll_list[j] = i;
     }
 
-	if (debugMode) {
-		fileName << "Prepared collision list " << n_coll << "\n";
-	}
-
   for(int j=1;j<=n_coll;j++){
       i = coll_list[j];
-      
+     fileName << "Ion index " << i << "\n"; 
       //vx_i = velIon[i].x;
       //vy_i = velIon[i].y;
       //vz_i = velIon[i].z;
-		vx_i = 100.0;
-		vy_i = 100.0;
-		vz_i = 100.0;
+		vx_i = 500.0;
+		vy_i = 500.0;
+		vz_i = 500.0;
       
       // select random maxwellian target: 
-
       vx_a = random_maxwell_velocity(); 
       vy_a = random_maxwell_velocity(); 
       vz_a = random_maxwell_velocity(); 
-	  if (debugMode) { 
-		fileName << "vx_a " << vx_a  << " vy_a " << vy_a 
-			<<" vz_a " << vz_a << "\n";
-	  }
 	  dum = sqrt(2.0 * k_boltz*TEMP_ION/MASS_SINGLE_ION);
 	  vx_a *= dum;
 	  vy_a *= dum;
@@ -282,26 +274,26 @@ void ionCollisions_105 (
       eps_rel = reduced_mass*g*g/2.0/ev_to_j;  
       index = (int)(eps_rel/depsilon_i +0.5);
 
-	  if (debugMode) { 
-		fileName << "rel_vel " << g << " eps_rel " << eps_rel << index << "\n";
-	  }
+//	  if (debugMode) { 
+//		fileName << "rel_vel " << g << " eps_rel " << eps_rel << index << "\n";
+//	  }
 
- /*     if (index > i_cs_ranges) index = i_cs_ranges;
-      real_coll_freq = sigma_i_tot[index]*g;
+//      if (index >= i_cs_ranges) {index = i_cs_ranges -1;}
+//      real_coll_freq = sigma_i_tot[index]*g;
 
-	  if (debugMode) { 
-		fileName << "real_coll_freq" << real_coll_freq << "\n";
-	  }
-      //printf("eps_lab: %.4e  real_coll_freq: %.4f tot_ion_coll_freq: %.4f\n",
-      //        eps_lab,real_coll_freq,tot_ion_coll_freq);
-	  t1  =     sigma_i1[index];
-	  t2  = t1 +sigma_i2[index];
-      if (rand() < (real_coll_freq / *tot_ion_coll_freq)){
-        collisionIonNeutral(i,velIon, MASS_SINGLE_ION,
-			vx_a,vy_a,vz_a,t1,t2);
+//	  fileName << "real_coll_freq " << real_coll_freq 
+//		<< "  tot coll freq " << *tot_ion_coll_freq << "\n";
+
+//	  t1  =     sigma_i1[index];
+//	  t2  = t1 +sigma_i2[index];
+	  randNum = (rand() % 100001)/100000.0;
+//	  fileName << index << ", " << t1 << ", " << t2 << ", " << randNum << "\n";
+      if (randNum < (real_coll_freq / *tot_ion_coll_freq)){
+ //       collisionIonNeutral(i,velIon, MASS_SINGLE_ION,
+//			vx_a,vy_a,vz_a,t1,t2);
         ++collision_counter;
       }  
-*/ 
+ 
     }
 
 	if (debugMode) { 
@@ -477,7 +469,5 @@ double errorFn_inv(double y) {
 // sampling of Maxwellian distributions :
 
 double random_maxwell_velocity(void) {
-  // seed the random number generator
-  srand (time(NULL));
-  return errorFn_inv(2.0*rand()-1.0);
+  return errorFn_inv((rand() % 2000 - 1000)/1000.0);
 }

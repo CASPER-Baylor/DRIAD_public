@@ -404,7 +404,7 @@ __global__ void calcExtrnElcAccCyl_102
 
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
-	// it divided by rad.
+	// is divided by rad.
 	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
 
 	// calculate vertical component of the acceleration
