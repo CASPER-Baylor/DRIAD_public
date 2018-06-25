@@ -932,6 +932,9 @@ int main(int argc, char* argv[])
 	// holds the distance of each ion from the center of the simulation sphere
 	float dist;
 	
+	// set direction of the axial electric field
+	int E_direction;
+
 	// allocate variables used in dust-dust forces
 	float3 distdd;
 	float distSquared;
@@ -1121,6 +1124,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_P03Z(&P03Z, 1);
 	constCUDAvar<float> d_P23Z(&P23Z, 1);
 	constCUDAvar<float> d_P05Z(&P05Z, 1);
+	constCUDAvar<float> d_E_FIELD(&E_FIELD, 1);
 	constCUDAvar<float> d_TIME_STEP(&TIME_STEP, 1);
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
@@ -1332,7 +1336,14 @@ int main(int argc, char* argv[])
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 	} else if(GEOMETRY == 1) {
-		// calculate the forces between all ions
+		// calculate the forces from ions outside simulation region
+		// and external electric field 
+		if (xac == 0) {
+			E_direction = -1;
+		}
+		else
+			E_direction = 1;
+
 		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_accIon.getDevPtr(), // <-->
 			d_posIon.getDevPtr(), // <--
@@ -1344,7 +1355,9 @@ int main(int argc, char* argv[])
 			d_P21Z.getDevPtr(),
 			d_P03Z.getDevPtr(),
 			d_P23Z.getDevPtr(),
-			d_P05Z.getDevPtr());
+			d_P05Z.getDevPtr(),
+			d_E_FIELD.getDevPtr(),
+			E_direction);
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 	}
@@ -1869,7 +1882,22 @@ int main(int argc, char* argv[])
 
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 		} else if(GEOMETRY == 1) {
-			// calculate the forces between all ions
+			// calculate the forces from ions outside simulation region 
+			// and external electric field 
+		if (MOVE_DUST  == 1) {
+		// Need to track dust_time + ion_time
+		ionTime = dust_time + (i % N)* TIME_STEP;
+		}
+		else {
+			ionTime = i * TIME_STEP;
+		}
+        xac = int(floor(2*FREQ*ionTime)) % 2;
+			if (xac == 0) {
+				E_direction = -1;
+			}
+			else
+				E_direction = 1;
+
 			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_accIon.getDevPtr(), // <-->
 				d_posIon.getDevPtr(), // <--
@@ -1881,7 +1909,9 @@ int main(int argc, char* argv[])
 				d_P21Z.getDevPtr(),
 				d_P03Z.getDevPtr(),
 				d_P23Z.getDevPtr(),
-				d_P05Z.getDevPtr());
+				d_P05Z.getDevPtr(),
+				d_E_FIELD.getDevPtr(),
+				E_direction);
 
 			roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 		}
@@ -2082,6 +2112,7 @@ int main(int argc, char* argv[])
 	d_P03Z.compare();
 	d_P23Z.compare();
 	d_P05Z.compare();
+	d_E_FIELD.compare();
 	d_Q_DIV_M.compare();
 	d_MAX_DEPTH.compare();
 

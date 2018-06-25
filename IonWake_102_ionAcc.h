@@ -238,7 +238,8 @@ __global__ void calcExtrnElcAccCyl_102
         float3*,
         float*,
         float*, float*,float* ,
-        float*, float*,float*, float*,float*);
+        float*, float*,float*, float*,float*,
+		float*, int);
 
 /*
  *  Name: calcIonDensityPotential_102
