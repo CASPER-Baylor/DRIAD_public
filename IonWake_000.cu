@@ -1892,7 +1892,6 @@ int main(int argc, char* argv[])
 		// copy ion velocities to host
 		d_velIon.devToHost();
 
-		debugFile << "Going to ionCollisions ... ";
 		ionCollisions_105 (
 			NUM_ION,
 			&totIonCollFreq,
@@ -1907,7 +1906,6 @@ int main(int argc, char* argv[])
 			debugMode, debugSpecificFile);
 			//velIon,
 			//debugMode, debugSpecificFile);
-		debugFile << "Returned "<< std::endl;
 
 		// copy ion velocities to device
 		d_velIon.hostToDev();

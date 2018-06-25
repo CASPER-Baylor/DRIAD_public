@@ -123,7 +123,6 @@ void setIonCrossSection_105
          }       
     }
  
-	//fileName << "About to sum the cross sections \n";
 	//  Sum the backscattering and isotropic scattering to get total  
 	// ion impact cross section: 
   	for(int i=0;i<=i_cs_ranges;i++){
@@ -131,7 +130,6 @@ void setIonCrossSection_105
     	sigma_i_tot[i] *= NUM_DEN_GAS;
   	}  
  
-	//fileName << "Getting upper limit for collision frequency \n";
 	//Upper limit for collision frequency  
   	double   e,v,nu,nu_max;
   	nu_max = 0;
@@ -139,7 +137,6 @@ void setIonCrossSection_105
     	e  = i*depsilon_i*ev_to_j;
     	v  = sqrt(e/MASS_SINGLE_ION);     
     	nu = v*sigma_i_tot[i];
-		//fileName << i << ", " << e << ", " << v <<  ", " << nu << "\n";
     	if (nu > nu_max) {nu_max = nu;}
   	}
 
@@ -220,21 +217,18 @@ void ionCollisions_105 (
 	bool exist;
 	int collision_counter = 0;
 
-	if (debugMode) {
-		fileName << "In ionCollisions_105 " << std::endl;
-	}
-
-	//seed the random number generator
-	//srand (time(NULL));
+//	if (debugMode) {
+//			fileName << "In ionCollisions_105 " << std::endl;
+//		}
 
     N1 = NUM_ION * (1.0 - exp(- *tot_ion_coll_freq * TIME_STEP));
     n_coll = (int)(N1);
 	randNum = (rand() % 100001)/100000.0;
     if ( randNum < (N1 - n_coll) ) {n_coll++;}
 
-	if (debugMode) {
-		fileName << "Number ions to collide " << n_coll << "\n";
-	}
+//	if (debugMode) {
+//		fileName << "Number ions to collide " << n_coll << "\n";
+//	}
 
     // prepare list of ions to collide:
     for(int j=1;j<=n_coll;j++) coll_list[j]=0;
@@ -249,13 +243,9 @@ void ionCollisions_105 (
 
   for(int j=1;j<=n_coll;j++){
       i = coll_list[j];
-     fileName << "Ion index " << i << "\n"; 
       vx_i = velIon[i].x;
       vy_i = velIon[i].y;
       vz_i = velIon[i].z;
-	//	vx_i = 500.0;
-	//	vy_i = 500.0;
-	//	vz_i = 500.0;
       
       // select random maxwellian target: 
       vx_a = random_maxwell_velocity(); 
@@ -282,7 +272,7 @@ void ionCollisions_105 (
       if (index >= i_cs_ranges) {index = i_cs_ranges -1;}
       real_coll_freq = sigma_i_tot[index]*g;
 
-	  //fileName << "real_coll_freq " << real_coll_freq 
+// 	  fileName << "real_coll_freq " << real_coll_freq 
 //		<< "  tot coll freq " << *tot_ion_coll_freq << "\n";
 
 	  t1  =     sigma_i1[index];
@@ -290,20 +280,20 @@ void ionCollisions_105 (
 	  randNum = (rand() % 100001)/100000.0;
 //	  fileName << index << ", " << t1 << ", " << t2 << ", " << randNum << "\n";
       if (randNum < (real_coll_freq / *tot_ion_coll_freq)){
-		fileName << "vel before " << velIon[i].x << ", " << velIon[i].y 
-			<< velIon[i].z << "\n";
+//		fileName << "vel before " << velIon[i].x << ", " << velIon[i].y 
+//			<< velIon[i].z << "\n";
         collisionIonNeutral(i,velIon, MASS_SINGLE_ION,
 			vx_a,vy_a,vz_a,t1,t2);
-		fileName << "vel after" << velIon[i].x << ", " << velIon[i].y 
-			<< velIon[i].z << "\n";
+//		fileName << "vel after" << velIon[i].x << ", " << velIon[i].y 
+//			<< velIon[i].z << "\n";
         ++collision_counter;
       }  
  
     }
 
-	if (debugMode) { 
-		fileName << "Actual collisions " << collision_counter << "\n";
-	}
+//	if (debugMode) { 
+//		fileName << "Actual collisions " << collision_counter << "\n";
+//	}
 
 }	
 
