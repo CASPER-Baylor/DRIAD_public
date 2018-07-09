@@ -577,6 +577,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
 	<< std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
+	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
 	<< std::setw(14) << P10X              << " % P10X"              << '\n'
 	<< std::setw(14) << P12X              << " % P12X"              << '\n'
 	<< std::setw(14) << P14X              << " % P14X"              << '\n'
