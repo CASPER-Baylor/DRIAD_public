@@ -19,6 +19,12 @@
 *	random_maxwell_velocity
 *   errorFn_Inv
 *
+* Includes:
+*   ionCollisions_105()
+*   	device_launch_parameters.h
+*   	cuda_runtime.h
+*   	curand_kernel.h
+*
 */
 
 // header file
@@ -47,6 +53,11 @@
 
 //for std::copy
 //#include <algorithm>
+
+//for CUDA
+#include "device_launch_parameters.h"
+#include "cuda_runtime.h"
+#include <curand_kernel.h>
 
 /*
 * Name: setIonCrossSections_105
@@ -112,19 +123,18 @@ void setIonCrossSection_105
 *
 */
 
-void ionCollisions_105 (
-		const int,
-		float*,
-		const float,
-		const float,
-		const float,
-		const int,
+__global__ void ionCollisions_105 (
+		int*,
+		float* const,
+		float* const,
+		float* const,
+		int* const,
+		float* const,
 		float*,
 		float*,
 		float*,
 		float3*,
-		const bool,
-		std::ostream&);
+		curandState_t* const);
 
 	
 /*
@@ -153,15 +163,15 @@ void ionCollisions_105 (
 *	ionVel: velocity of ion after collision
 *
 */
-void collisionIonNeutral(
-	int, 
-	float3*,  
-	double, 
-	double, 
-	double, 
-	double,
-	double,
-	double);
+//void collisionIonNeutral(
+//	int, 
+//	float3*,  
+//	double, 
+//	double, 
+//	double, 
+//	double,
+//	double,
+//	double);
 
 
 //--------------------------------------------------------------------------    
@@ -189,11 +199,11 @@ void collisionIonNeutral(
 *
 */
 
-double errorFn_inv(double y); 
+__device__ double errorFn_inv(double y); 
 
 //--------------------------------------------------------------------
 // sampling of Maxwellian distributions :
 
-double random_maxwell_velocity(void);
+//double random_maxwell_velocity(void);
 
 #endif // IONWAKE_105_IONCOLLISIONS

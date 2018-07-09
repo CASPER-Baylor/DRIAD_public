@@ -419,18 +419,28 @@ int main(int argc, char* argv[])
 
 	// Set collision cross sections for ion and neutral gas
 	int gasType = 1; // 1 = Neon, 2 = Argon
-	int i_cs_ranges = 1000000;
+	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
+	
 	// allocate memory for the collision cross sections
-	typedef float i_cross_section [i_cs_ranges+1];
+	typedef float i_cross_section [I_CS_RANGES+1];
 	i_cross_section sigma_i1;
 	i_cross_section sigma_i2;
 	i_cross_section sigma_i_tot;
 
-	setIonCrossSection_105( gasType, i_cs_ranges, NUM_DEN_GAS,
+	//determines a constant total collision frequency
+	setIonCrossSection_105( gasType, I_CS_RANGES, NUM_DEN_GAS,
 		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
 		&totIonCollFreq, debugMode, debugSpecificFile);
+	
+	//Number of ions to collide each time step.  Adjust for non-integer value.
+	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * TIME_STEP));
+	const int N_COLL = (int)(N1);
+	int n_coll = 0;
+	bool exist;
+	//allocate memory for the ion collision list
+	int* collList = (int*)malloc(NUM_ION * sizeof(int));
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
@@ -1143,6 +1153,8 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_MASS_SINGLE_ION(&MASS_SINGLE_ION, 1);
 	constCUDAvar<float> d_BOLTZMANN(&BOLTZMANN, 1);
 	constCUDAvar<int> d_MAX_DEPTH(&MAX_DEPTH, 1);
+	constCUDAvar<int> d_I_CS_RANGES(&I_CS_RANGES, 1);
+	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
 
 	// create device pointers
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1163,10 +1175,16 @@ int main(int argc, char* argv[])
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
+	CUDAvar<float> d_SIGMA_I1(sigma_i1, I_CS_RANGES+1);
+	CUDAvar<float> d_SIGMA_I2(sigma_i2, I_CS_RANGES+1);
+	CUDAvar<float> d_SIGMA_I_TOT(sigma_i_tot, I_CS_RANGES+1);
+	CUDAvar<int> d_collList(collList, NUM_ION);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	// Copy over values
 	d_boundsIon.hostToDev();
+	d_m.hostToDev();
+	d_timeStepFactor.hostToDev();
 	d_QCOM.hostToDev();
 	d_VCOM.hostToDev();
 	d_GCOM.hostToDev();
@@ -1176,10 +1194,15 @@ int main(int argc, char* argv[])
 	d_accIon.hostToDev();
 	d_accIonDust.hostToDev();
 	d_posDust.hostToDev();
-	d_m.hostToDev();
-	d_timeStepFactor.hostToDev();
 	d_minDistDust.hostToDev();
+	d_accDustIon.hostToDev();
+	d_accDust.hostToDev();
 	d_gridPos.hostToDev();
+	d_ionPotential.hostToDev();
+	d_ionDensity.hostToDev();
+	d_SIGMA_I1.hostToDev();
+	d_SIGMA_I2.hostToDev();
+	d_SIGMA_I_TOT.hostToDev();
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
@@ -1921,25 +1944,47 @@ int main(int argc, char* argv[])
 
 		// Collisions between ions and neutral gas particles
 		// copy ion velocities to host
-		d_velIon.devToHost();
+		//d_velIon.devToHost();
 
-		ionCollisions_105 (
-			NUM_ION,
-			&totIonCollFreq,
-			TIME_STEP,
-			TEMP_ION,
-			MASS_SINGLE_ION,
-			i_cs_ranges,
-			sigma_i1,
-			sigma_i2,
-			sigma_i_tot,
-			velIon,
-			debugMode, debugSpecificFile);
-			//velIon,
-			//debugMode, debugSpecificFile);
+		//copy collision list to device
+		//d_collList.devToHost();
+		
+		//reset collision list
+		for(int j=0; j < NUM_ION; j++) collList[j] = -1;
+		
+		//Determine number of ions to collide
+		randNum = (rand() % 100001)/100000.0;
+		if ( randNum < (N1 - N_COLL) ) {n_coll = N_COLL+1;}
+		
+		// prepare list of ions to collide:
+		for(int j=0; j < n_coll; j++){
+			do{
+			i = (int)(rand() % NUM_ION);
+			exist = false;
+			for(int q=0;q<=j-1;q++) if (collList[q]==i) exist = true;
+			} while(exist);
+			collList[j] = i;
+		}
+		
+		//copy collision list to device
+		d_collList.hostToDev();
+		
+		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_collList.getDevPtr(),
+			d_TEMP_ION.getDevPtr(),
+			d_MASS_SINGLE_ION.getDevPtr(),
+			d_BOLTZMANN.getDevPtr(),
+			d_I_CS_RANGES.getDevPtr(),
+			d_TOT_ION_COLL_FREQ.getDevPtr(),
+			d_SIGMA_I1.getDevPtr(),
+			d_SIGMA_I2.getDevPtr(),
+			d_SIGMA_I_TOT.getDevPtr(),
+			d_velIon.getDevPtr(),
+			randStates.getDevPtr());
 
+		roadBlock_000(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
 		// copy ion velocities to device
-		d_velIon.hostToDev();
+		//d_velIon.hostToDev();
 
 		// reset the ion bounds flag to 0
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
@@ -2116,6 +2161,8 @@ int main(int argc, char* argv[])
 	d_E_FIELD.compare();
 	d_Q_DIV_M.compare();
 	d_MAX_DEPTH.compare();
+	d_I_CS_RANGES.compare();
+	d_TOT_ION_COLL_FREQ.compare();
 
 	/**********************
 	free memory
@@ -2134,6 +2181,7 @@ int main(int argc, char* argv[])
 	free(m);
 	free(timeStepFactor);
 	free(minDistDust);
+	free(gridPos);
 	free(ionPotential);
 	free(ionDensity);
 	delete[] ionCurrent;
