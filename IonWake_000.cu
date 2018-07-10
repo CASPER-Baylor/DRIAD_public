@@ -2001,7 +2001,7 @@ int main(int argc, char* argv[])
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
 		// copy collision counter to the host 
-		d_collision_counter.hostToDev();
+		d_collision_counter.devToHost();
 
 		debugFile << "Number ion collisions: " << collision_counter << "\n";
 
