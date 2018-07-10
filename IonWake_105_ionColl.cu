@@ -198,7 +198,8 @@ __global__ void ionCollisions_105
 	float* sigma_i2,
 	float* sigma_i_tot,
 	float3* velIon,
-	curandState_t* const randStates) {
+	curandState_t* const randStates,
+	int* d_collision_counter) {
 			
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;		
@@ -212,13 +213,13 @@ __global__ void ionCollisions_105
 	double  khi,phi,mm;
 	double  hx,hy,hz,g,gx,gy,gz,sk,ck,sf,cf;
 	double  pi = 3.1415926536;
-	int collision_counter = 0;
+	//int collision_counter = 0;
+	*d_collision_counter = 0;
 
 	if (d_collList[threadID] == -1)
 		return;
 	else {
       i = d_collList[threadID];
-	  //i = 1; //temporary variable
       vx_i = velIon[i].x;
       vy_i = velIon[i].y;
       vz_i = velIon[i].z;
@@ -291,7 +292,8 @@ __global__ void ionCollisions_105
 		velIon[i].x = vx_i;
 		velIon[i].y = vy_i;
 		velIon[i].z = vz_i;
-		++collision_counter;
+		//++collision_counter;
+		++*d_collision_counter;
       }  
  
     }

@@ -441,6 +441,7 @@ int main(int argc, char* argv[])
 	bool exist;
 	//allocate memory for the ion collision list
 	int* collList = (int*)malloc(NUM_ION * sizeof(int));
+	int collision_counter = 0; 
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
@@ -1179,6 +1180,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_SIGMA_I2(sigma_i2, I_CS_RANGES+1);
 	CUDAvar<float> d_SIGMA_I_TOT(sigma_i_tot, I_CS_RANGES+1);
 	CUDAvar<int> d_collList(collList, NUM_ION);
+	CUDAvar<int> d_collision_counter(&collision_counter, 1);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	// Copy over values
@@ -1203,6 +1205,7 @@ int main(int argc, char* argv[])
 	d_SIGMA_I1.hostToDev();
 	d_SIGMA_I2.hostToDev();
 	d_SIGMA_I_TOT.hostToDev();
+	d_collision_counter.hostToDev();
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
@@ -1994,12 +1997,17 @@ int main(int argc, char* argv[])
 			d_SIGMA_I2.getDevPtr(),
 			d_SIGMA_I_TOT.getDevPtr(),
 			d_velIon.getDevPtr(),
-			randStates.getDevPtr());
+			randStates.getDevPtr(), 
+			d_collision_counter.getDevPtr());
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
-		// copy ion velocities to device
-		//d_velIon.hostToDev();
+		// copy collision counter to the host 
+		d_collision_counter.hostToDev();
 
+	if (debugMode) {
+		// print the number of collisions to the debugging file
+		debugFile << "Number ion collisions: " << collision_counter << "\n";
+	}
 		// reset the ion bounds flag to 0
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
 		(d_boundsIon.getDevPtr());

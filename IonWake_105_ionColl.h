@@ -138,7 +138,7 @@ __global__ void ionCollisions_105 (
 		float*,
 		float*,
 		float3*,
-		curandState_t* const);
+		curandState_t* const, int*);
 
 /*
 * Name: zeroCollisionList_105() 
