@@ -608,11 +608,7 @@ int main(int argc, char* argv[])
 
 	// pointer for dust charges;
 	float* chargeDust = NULL;
-<<<<<<< HEAD
 	float* tempCharge = NULL; 
-=======
-	float* tempCharge = NULL;
->>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
@@ -644,11 +640,7 @@ int main(int argc, char* argv[])
 		// allocate memory for the dust variables
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
-<<<<<<< HEAD
 		tempCharge = (float*)malloc(memFloatDust); 
-=======
-		tempCharge = (float*)malloc(memFloatDust);
->>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -1538,27 +1530,13 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
-<<<<<<< HEAD
 			//Loop over ion  commands
 			for(int c = 0; c < numCommands; c++){
 				// copy ion positions to the host
 				if (commands[c] == 1) {
 					// print the command number to the status file
 					statusFile << "1 ";
-=======
-		if (i % 1000 == 0) {
-			// copy ion density and potential to host
-			d_ionDensity.devToHost();
-			d_ionPotential.devToHost();
 			
-			// print the data to the ionDensOutFile
-			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/1000;
-				ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
-			}
-			ionDensOutFile << "" << std::endl;
->>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
-
 					// copy ion positions to host
 					d_posIon.devToHost();
 
@@ -1600,7 +1578,6 @@ int main(int argc, char* argv[])
 					// copy dust charge to host
 					d_chargeDust.devToHost();
 
-<<<<<<< HEAD
 					// calculate the ion currents to the dust particles
 					// set initial currents to 0
 					for (int k = 0; k < NUM_DUST; k++){
@@ -1615,13 +1592,6 @@ int main(int argc, char* argv[])
 							ionCurrent[boundsIon[k] - 1] += 1;
 						}
 					}
-=======
-					// add current to dust charge
-					chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
-					//save charge for averaging
-					tempCharge[g] += chargeDust[g];
-				}
->>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
@@ -1629,7 +1599,6 @@ int main(int argc, char* argv[])
 						dustPotential =
 							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
 
-<<<<<<< HEAD
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * TIME_STEP *
 							exp((-1) * CHARGE_ELC * dustPotential /
@@ -1639,17 +1608,6 @@ int main(int argc, char* argv[])
 						chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
 						//save charge for averaging
 						tempCharge[g] += chargeDust[g];
-=======
-				// print all the dust charges to the trace file
-				if ( i % N == 0 ) {
-					for (int k = 0; k < NUM_DUST; k++){
-						//average the charge over last N timesteps
-						// and reset the tempCharge to zero
-						chargeDust[k] = tempCharge[k]/N;
-						tempCharge[k] = 0;
-						dustChargeFile << chargeDust[k];
-						dustChargeFile << ", ";
->>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 					}
 
 					// copy the dust charge to the GPU
