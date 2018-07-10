@@ -213,12 +213,9 @@ __global__ void ionCollisions_105
 	double  khi,phi,mm;
 	double  hx,hy,hz,g,gx,gy,gz,sk,ck,sf,cf;
 	double  pi = 3.1415926536;
-	//int collision_counter = 0;
-	d_collision_counter[0] = 1;
+	*d_collision_counter = 0;
 
-	if (d_collList[threadID] == 0)
-		return;
-	else {
+	if (d_collList[threadID] == 1) {
       //i = d_collList[threadID];
       vx_i = velIon[threadID].x;
       vy_i = velIon[threadID].y;
@@ -269,11 +266,9 @@ __global__ void ionCollisions_105
 		if  (randNum < (t1 /t2)){
 	  		randNum = curand_uniform(&randStates[threadID]);
 			khi = acos(1.0-2.0*randNum); 
-			//icoll_counter[1]++;
 			//icollcounter1++;
 		} else {
 			khi = pi;
-			//icoll_counter[2]++;
 			//icollcounter2++;
 		}
 	  	randNum = curand_uniform(&randStates[threadID]);
@@ -292,7 +287,6 @@ __global__ void ionCollisions_105
 		velIon[threadID].x = vx_i;
 		velIon[threadID].y = vy_i;
 		velIon[threadID].z = vz_i;
-		//++collision_counter;
 		++*d_collision_counter;
       }  
  

@@ -1979,7 +1979,6 @@ int main(int argc, char* argv[])
 			} while(exist);
 			collID[j] = dum;
 			collList[dum] = unset_value;
-			//debugFile << dum << " " << collList[j] << "\n";
 		}
 		
 		//copy collision list to device
@@ -2003,7 +2002,7 @@ int main(int argc, char* argv[])
 		// copy collision counter to the host 
 		d_collision_counter.devToHost();
 
-		debugFile << "Number ion collisions: " << collision_counter << "\n";
+		//debugFile << "Number ion collisions: " << collision_counter << "\n";
 
 		// reset the ion bounds flag to 0
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
