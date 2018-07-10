@@ -444,7 +444,7 @@ int main(int argc, char* argv[])
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
-	const float grid_factor = 0.4;
+	const float grid_factor = 1.0; //was .4
 	float dx = 2*(RAD_CYL*grid_factor)/RESX;
 	float dz = 2*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
@@ -558,7 +558,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
 	<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
-	<< std::setw(14) << HT_CYL_DEBYE      << " % HT_CYL_DEBYE"      << '\n'
+	<< std::setw(14) << HT_CYL 	      << " % HT_CYL	 "      << '\n'
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'

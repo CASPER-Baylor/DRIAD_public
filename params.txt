@@ -11,7 +11,7 @@
  [8]           RAD_DUST   5.20e-6
  [9]           M_FACTOR   100
  [10] CHARGE_SINGLE_ION   -1
- [11]         TIME_STEP   1.0e-7
+ [11]         TIME_STEP   1.0e-8
  [12]     NUM_TIME_STEP   200  
  [13]          GEOMETRY	  1
  [14]     RAD_SIM_DEBYE   3.0
