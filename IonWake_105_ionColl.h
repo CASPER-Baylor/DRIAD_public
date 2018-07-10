@@ -14,7 +14,7 @@
 * Functions:
 *	setIonCrossSection_105()
 *	ionCollisions_105()
-*	zeroCollisionList_105()
+*	setCollisionList_105()
 * Local functions:
 *   collisionIonNeutral
 *	random_maxwell_velocity
@@ -141,7 +141,7 @@ __global__ void ionCollisions_105 (
 		curandState_t* const, int*);
 
 /*
-* Name: zeroCollisionList_105() 
+* Name: setCollisionList_105() 
 *
 * Description:
 *	Zeros the collision list 
@@ -150,7 +150,7 @@ __global__ void ionCollisions_105 (
 *	d_collList: list of ions to undergo collision 
 *
 * Output (void):
-*	d_collList: is set to zero 
+*	d_collList: is set to zero or one 
 *	
 * Assumptions:
 *	The number entries = # of ions is a multiple of the block size
@@ -161,8 +161,8 @@ __global__ void ionCollisions_105 (
 *
 */
 
-__global__ void zeroCollisionList_105
-	(int*); 
+__global__ void setCollisionList_105
+	(int*, int); 
 
 /*
 * Name: collision_ion_neutral_105

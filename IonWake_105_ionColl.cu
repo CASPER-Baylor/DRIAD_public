@@ -14,7 +14,7 @@
 * Functions:
 *	setIonCrossSection_105()
 *	ionCollisions_105()
-*	zeroCollisonList_105()
+*	setCollisonList_105()
 * Local functions:
 *   collisionIonNeutral
 *	random_maxwell_velocity
@@ -207,22 +207,22 @@ __global__ void ionCollisions_105
     // local variables
 	const float ev_to_j 	= 1.602e-19;
 	const float depsilon_i 	= 0.001; //cross section energy increment
-	int			i, index;
+	int			index;
 	float	vx_i, vy_i, vz_i, vx_a, vy_a,vz_a;
 	float	eps_rel, real_coll_freq, t1, t2, dum, randNum;
 	double  khi,phi,mm;
 	double  hx,hy,hz,g,gx,gy,gz,sk,ck,sf,cf;
 	double  pi = 3.1415926536;
 	//int collision_counter = 0;
-	*d_collision_counter = 0;
+	d_collision_counter[0] = 1;
 
-	if (d_collList[threadID] == -1)
+	if (d_collList[threadID] == 0)
 		return;
 	else {
-      i = d_collList[threadID];
-      vx_i = velIon[i].x;
-      vy_i = velIon[i].y;
-      vz_i = velIon[i].z;
+      //i = d_collList[threadID];
+      vx_i = velIon[threadID].x;
+      vy_i = velIon[threadID].y;
+      vz_i = velIon[threadID].z;
       
       // select random maxwellian target: 
 	  vx_a = __fsqrt_rn(-1.0);
@@ -289,9 +289,9 @@ __global__ void ionCollisions_105
 		vx_i += 0.5*(gx*(1.0-ck)+hx*sk);
 		vy_i += 0.5*(gy*(1.0-ck)+hy*sk);  
 		vz_i += 0.5*(gz*(1.0-ck)+hz*sk);
-		velIon[i].x = vx_i;
-		velIon[i].y = vy_i;
-		velIon[i].z = vz_i;
+		velIon[threadID].x = vx_i;
+		velIon[threadID].y = vy_i;
+		velIon[threadID].z = vz_i;
 		//++collision_counter;
 		++*d_collision_counter;
       }  
@@ -301,7 +301,7 @@ __global__ void ionCollisions_105
 }	
 
 /*
-* Name: zerCollisionList_105()
+* Name: setCollisionList_105()
 *
 * Description:
 *	Zeros the collision list
@@ -321,12 +321,12 @@ __global__ void ionCollisions_105
 *
 */
 
-__global__ void zeroCollisionList_105
-	(int* d_collList) {
+__global__ void setCollisionList_105
+	(int* d_collList, int value) {
 
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 
-	d_collList[threadID] = -1;
+	d_collList[threadID] = value;
 }
 
 /*

@@ -441,7 +441,11 @@ int main(int argc, char* argv[])
 	bool exist;
 	//allocate memory for the ion collision list
 	int* collList = (int*)malloc(NUM_ION * sizeof(int));
+	int* collID = (int*)malloc(NUM_ION * sizeof(int));
 	int collision_counter = 0; 
+	int dum = 0; //temp variable for ion collision list
+	int set_value;
+	int unset_value;
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
@@ -1945,42 +1949,37 @@ int main(int argc, char* argv[])
 
 		//Any other external forces acting on ions would be calc'd here
 
-		// Collisions between ions and neutral gas particles
-		// copy ion velocities to host
-		//d_velIon.devToHost();
-		
 		//Determine number of ions to collide
 		randNum = (rand() % 100001)/100000.0;
-		if ( randNum < (N1 - N_COLL) ) {n_coll = N_COLL+1;}
+		if (randNum < (N1 - N_COLL) ) n_coll = N_COLL+1; else n_coll = N_COLL;
 
-		// If number to collide is large number, set all values
-		// in the collision list to one, then select the smaller
-		// number to zero (no collisions). Otherwise, set all values
-		// in collision list to zero, then entries to set to one.
-		//if ( n_coll > NUM_ION/2 ){
-		//	set_value = 1;
-		//	collide_value = 0;
-		//} else {
-		//	set_value = 0;
-		//	collide_value = 1;
-		//}		
+		if (n_coll > NUM_ION/2) {
+			set_value = 1;
+			unset_value = 0;
+			n_coll = NUM_ION - n_coll;
+		} else {
+			set_value = 0;
+			unset_value = 1;
+		}
 
 		//reset collision list
-		//for(int j=0; j < NUM_ION; j++) collList[j] = -1;
-		zeroCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_collList.getDevPtr());
+		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_collList.getDevPtr(), set_value);
 
-		//copy collision list to device
+		//copy collision list to host 
 		d_collList.devToHost();
 
 		// prepare list of ions to collide:
 		for(int j=0; j < n_coll; j++){
+			collID[j] = 0;
 			do{
-			i = (int)(rand() % NUM_ION);
+			dum  = (int)(rand() % NUM_ION);
 			exist = false;
-			for(int q=0;q<=j-1;q++) if (collList[q]==i) exist = true;
+			for(int q=0;q<=j-1;q++) if (collID[q]==dum) exist = true;
 			} while(exist);
-			collList[i] = i;
+			collID[j] = dum;
+			collList[dum] = unset_value;
+			//debugFile << dum << " " << collList[j] << "\n";
 		}
 		
 		//copy collision list to device
@@ -2004,10 +2003,8 @@ int main(int argc, char* argv[])
 		// copy collision counter to the host 
 		d_collision_counter.hostToDev();
 
-	if (debugMode) {
-		// print the number of collisions to the debugging file
 		debugFile << "Number ion collisions: " << collision_counter << "\n";
-	}
+
 		// reset the ion bounds flag to 0
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
 		(d_boundsIon.getDevPtr());
