@@ -14,6 +14,7 @@
 * Functions:
 *	setIonCrossSection_105()
 *	ionCollisions_105()
+*	zeroCollisonList_105()
 * Local functions:
 *   collisionIonNeutral
 *	random_maxwell_velocity
@@ -187,8 +188,8 @@ void setIonCrossSection_105
 */
 
 __global__ void ionCollisions_105 
-	//(float* d_collList,
-	(float* const d_TEMP_ION,
+	(int* d_collList,
+	float* const d_TEMP_ION,
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
 	int* const i_cs_ranges,
@@ -213,11 +214,11 @@ __global__ void ionCollisions_105
 	double  pi = 3.1415926536;
 	int collision_counter = 0;
 
-	//if (d_collList[threadID] == -1)
-	//	return;
-	//else {
-      //i = d_collList[threadID];
-	  i = 1; //temporary variable
+	if (d_collList[threadID] == -1)
+		return;
+	else {
+      i = d_collList[threadID];
+	  //i = 1; //temporary variable
       vx_i = velIon[i].x;
       vy_i = velIon[i].y;
       vz_i = velIon[i].z;
@@ -293,9 +294,38 @@ __global__ void ionCollisions_105
 		++collision_counter;
       }  
  
-    //}
+    }
 
 }	
+
+/*
+* Name: zerCollisionList_105()
+*
+* Description:
+*	Zeros the collision list
+*
+* Inputs:
+*	d_collList: list of ions to undergo collision
+*
+* Output (void):
+*	d_collList: entries reset to -1
+*
+* Assumptions:
+*	Number of entries = NUM_ION = multiple of block size
+*
+* Includes:
+*	cuda_runtime.h
+*	device_)launch_parameters.h
+*
+*/
+
+__global__ void zeroCollisionList_105
+	(int* d_collList) {
+
+	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
+
+	d_collList[threadID] = -1;
+}
 
 /*
 * Name: collisionIonNeutral

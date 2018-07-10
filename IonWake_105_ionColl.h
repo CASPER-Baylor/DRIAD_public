@@ -14,6 +14,7 @@
 * Functions:
 *	setIonCrossSection_105()
 *	ionCollisions_105()
+*	zeroCollisionList_105()
 * Local functions:
 *   collisionIonNeutral
 *	random_maxwell_velocity
@@ -127,6 +128,7 @@ void setIonCrossSection_105
 //		int*,
 //		float* const,
 __global__ void ionCollisions_105 (
+		int*,
 		float* const,
 		float* const,
 		float* const,
@@ -138,7 +140,30 @@ __global__ void ionCollisions_105 (
 		float3*,
 		curandState_t* const);
 
-	
+/*
+* Name: zeroCollisionList_105() 
+*
+* Description:
+*	Zeros the collision list 
+*
+* Inputs:
+*	d_collList: list of ions to undergo collision 
+*
+* Output (void):
+*	d_collList: is set to zero 
+*	
+* Assumptions:
+*	The number entries = # of ions is a multiple of the block size
+*
+* Includes:
+*	cuda_runtime.h
+* 	device_launch_parameters.h
+*
+*/
+
+__global__ void zeroCollisionList_105
+	(int*); 
+
 /*
 * Name: collision_ion_neutral_105
 * Created: 6/15/2018

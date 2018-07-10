@@ -1945,17 +1945,31 @@ int main(int argc, char* argv[])
 		// Collisions between ions and neutral gas particles
 		// copy ion velocities to host
 		//d_velIon.devToHost();
-
-		//copy collision list to device
-		//d_collList.devToHost();
-		
-		//reset collision list
-		for(int j=0; j < NUM_ION; j++) collList[j] = -1;
 		
 		//Determine number of ions to collide
 		randNum = (rand() % 100001)/100000.0;
 		if ( randNum < (N1 - N_COLL) ) {n_coll = N_COLL+1;}
-		
+
+		// If number to collide is large number, set all values
+		// in the collision list to one, then select the smaller
+		// number to zero (no collisions). Otherwise, set all values
+		// in collision list to zero, then entries to set to one.
+		//if ( n_coll > NUM_ION/2 ){
+		//	set_value = 1;
+		//	collide_value = 0;
+		//} else {
+		//	set_value = 0;
+		//	collide_value = 1;
+		//}		
+
+		//reset collision list
+		//for(int j=0; j < NUM_ION; j++) collList[j] = -1;
+		zeroCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_collList.getDevPtr());
+
+		//copy collision list to device
+		d_collList.devToHost();
+
 		// prepare list of ions to collide:
 		for(int j=0; j < n_coll; j++){
 			do{
@@ -1963,17 +1977,15 @@ int main(int argc, char* argv[])
 			exist = false;
 			for(int q=0;q<=j-1;q++) if (collList[q]==i) exist = true;
 			} while(exist);
-			collList[j] = i;
+			collList[i] = i;
 		}
 		
 		//copy collision list to device
 		d_collList.hostToDev();
 		
-		//ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-		//	(d_collList.getDevPtr(),
-		//	d_TEMP_ION.getDevPtr(),
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_TEMP_ION.getDevPtr(),
+			(d_collList.getDevPtr(),
+			d_TEMP_ION.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_I_CS_RANGES.getDevPtr(),
@@ -1989,7 +2001,8 @@ int main(int argc, char* argv[])
 		//d_velIon.hostToDev();
 
 		// reset the ion bounds flag to 0
-		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
+		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
+		(d_boundsIon.getDevPtr());
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
 
