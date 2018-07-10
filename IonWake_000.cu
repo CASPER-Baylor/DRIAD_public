@@ -444,8 +444,9 @@ int main(int argc, char* argv[])
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
-	float dx = 2*(RAD_CYL/1)/RESX;
-	float dz = 2*HT_CYL/RESZ;
+	const float grid_factor = 0.4;
+	float dx = 2*(RAD_CYL*grid_factor)/RESX;
+	float dz = 2*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
 	if (debugMode) {
@@ -484,6 +485,8 @@ int main(int argc, char* argv[])
 		<< "DUST_CONFINEMENT  " << DUST_CONFINEMENT	 << '\n'
 		<< "RESX			  " << RESX				 << '\n'
 		<< "RESZ			  " << RESZ				 << '\n'
+		<< "dx			      " << dx				 << '\n'
+		<< "grid_factor	      " << grid_factor		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
 		<< '\n';
 
@@ -555,7 +558,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
 	<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
-	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
+	<< std::setw(14) << HT_CYL_DEBYE      << " % HT_CYL_DEBYE"      << '\n'
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
@@ -605,7 +608,11 @@ int main(int argc, char* argv[])
 
 	// pointer for dust charges;
 	float* chargeDust = NULL;
+<<<<<<< HEAD
 	float* tempCharge = NULL; 
+=======
+	float* tempCharge = NULL;
+>>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
@@ -637,7 +644,11 @@ int main(int argc, char* argv[])
 		// allocate memory for the dust variables
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
+<<<<<<< HEAD
 		tempCharge = (float*)malloc(memFloatDust); 
+=======
+		tempCharge = (float*)malloc(memFloatDust);
+>>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -744,9 +755,9 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL/1) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2 + dx * x);
 			gridPos[RESX* z + x].y = 0;
-			gridPos[RESX* z + x].z = (-HT_CYL + dz/2 + dz * z);
+			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2 + dz * z);
 		}
 	}
 	
@@ -1527,12 +1538,26 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
+<<<<<<< HEAD
 			//Loop over ion  commands
 			for(int c = 0; c < numCommands; c++){
 				// copy ion positions to the host
 				if (commands[c] == 1) {
 					// print the command number to the status file
 					statusFile << "1 ";
+=======
+		if (i % 1000 == 0) {
+			// copy ion density and potential to host
+			d_ionDensity.devToHost();
+			d_ionPotential.devToHost();
+			
+			// print the data to the ionDensOutFile
+			for(int j = 0; j < NUM_GRID_PTS; j++){
+				ionDensOutFile << ionDensity[j]/1000;
+				ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
+			}
+			ionDensOutFile << "" << std::endl;
+>>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 
 					// copy ion positions to host
 					d_posIon.devToHost();
@@ -1575,6 +1600,7 @@ int main(int argc, char* argv[])
 					// copy dust charge to host
 					d_chargeDust.devToHost();
 
+<<<<<<< HEAD
 					// calculate the ion currents to the dust particles
 					// set initial currents to 0
 					for (int k = 0; k < NUM_DUST; k++){
@@ -1589,6 +1615,13 @@ int main(int argc, char* argv[])
 							ionCurrent[boundsIon[k] - 1] += 1;
 						}
 					}
+=======
+					// add current to dust charge
+					chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+					//save charge for averaging
+					tempCharge[g] += chargeDust[g];
+				}
+>>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
@@ -1596,6 +1629,7 @@ int main(int argc, char* argv[])
 						dustPotential =
 							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
 
+<<<<<<< HEAD
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * TIME_STEP *
 							exp((-1) * CHARGE_ELC * dustPotential /
@@ -1605,6 +1639,17 @@ int main(int argc, char* argv[])
 						chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
 						//save charge for averaging
 						tempCharge[g] += chargeDust[g];
+=======
+				// print all the dust charges to the trace file
+				if ( i % N == 0 ) {
+					for (int k = 0; k < NUM_DUST; k++){
+						//average the charge over last N timesteps
+						// and reset the tempCharge to zero
+						chargeDust[k] = tempCharge[k]/N;
+						tempCharge[k] = 0;
+						dustChargeFile << chargeDust[k];
+						dustChargeFile << ", ";
+>>>>>>> 5794b137b2ca1422a515eb7735fede64be19bc84
 					}
 
 					// copy the dust charge to the GPU
@@ -1825,6 +1870,25 @@ int main(int argc, char* argv[])
 				//polarity switching
 				accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
 					* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
+						// calculate acceleration of the dust
+						//radial acceleration from confinement
+						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
+						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
+						//weaker axial confinement in z
+						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
+						//strong confinement in z for dust near ends of cylinder
+						if(abs(posDust[j].z) > 0.82*HT_CYL) {
+							if(posDust[j].z > 0) {
+							adj_z = posDust[j].z - 0.82*HT_CYL;
+							} else {
+								adj_z = posDust[j].z + 0.82 * HT_CYL;
+							}	
+							accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 
+						}
+						//polarity switching
+						accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
+							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
+
 
 				// forces from ions outside simulation region
 
