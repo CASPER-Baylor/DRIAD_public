@@ -1969,9 +1969,11 @@ int main(int argc, char* argv[])
 		//copy collision list to device
 		d_collList.hostToDev();
 		
+		//ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+		//	(d_collList.getDevPtr(),
+		//	d_TEMP_ION.getDevPtr(),
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_collList.getDevPtr(),
-			d_TEMP_ION.getDevPtr(),
+			(d_TEMP_ION.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_I_CS_RANGES.getDevPtr(),

@@ -123,8 +123,10 @@ void setIonCrossSection_105
 *
 */
 
+//__global__ void ionCollisions_105 (
+//		int*,
+//		float* const,
 __global__ void ionCollisions_105 (
-		int*,
 		float* const,
 		float* const,
 		float* const,

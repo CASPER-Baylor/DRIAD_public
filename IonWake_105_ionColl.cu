@@ -187,11 +187,8 @@ void setIonCrossSection_105
 */
 
 __global__ void ionCollisions_105 
-	//const int NUM_ION,
-	//float* tot_ion_coll_freq,
-	//const float TIME_STEP,
-	(float* d_collList,
-	float* const d_TEMP_ION,
+	//(float* d_collList,
+	(float* const d_TEMP_ION,
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
 	int* const i_cs_ranges,
@@ -201,8 +198,6 @@ __global__ void ionCollisions_105
 	float* sigma_i_tot,
 	float3* velIon,
 	curandState_t* const randStates) {
-	//const bool debugMode,
-	//std::ostream& fileName) {
 			
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;		
@@ -218,10 +213,11 @@ __global__ void ionCollisions_105
 	double  pi = 3.1415926536;
 	int collision_counter = 0;
 
-	if (d_collList[threadID] == -1)
-		return;
-	else {
-      i = d_collList[threadID];
+	//if (d_collList[threadID] == -1)
+	//	return;
+	//else {
+      //i = d_collList[threadID];
+	  i = 1; //temporary variable
       vx_i = velIon[i].x;
       vy_i = velIon[i].y;
       vz_i = velIon[i].z;
@@ -288,7 +284,6 @@ __global__ void ionCollisions_105
 		hx  = mm*cf;
 		hy  = -(gx*gy*cf+g*gz*sf)/mm;
 		hz  = -(gx*gz*cf-g*gy*sf)/mm;
-		//mm  = he_mass/(he_mass+he_mass);
 		vx_i += 0.5*(gx*(1.0-ck)+hx*sk);
 		vy_i += 0.5*(gy*(1.0-ck)+hy*sk);  
 		vz_i += 0.5*(gz*(1.0-ck)+hz*sk);
@@ -298,7 +293,7 @@ __global__ void ionCollisions_105
 		++collision_counter;
       }  
  
-    }
+    //}
 
 }	
 
