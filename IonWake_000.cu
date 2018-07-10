@@ -1361,7 +1361,8 @@ int main(int argc, char* argv[])
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
 	
 	// time step
-	for (int i = 1; i <= NUM_TIME_STEP; i++)   //NUM_TIME_STEP now in terms of dust, originally will be tested with 200
+	for (int i = 1; i <= NUM_TIME_STEP; i++)   
+	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
 	{
 		//statusFile << "In the timestep loop " << std::endl;
 
@@ -1420,9 +1421,9 @@ int main(int argc, char* argv[])
 				roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 			} else if(GEOMETRY == 1) {
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon.getDevPtr(), // <--> (TS1: rand + inject (dust bounds))
-					d_velIon.getDevPtr(), // <--> (TS1: rand + 1/2 kick ion-ion)
-					d_accIonDust.getDevPtr(),// <--> (TS1: from calcIonDustAcc before time step)
+					(d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
+					d_velIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
+					d_accIonDust.getDevPtr(),//<-->TS1: from calcIonDustAcc before time step)
 					d_m.getDevPtr(), // < (TS1 = TS+: select)
 					d_timeStepFactor.getDevPtr(), // < (TS1 = TS+: select)
 					d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
@@ -1570,7 +1571,6 @@ int main(int argc, char* argv[])
 					traceFile << ", " << accIon[ionTraceIndex].y;
 					traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 				
-				//if the command number does not exist throw an error
 				} else if (commands[c] == 4){
 					// copy ion bounds to host
 					d_boundsIon.devToHost();
@@ -1595,7 +1595,7 @@ int main(int argc, char* argv[])
 
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
-						// calculate the dust grain potential wrt plasma potential
+						// calculate the grain potential wrt plasma potential
 						dustPotential =
 							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
 
@@ -1779,7 +1779,7 @@ int main(int argc, char* argv[])
 
 				// forces between the dust grains
 				for(int g = j+1; g < NUM_DUST; g++) {
-        				// calculate the distance between dust grain i
+        			// calculate the distance between dust grain j
 					//and all other grains
 					distdd.x = posDust[j].x - posDust[g].x;
 					distdd.y = posDust[j].y - posDust[g].y;
@@ -1827,28 +1827,9 @@ int main(int argc, char* argv[])
 				}
 				//polarity switching
 				accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
-					* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
-						// calculate acceleration of the dust
-						//radial acceleration from confinement
-						accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
-						accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
-						//weaker axial confinement in z
-						//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
-						//strong confinement in z for dust near ends of cylinder
-						if(abs(posDust[j].z) > 0.82*HT_CYL) {
-							if(posDust[j].z > 0) {
-							adj_z = posDust[j].z - 0.82*HT_CYL;
-							} else {
-								adj_z = posDust[j].z + 0.82 * HT_CYL;
-							}	
-							accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 
-						}
-						//polarity switching
-						accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
-							* (4*floor(FREQ*dust_time) -2*floor(2*FREQ*dust_time)+1.);			
+					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 
-
-				// forces from ions outside simulation region
+				// forces from ions outside simulation region??
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
@@ -1892,29 +1873,29 @@ int main(int argc, char* argv[])
 				d_NUM_DUST.getDevPtr(),
 				d_NUM_ION.getDevPtr());
 
-     			roadBlock_000(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
+     		roadBlock_000(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
 		}
 	} //end of loop through commands
 
 
-	if (i % 10  == 0) {                      //N will need to be related to frequency
-                // copy ion density and potential to host
-                d_ionDensity.devToHost();
-                d_ionPotential.devToHost();
+	if (i % 10  == 0) { //N will need to be related to frequency
+        // copy ion density and potential to host
+        d_ionDensity.devToHost();
+        d_ionPotential.devToHost();
 
-                // print the data to the ionDensOutFile
-                for(int j = 0; j < NUM_GRID_PTS; j++){
-                            ionDensOutFile << ionDensity[j]/1000;
-                            ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
+        // print the data to the ionDensOutFile
+        for(int j = 0; j < NUM_GRID_PTS; j++){
+            ionDensOutFile << ionDensity[j]/1000;
+            ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
 		}
-                ionDensOutFile << "" << std::endl;
+        ionDensOutFile << "" << std::endl;
 
-                //reset the potential and density to zero
-                zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
+        //reset the potential and density to zero
+        zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
 			(d_ionPotential.getDevPtr(),
-               	         d_ionDensity.getDevPtr());
+       	         d_ionDensity.getDevPtr());
 
-                roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);    
+        roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);    
 	 }
 
 

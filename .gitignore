@@ -1,3 +1,4 @@
 in
 build
 *.swp
+*.o
