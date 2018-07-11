@@ -294,7 +294,7 @@ int main(int argc, char* argv[])
 	const float RAD_DUST = params[8];
 	const float M_FACTOR = params[9];
 	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
-	const float TIME_STEP = params[11];
+	const float ION_TIME_STEP = params[11];
 	const int   NUM_TIME_STEP = params[12];
 	const int  GEOMETRY = params[13]; 
 	const float RAD_SIM_DEBYE = params[14];
@@ -348,7 +348,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM_SQRD = RAD_SIM * RAD_SIM;
 
 	// half of a time step (s)
-	const float HALF_TIME_STEP = TIME_STEP / 2;
+	const float HALF_TIME_STEP = ION_TIME_STEP / 2;
 
 	// dust radius squared (m^2)
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
@@ -441,7 +441,7 @@ int main(int argc, char* argv[])
 		&totIonCollFreq, debugMode, debugSpecificFile);
 	
 	//Number of ions to collide each time step.  Adjust for non-integer value.
-	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * TIME_STEP));
+	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * ION_TIME_STEP));
 	const int N_COLL = (int)(N1);
 	int n_coll = 0;
 	bool exist;
@@ -462,7 +462,7 @@ int main(int argc, char* argv[])
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
-	float dust_dt = 1e-4; //N * 500 * TIME_STEP;
+	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
 	float ionTime = 0;
@@ -495,7 +495,7 @@ int main(int argc, char* argv[])
 		<< "RAD_DUST          " << RAD_DUST          << '\n'
 		<< "M_FACTOR		  " << M_FACTOR 		 << '\n'
 		<< "CHARGE_SINGLE_ION " << CHARGE_SINGLE_ION << '\n'
-		<< "TIME_STEP         " << TIME_STEP         << '\n'
+		<< "ION_TIME_STEP     " << ION_TIME_STEP     << '\n'
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
 		<< "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
@@ -587,7 +587,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RAD_DUST          << " % RAD_DUST"          << '\n'
 	<< std::setw(14) << M_FACTOR          << " % M_FACTOR"          << '\n'
 	<< std::setw(14) << CHARGE_SINGLE_ION << " % CHARGE_SINGLE_ION" << '\n'
-	<< std::setw(14) << TIME_STEP         << " % TIME_STEP"         << '\n'
+	<< std::setw(14) << ION_TIME_STEP     << " % ION_TIME_STEP"     << '\n'
 	<< std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
 	<< std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
@@ -1150,7 +1150,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_P23Z(&P23Z, 1);
 	constCUDAvar<float> d_P05Z(&P05Z, 1);
 	constCUDAvar<float> d_E_FIELD(&E_FIELD, 1);
-	constCUDAvar<float> d_TIME_STEP(&TIME_STEP, 1);
+	constCUDAvar<float> d_ION_TIME_STEP(&ION_TIME_STEP, 1);
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
@@ -1448,7 +1448,7 @@ int main(int argc, char* argv[])
 				d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
 				d_minDistDust.getDevPtr(), // <-- (TS1: good)
 				d_RAD_DUST.getDevPtr(),
-				d_TIME_STEP.getDevPtr(),
+				d_ION_TIME_STEP.getDevPtr(),
 				d_MAX_DEPTH.getDevPtr(),
 				d_M_FACTOR.getDevPtr(), 
 				d_NUM_DUST.getDevPtr(),
@@ -1476,7 +1476,7 @@ int main(int argc, char* argv[])
 					d_m.getDevPtr(), // <
 					d_timeStepFactor.getDevPtr(), // <
 					d_boundsIon.getDevPtr(), // <-->
-					d_TIME_STEP.getDevPtr(), 
+					d_ION_TIME_STEP.getDevPtr(), 
 					GEOMETRY,
 					d_RAD_SIM_SQRD.getDevPtr(),
 					NULL,
@@ -1497,7 +1497,7 @@ int main(int argc, char* argv[])
 					d_m.getDevPtr(), // < (TS1 = TS+: select)
 					d_timeStepFactor.getDevPtr(), // < (TS1 = TS+: select)
 					d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
-					d_TIME_STEP.getDevPtr(),
+					d_ION_TIME_STEP.getDevPtr(),
 					GEOMETRY,
 					d_RAD_CYL_SQRD.getDevPtr(),
 					d_HT_CYL.getDevPtr(),
@@ -1515,10 +1515,10 @@ int main(int argc, char* argv[])
 			//polarity switching of electric field
 			if (MOVE_DUST  == 1) {
 				// Need to track dust_time + ion_time
-				ionTime = dust_time + (j)* TIME_STEP;
+				ionTime = dust_time + (j)* ION_TIME_STEP;
 				}
 			else {
-				ionTime = j * TIME_STEP;
+				ionTime = j * ION_TIME_STEP;
 			}
         		xac = int(floor(2*FREQ*ionTime)) % 2;
 			//xac = 0;
@@ -1629,9 +1629,9 @@ int main(int argc, char* argv[])
 				//simulation region and external electric field
 			  	if (MOVE_DUST ==1) {
 					// Need to track dust_time + ion_time
-					ionTime = dust_time + j * TIME_STEP;
+					ionTime = dust_time + j * ION_TIME_STEP;
 				} else {
-					ionTime = j * TIME_STEP;
+					ionTime = j * ION_TIME_STEP;
 				}
 				xac = int(floor(2*FREQ*ionTime)) %2;
 				if (xac ==0) {
@@ -1728,7 +1728,7 @@ int main(int argc, char* argv[])
 							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
 
 						// calculate the electron current to the dust
-						elcCurrent = ELC_CURRENT_0 * TIME_STEP *
+						elcCurrent = ELC_CURRENT_0 * ION_TIME_STEP *
 							exp((-1) * CHARGE_ELC * dustPotential /
 							(BOLTZMANN * TEMP_ELC));
 	
@@ -1819,7 +1819,7 @@ int main(int argc, char* argv[])
 			kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
 				(d_velIon.getDevPtr(), // <-->
 				d_accIon.getDevPtr(), // <-->
-				d_TIME_STEP.getDevPtr()); //lsm 1.23.18
+				d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
 	
 			roadBlock_000( statusFile, __LINE__, __FILE__, "kick_100", false);
 	
