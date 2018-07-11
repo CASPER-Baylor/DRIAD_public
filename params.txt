@@ -31,5 +31,6 @@
  [28]	           FREQ	  500
  [29]	        E_FIELD	  350
  [30]  		RADIAL_CONF	  2.63e6
- [31] N_IONDT_PER_DUSTDT  100
+ [31]  		 AXIAL_CONF	  0.95
+ [32] N_IONDT_PER_DUSTDT  100
 

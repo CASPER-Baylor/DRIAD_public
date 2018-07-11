@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 32;
+	const int NUM_USER_PARAMS = 33;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -314,7 +314,8 @@ int main(int argc, char* argv[])
 	const float FREQ = params[28];
 	const float E_FIELD = params[29];
 	const float RADIAL_CONF = params[30];
-	const int	N_IONDT_PER_DUSTDT = params[31];
+	const float AXIAL_CONF = params[31];
+	const int	N_IONDT_PER_DUSTDT = params[32];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -459,7 +460,7 @@ int main(int argc, char* argv[])
 	const float BETA = 1.44 * 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
-	//float strongConfine = .95 * HT_CYL; // used to determine if there is strong confinement -- MOVE TO PARAMS.TXT?
+	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
@@ -513,7 +514,8 @@ int main(int argc, char* argv[])
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
 		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
-		<< "N_IONDT_PER_DUST_DT" << N_IONDT_PER_DUST_DT << '\n'
+		<< "AXIAL_CONF		  "	<< AXIAL_CONF		 << '\n'
+		<< "N_IONDT_PER_DUSTDT" << N_IONDT_PER_DUSTDT << '\n'
 		<< "RESX			  " << RESX				 << '\n'
 		<< "RESZ			  " << RESZ				 << '\n'
 		<< "dx			      " << dx				 << '\n'
@@ -609,6 +611,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
+	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
@@ -1954,15 +1957,12 @@ int main(int argc, char* argv[])
 				accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
 				accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
 				
-				//weaker axial confinement in z
-				//accDust[j].z += OMEGA2 /250 * chargeDust[j] * posDust[j].z;			
-
-				//strong confinement in z for dust near ends of cylinder	
-				if(abs(posDust[j].z) > 0.82*HT_CYL) {
+				//axial confinement in z for dust near ends of cylinder	
+				if(abs(posDust[j].z) > axialConfine) {
 					if(posDust[j].z > 0) {
-						adj_z = posDust[j].z - 0.82*HT_CYL;
+						adj_z = posDust[j].z - axialConfine;
 					} else {
-						adj_z = posDust[j].z + 0.82 * HT_CYL;
+						adj_z = posDust[j].z + axialConfine;
 					}	
 						accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 						}
 				
