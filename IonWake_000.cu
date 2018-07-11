@@ -411,6 +411,7 @@ int main(int argc, char* argv[])
 
 	// sound speed of the plasma (m/s)
 	const float SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
+	const float ION_SPEED = sqrt(BOLTZMANN * TEMP_ION / MASS_SINGLE_ION);
 
 	// the drift velocity of the ions
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;
@@ -1040,11 +1041,11 @@ int main(int argc, char* argv[])
 
 		// give the ion an initial random velocity
 		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].x = SOUND_SPEED * randNum;
+		velIon[i].x = ION_SPEED * randNum;
 		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].y = SOUND_SPEED * randNum;
+		velIon[i].y = ION_SPEED * randNum;
 		randNum = ((rand() % (number*2)) / (float)number) + 2*MACH;
-		velIon[i].z = - SOUND_SPEED * randNum;
+		velIon[i].z = - ION_SPEED * randNum;
 
 		// set the initial acceleration to 0
 		accIon[i].x = 0;
