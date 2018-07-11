@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 33;
+	const int NUM_USER_PARAMS = 34;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -316,6 +316,7 @@ int main(int argc, char* argv[])
 	const float RADIAL_CONF = params[30];
 	const float AXIAL_CONF = params[31];
 	const int	N_IONDT_PER_DUSTDT = params[32];
+	const float GRID_FACTOR = params[33];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -476,7 +477,7 @@ int main(int argc, char* argv[])
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
-	const float grid_factor = 1.0; //was .4
+	const float grid_factor = GRID_FACTOR; 
 	float dx = 2*(RAD_CYL*grid_factor)/RESX;
 	float dz = 2*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
@@ -519,7 +520,7 @@ int main(int argc, char* argv[])
 		<< "RESX			  " << RESX				 << '\n'
 		<< "RESZ			  " << RESZ				 << '\n'
 		<< "dx			      " << dx				 << '\n'
-		<< "grid_factor	      " << grid_factor		 << '\n'
+		<< "GRID_FACTOR	      " << GRID_FACTOR		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
 		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
