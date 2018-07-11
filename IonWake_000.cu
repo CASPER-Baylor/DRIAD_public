@@ -147,7 +147,7 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_dust-charge.txt";
 	std::ofstream dustChargeFile(fileName.c_str());
 
-	// open an output file for tracing dust positions throughout the simulation
+	// open an output file for tracing dust positions during the simulation
 	fileName = dataDirName + runName + "_dust-pos-trace.txt";
 	std::ofstream dustTraceFile(fileName.c_str());
 
@@ -419,6 +419,36 @@ int main(int argc, char* argv[])
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
+
+	// Set collision cross sections for ion and neutral gas
+	int gasType = 1; // 1 = Neon, 2 = Argon
+	const int I_CS_RANGES = 1000000;
+	float totIonCollFreq = 0;
+	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
+	
+	// allocate memory for the collision cross sections
+	typedef float i_cross_section [I_CS_RANGES+1];
+	i_cross_section sigma_i1;
+	i_cross_section sigma_i2;
+	i_cross_section sigma_i_tot;
+
+	//determines a constant total collision frequency
+	setIonCrossSection_105( gasType, I_CS_RANGES, NUM_DEN_GAS,
+		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
+		&totIonCollFreq, debugMode, debugSpecificFile);
+	
+	//Number of ions to collide each time step.  Adjust for non-integer value.
+	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * TIME_STEP));
+	const int N_COLL = (int)(N1);
+	int n_coll = 0;
+	bool exist;
+	//allocate memory for the ion collision list
+	int* collList = (int*)malloc(NUM_ION * sizeof(int));
+	int* collID = (int*)malloc(NUM_ION * sizeof(int));
+	int collision_counter = 0; 
+	int dum = 0; //temp variable for ion collision list
+	int set_value;
+	int unset_value;
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
@@ -428,7 +458,7 @@ int main(int argc, char* argv[])
 	const float BETA = 1.44 * 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
-	float strongConfine = .95 * HT_CYL; // used to determine if there is strong confinement -- MOVE TO PARAMS.TXT?
+	//float strongConfine = .95 * HT_CYL; // used to determine if there is strong confinement -- MOVE TO PARAMS.TXT?
 	float dust_dt = 1e-4; //N * 500 * TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
@@ -488,6 +518,8 @@ int main(int argc, char* argv[])
 		<< "dx			      " << dx				 << '\n'
 		<< "grid_factor	      " << grid_factor		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
+		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
+		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -564,6 +596,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
 	<< std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
+	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
 	<< std::setw(14) << P10X              << " % P10X"              << '\n'
 	<< std::setw(14) << P12X              << " % P12X"              << '\n'
 	<< std::setw(14) << P14X              << " % P14X"              << '\n'
@@ -919,6 +952,9 @@ int main(int argc, char* argv[])
 	// holds the distance of each ion from the center of the simulation sphere
 	float dist;
 	
+	// set direction of the axial electric field
+	int E_direction;
+
 	// allocate variables used in dust-dust forces
 	float3 distdd;
 	float distSquared;
@@ -1108,6 +1144,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_P03Z(&P03Z, 1);
 	constCUDAvar<float> d_P23Z(&P23Z, 1);
 	constCUDAvar<float> d_P05Z(&P05Z, 1);
+	constCUDAvar<float> d_E_FIELD(&E_FIELD, 1);
 	constCUDAvar<float> d_TIME_STEP(&TIME_STEP, 1);
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
@@ -1125,6 +1162,8 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_MASS_SINGLE_ION(&MASS_SINGLE_ION, 1);
 	constCUDAvar<float> d_BOLTZMANN(&BOLTZMANN, 1);
 	constCUDAvar<int> d_MAX_DEPTH(&MAX_DEPTH, 1);
+	constCUDAvar<int> d_I_CS_RANGES(&I_CS_RANGES, 1);
+	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
 
 	// create device pointers
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1145,10 +1184,17 @@ int main(int argc, char* argv[])
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
+	CUDAvar<float> d_SIGMA_I1(sigma_i1, I_CS_RANGES+1);
+	CUDAvar<float> d_SIGMA_I2(sigma_i2, I_CS_RANGES+1);
+	CUDAvar<float> d_SIGMA_I_TOT(sigma_i_tot, I_CS_RANGES+1);
+	CUDAvar<int> d_collList(collList, NUM_ION);
+	CUDAvar<int> d_collision_counter(&collision_counter, 1);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	// Copy over values
 	d_boundsIon.hostToDev();
+	d_m.hostToDev();
+	d_timeStepFactor.hostToDev();
 	d_QCOM.hostToDev();
 	d_VCOM.hostToDev();
 	d_GCOM.hostToDev();
@@ -1158,10 +1204,16 @@ int main(int argc, char* argv[])
 	d_accIon.hostToDev();
 	d_accIonDust.hostToDev();
 	d_posDust.hostToDev();
-	d_m.hostToDev();
-	d_timeStepFactor.hostToDev();
 	d_minDistDust.hostToDev();
+	d_accDustIon.hostToDev();
+	d_accDust.hostToDev();
 	d_gridPos.hostToDev();
+	d_ionPotential.hostToDev();
+	d_ionDensity.hostToDev();
+	d_SIGMA_I1.hostToDev();
+	d_SIGMA_I2.hostToDev();
+	d_SIGMA_I_TOT.hostToDev();
+	d_collision_counter.hostToDev();
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
@@ -1319,7 +1371,14 @@ int main(int argc, char* argv[])
 
 		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 	} else if(GEOMETRY == 1) {
-		// calculate the forces between all ions
+		// calculate the forces from ions outside simulation region
+		// and external electric field 
+		if (xac == 0) {
+			E_direction = -1;
+		}
+		else
+			E_direction = 1;
+
 		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_accIon.getDevPtr(), // <-->
 			d_posIon.getDevPtr(), // <--
@@ -1331,7 +1390,9 @@ int main(int argc, char* argv[])
 			d_P21Z.getDevPtr(),
 			d_P03Z.getDevPtr(),
 			d_P23Z.getDevPtr(),
-			d_P05Z.getDevPtr());
+			d_P05Z.getDevPtr(),
+			d_E_FIELD.getDevPtr(),
+			E_direction);
 
 		roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 	}
@@ -1360,7 +1421,10 @@ int main(int argc, char* argv[])
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
 	
-	// time step
+	// *************************************************//
+	// ***** time step loop officially begins here *****//
+	// *************************************************//
+
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
 	{
@@ -1368,6 +1432,7 @@ int main(int argc, char* argv[])
 
 		// print the time step number to the status file
 		statusFile << i << ": "<< std::endl;
+
 		//Start of ion loop
 		for (int j = 1; j <= 100; j++){
 			//statusFile << i << "--"  <<  j << ": " ; 
@@ -1443,7 +1508,6 @@ int main(int argc, char* argv[])
 			}
 
 			//polarity switching of electric field
-			//IF/ELSE STATEMENT MAY BE BROKEN
 			if (MOVE_DUST  == 1) {
 				// Need to track dust_time + ion_time
 				ionTime = dust_time + (j)* TIME_STEP;
@@ -1651,7 +1715,20 @@ int main(int argc, char* argv[])
 	
 				roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 			} else if(GEOMETRY == 1) {
-				// calculate the forces between all ions
+				// calculate the forces between all ions outside
+				//simulation region and external electric field
+			  	if (MOVE_DUST ==1) {
+					// Need to track dust_time + ion_time
+					ionTime = dust_time + j * TIME_STEP;
+				} else {
+					ionTime = j * TIME_STEP;
+				}
+				xac = int(floor(2*FREQ*ionTime)) %2;
+				if (xac ==0) {
+					E_direction = -1;
+				} else {
+					E_direction = 1;
+				}
 				calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
 					(d_accIon.getDevPtr(), // <-->
 					d_posIon.getDevPtr(), // <--
@@ -1663,12 +1740,72 @@ int main(int argc, char* argv[])
 					d_P21Z.getDevPtr(),
 					d_P03Z.getDevPtr(),
 					d_P23Z.getDevPtr(),
-					d_P05Z.getDevPtr());
+					d_P05Z.getDevPtr(),
+					d_E_FIELD.getDevPtr(),
+					E_direction);
 
 				roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 			}
 
-			//Any other external forces acting on ions would be calc'd here
+		//Any other external forces acting on ions would be calc'd here
+
+		//Determine number of ions to collide
+		randNum = (rand() % 100001)/100000.0;
+		if (randNum < (N1 - N_COLL) ) n_coll = N_COLL+1; else n_coll = N_COLL;
+
+		if (n_coll > NUM_ION/2) {
+			set_value = 1;
+			unset_value = 0;
+			n_coll = NUM_ION - n_coll;
+		} else {
+			set_value = 0;
+			unset_value = 1;
+		}
+
+		//reset collision list
+		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_collList.getDevPtr(), set_value);
+
+		//copy collision list to host 
+		d_collList.devToHost();
+
+		// prepare list of ions to collide:
+		for(int j=0; j < n_coll; j++){
+			collID[j] = 0;
+			do{
+			dum  = (int)(rand() % NUM_ION);
+			exist = false;
+			for(int q=0;q<=j-1;q++) if (collID[q]==dum) exist = true;
+			} while(exist);
+			collID[j] = dum;
+			collList[dum] = unset_value;
+		}
+		
+		//copy collision list to device
+		d_collList.hostToDev();
+		
+		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
+			(d_collList.getDevPtr(),
+			d_TEMP_ION.getDevPtr(),
+			d_MASS_SINGLE_ION.getDevPtr(),
+			d_BOLTZMANN.getDevPtr(),
+			d_I_CS_RANGES.getDevPtr(),
+			d_TOT_ION_COLL_FREQ.getDevPtr(),
+			d_SIGMA_I1.getDevPtr(),
+			d_SIGMA_I2.getDevPtr(),
+			d_SIGMA_I_TOT.getDevPtr(),
+			d_velIon.getDevPtr(),
+			randStates.getDevPtr(), 
+			d_collision_counter.getDevPtr());
+
+		roadBlock_000(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
+		// copy collision counter to the host 
+		//d_collision_counter.devToHost();
+		//debugFile << "Number ion collisions: " << collision_counter << "\n";
+
+	 //} ?????
+
+
 			// reset the ion bounds flag to 0
 			resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
 	
@@ -1897,12 +2034,13 @@ int main(int argc, char* argv[])
 			(d_ionPotential.getDevPtr(),
        	         d_ionDensity.getDevPtr());
 
-        roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);    
+		roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", false);
+
 	 }
 
 
 	statusFile << "|" << std::endl;
-	} // end time step
+	} // ***** end time step loop **** //
 
 	if (debugMode) {
 		// print the index of the traced ion to the debugging file
@@ -2067,8 +2205,11 @@ int main(int argc, char* argv[])
 	d_P03Z.compare();
 	d_P23Z.compare();
 	d_P05Z.compare();
+	d_E_FIELD.compare();
 	d_Q_DIV_M.compare();
 	d_MAX_DEPTH.compare();
+	d_I_CS_RANGES.compare();
+	d_TOT_ION_COLL_FREQ.compare();
 
 	/**********************
 	free memory
@@ -2087,6 +2228,7 @@ int main(int argc, char* argv[])
 	free(m);
 	free(timeStepFactor);
 	free(minDistDust);
+	free(gridPos);
 	free(ionPotential);
 	free(ionDensity);
 	delete[] ionCurrent;

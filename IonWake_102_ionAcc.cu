@@ -387,7 +387,9 @@ __global__ void calcExtrnElcAccCyl_102
 	float* d_p21z,
 	float* d_p03z, 
 	float* d_p23z,
-	float* d_p05z) {
+	float* d_p05z,
+	float* d_Esheath,
+	int E_dir) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -404,7 +406,7 @@ __global__ void calcExtrnElcAccCyl_102
 
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
-	// it divided by rad.
+	// is divided by rad.
 	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
 
 	// calculate vertical component of the acceleration
@@ -420,6 +422,9 @@ __global__ void calcExtrnElcAccCyl_102
 	d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
 	d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
 	d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
+
+	// add acceleration of ions by external electric field
+	d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_Esheath;
 }
 
 /*
