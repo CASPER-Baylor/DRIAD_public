@@ -313,7 +313,7 @@ int main(int argc, char* argv[])
 	const float PRESSURE = params[27];
 	const float FREQ = params[28];
 	const float E_FIELD = params[29];
-	const float DUST_CONFINEMENT = params[30];
+	const float RADIAL_CONF = params[30];
 	const int	N_IONDT_PER_DUSTDT = params[31];
 
 	// free memory allocated for user parameters
@@ -454,7 +454,7 @@ int main(int argc, char* argv[])
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
 	//const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
-	const float OMEGA2 = DUST_CONFINEMENT / MASS_DUST;
+	const float OMEGA2 = RADIAL_CONF / MASS_DUST;
 	// Damping factor for dust
 	const float BETA = 1.44 * 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
@@ -512,7 +512,7 @@ int main(int argc, char* argv[])
 		<< "PRESSURE          " << PRESSURE          << '\n'
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
-		<< "DUST_CONFINEMENT  " << DUST_CONFINEMENT	 << '\n'
+		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
 		<< "N_IONDT_PER_DUST_DT" << N_IONDT_PER_DUST_DT << '\n'
 		<< "RESX			  " << RESX				 << '\n'
 		<< "RESZ			  " << RESZ				 << '\n'
@@ -608,7 +608,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
-	<< std::setw(14) << DUST_CONFINEMENT  << " % DUST_CONFINEMENT"  << '\n'
+	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
