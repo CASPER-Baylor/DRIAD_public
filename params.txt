@@ -1,6 +1,4 @@
-
-
-[0]            NUM_ION   10000
+ [0]            NUM_ION   10000
  [1]     DEN_FAR_PLASMA   6e14
  [2]           TEMP_ELC   51060
  [3]           TEMP_ION   290
