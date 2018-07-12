@@ -456,10 +456,9 @@ int main(int argc, char* argv[])
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
-	//const float	OMEGA2 = (2 * PI * 8)* (2 * PI * 8)/chargeDust[1];
 	const float OMEGA2 = RADIAL_CONF / MASS_DUST;
 	// Damping factor for dust
-	const float BETA = 1.44 * 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
+	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
@@ -468,7 +467,13 @@ int main(int argc, char* argv[])
 	float dust_time = 0;
 	float ionTime = 0;
 	float adj_z = 0; //for dust confinement in z
-	//Adjust the dut charge for non-zero plasma potential
+	// for force from ions outside simulation
+	float rad = 0; 
+	float zsq = 0;
+	float radAcc = 0;
+	float vertAcc = 0;
+	float q_div_m = 0;
+	//Adjust the dust charge for non-zero plasma potential
 	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_zsq = 0;
 	int num = 1000; //Random number for Brownian kick
@@ -1517,7 +1522,7 @@ int main(int argc, char* argv[])
 			// Need to track dust_time + ion_time
 			ionTime = dust_time + (j)* ION_TIME_STEP;
         	xac = int(floor(2*FREQ*ionTime)) % 2;
-			traceFile << ionTime << ", " << xac << ", " << "\n";
+			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
 			// inject ions on the boundary of the simulation
 			if(GEOMETRY == 0) {
@@ -1961,8 +1966,22 @@ int main(int argc, char* argv[])
 				accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
 					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 
-				// forces from ions outside simulation region??
+				// forces from ions outside simulation region
+				rad = sqrt(posDust[j].x * posDust[j].x +
+							posDust[j].y * posDust[j].y);
+				zsq = posDust[j].z * posDust[j].z;
 
+				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+				vertAcc = P01Z * posDust[j].z +
+						  P21Z * rad * rad * posDust[j].z +
+						  P03Z * posDust[j].z * zsq +
+						  P23Z * rad * rad * posDust[j].z * zsq +
+						  P05Z * posDust[j].z * zsq;
+				q_div_m = chargeDust[j] / MASS_DUST;
+				accDust[j].x += posDust[j].x * radAcc * q_div_m;
+				accDust[j].y += posDust[j].y * radAcc * q_div_m;
+				accDust[j].z += vertAcc * q_div_m;
+			
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
 				accDust[j].y -= BETA*velDust[j].y;
