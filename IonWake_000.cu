@@ -1514,16 +1514,10 @@ int main(int argc, char* argv[])
 			}
 
 			//polarity switching of electric field
-			if (MOVE_DUST  == 1) {
-				// Need to track dust_time + ion_time
-				ionTime = dust_time + (j)* ION_TIME_STEP;
-				}
-			else {
-				ionTime = j * ION_TIME_STEP;
-			}
-        		xac = int(floor(2*FREQ*ionTime)) % 2;
-			//xac = 0;
-			//traceFile << ionTime << ", " << xac << ", ";
+			// Need to track dust_time + ion_time
+			ionTime = dust_time + (j)* ION_TIME_STEP;
+        	xac = int(floor(2*FREQ*ionTime)) % 2;
+			traceFile << ionTime << ", " << xac << ", " << "\n";
 
 			// inject ions on the boundary of the simulation
 			if(GEOMETRY == 0) {
@@ -1628,13 +1622,6 @@ int main(int argc, char* argv[])
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
-			  	if (MOVE_DUST ==1) {
-					// Need to track dust_time + ion_time
-					ionTime = dust_time + j * ION_TIME_STEP;
-				} else {
-					ionTime = j * ION_TIME_STEP;
-				}
-				xac = int(floor(2*FREQ*ionTime)) %2;
 				if (xac ==0) {
 					E_direction = -1;
 				} else {
@@ -1827,6 +1814,8 @@ int main(int argc, char* argv[])
 		} // ***** end of ion loop *****// 
 
 	// ***** begin dust updates *****//
+
+	if(MOVE_DUST ==0) dust_time = ionTime;
 
 	for (int c = 0; c < numCommands; c++){
 		if (commands[c] == 4) {
