@@ -475,6 +475,7 @@ int main(int argc, char* argv[])
 	float q_div_m = 0;
 	//Adjust the dust charge for non-zero plasma potential
 	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
+	//float adj_q = 0;
 	//float adj_zsq = 0;
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
@@ -1896,9 +1897,9 @@ int main(int argc, char* argv[])
 
 				// acceleration from the ions
 				for(int w = 0; w < blocksPerGridIon; w++) {
-					accDust[j].x += accDustIon[j*NUM_ION + w].x ;
-					accDust[j].y += accDustIon[j*NUM_ION + w].y ;
-					accDust[j].z += accDustIon[j*NUM_ION + w].z ;
+					accDust[j].x += accDustIon[j*NUM_ION + w].x /N_IONDT_PER_DUSTDT;
+					accDust[j].y += accDustIon[j*NUM_ION + w].y /N_IONDT_PER_DUSTDT;
+					accDust[j].z += accDustIon[j*NUM_ION + w].z /N_IONDT_PER_DUSTDT;
 				}
 				//print this acceleration to the trace file
 				//dustTraceFile << accDust[j].x;
@@ -1963,7 +1964,8 @@ int main(int argc, char* argv[])
 						accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z; 						}
 				
 				//polarity switching
-				accDust[j].z -= chargeDust[j] / MASS_DUST * E_FIELD 
+				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				accDust[j].z -= q_div_m * E_FIELD 
 					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 
 				// forces from ions outside simulation region
@@ -1977,10 +1979,9 @@ int main(int argc, char* argv[])
 						  P03Z * posDust[j].z * zsq +
 						  P23Z * rad * rad * posDust[j].z * zsq +
 						  P05Z * posDust[j].z * zsq;
-				q_div_m = chargeDust[j] / MASS_DUST;
-				accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				accDust[j].z += vertAcc * q_div_m;
+				//accDust[j].x += posDust[j].x * radAcc * q_div_m;
+				//accDust[j].y += posDust[j].y * radAcc * q_div_m;
+				//accDust[j].z += vertAcc * q_div_m;
 			
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
@@ -2036,8 +2037,8 @@ int main(int argc, char* argv[])
 
         // print the data to the ionDensOutFile
         for(int j = 0; j < NUM_GRID_PTS; j++){
-            ionDensOutFile << ionDensity[j]/1000;
-            ionDensOutFile << ", " << ionPotential[j]/1000 << std::endl;
+            ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
+            ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT << std::endl;
 		}
         ionDensOutFile << "" << std::endl;
 
@@ -2323,7 +2324,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
         if (cudaStatus != cudaSuccess) {
                 // print an error
                 fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
-                fprintf(stderr, "Syncrhonize threads failed: %s\n", name.c_str());
+                fprintf(stderr, "Synchronize threads failed: %s\n", name.c_str());
                 fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
 
                 // terminate the program
