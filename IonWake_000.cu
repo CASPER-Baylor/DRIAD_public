@@ -1933,7 +1933,7 @@ int main(int argc, char* argv[])
 					//calculate a scalar intermediate
 					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
 						* (chargeDust[g] + adj_q) / (dist*dist*dist);
-						// *(1+dist/DEBYE_I)*exp(-dist/DEBYE_I);
+						 *(1+dist/DEBYE)*exp(-dist/DEBYE);
         
 					// add the acceleration to the current dust grain
 					accDust[j].x += linForce * distdd.x;
