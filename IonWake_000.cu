@@ -1904,9 +1904,9 @@ int main(int argc, char* argv[])
 					tempy += accDustIon[j*NUM_ION + w].y /N_IONDT_PER_DUSTDT;
 					tempz += accDustIon[j*NUM_ION + w].z /N_IONDT_PER_DUSTDT;
 				}
-				accDust[j].x = tempx / N_IONDT_PER_DUSTDT;
-				accDust[j].y = tempy / N_IONDT_PER_DUSTDT;
-				accDust[j].z = tempz / N_IONDT_PER_DUSTDT;
+				accDust[j].x = tempx;
+				accDust[j].y = tempy;
+				accDust[j].z = tempz;
 
 				//print this acceleration to the trace file
 				dustTraceFile << "ion acceleration  ";
@@ -1942,8 +1942,8 @@ int main(int argc, char* argv[])
         
 					//calculate a scalar intermediate
 					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
-						* (chargeDust[g] + adj_q) / (dist*dist*dist)
-						 *(1+dist/DEBYE)*exp(-dist/DEBYE);
+						* (chargeDust[g] + adj_q) / (dist*dist*dist);
+				//		 *(1+dist/DEBYE)*exp(-dist/DEBYE);
         
 					// add the acceleration to the current dust grain
 					//accDust[j].x += linForce * distdd.x;
@@ -1952,6 +1952,8 @@ int main(int argc, char* argv[])
 					tempx += linForce * distdd.x;
 					tempy += linForce * distdd.y;
 					tempz += linForce * distdd.z;
+		dustTraceFile << "charge " << chargeDust[j] + adj_q;
+		dustTraceFile << ", dist " << dist << " accz " << tempz << "\n";
 					// add -acceleration to other dust grain
 					accDust2[g].x -= linForce * distdd.x;
 					accDust2[g].y -= linForce * distdd.y;
