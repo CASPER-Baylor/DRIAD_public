@@ -2037,7 +2037,7 @@ int main(int argc, char* argv[])
 						  P21Z * rad * rad * posDust[j].z +
 						  P03Z * posDust[j].z * zsq +
 						  P23Z * rad * rad * posDust[j].z * zsq +
-						  P05Z * posDust[j].z * zsq;
+						  P05Z * posDust[j].z * zsq * zsq;
 				//accDust[j].x += posDust[j].x * radAcc * q_div_m;
 				//accDust[j].y += posDust[j].y * radAcc * q_div_m;
 				//accDust[j].z += vertAcc * q_div_m;
@@ -2046,7 +2046,9 @@ int main(int argc, char* argv[])
 				tempz += vertAcc * q_div_m;
 				//print this acceleration to the trace file
 				dustTraceFile << "outside ions accel   ";
-				dustTraceFile << tempx;
+				dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
+				dustTraceFile << " vertAcc " << vertAcc;
+				dustTraceFile << ", " << tempx;
 				dustTraceFile << ", " << tempy;
 				dustTraceFile << ", " << tempz << "\n";
 				accDust[j].x += tempx;
