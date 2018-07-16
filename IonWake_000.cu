@@ -1066,9 +1066,9 @@ int main(int argc, char* argv[])
 
 		// set the initial DustIon acceleration to 0
 		for(int d = 0; d < NUM_DUST; d++) {
-		accDustIon[d * NUM_DUST + i].x = 0;
-		accDustIon[d * NUM_DUST + i].y = 0;
-		accDustIon[d * NUM_DUST + i].z = 0;
+		accDustIon[d * NUM_ION + i].x = 0;
+		accDustIon[d * NUM_ION + i].y = 0;
+		accDustIon[d * NUM_ION + i].z = 0;
 		}
 	}
 
