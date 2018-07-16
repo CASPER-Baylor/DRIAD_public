@@ -1909,10 +1909,10 @@ int main(int argc, char* argv[])
 				accDust[j].z = tempz / N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
-				dustTraceFile << "ion acceleration  ";
-				dustTraceFile << accDust[j].x;
-				dustTraceFile << ", " << accDust[j].y;
-				dustTraceFile << ", " << accDust[j].z << "\n";
+				//dustTraceFile << "ion acceleration  ";
+				//dustTraceFile << accDust[j].x;
+				//dustTraceFile << ", " << accDust[j].y;
+				//dustTraceFile << ", " << accDust[j].z << "\n";
 
 				// Calculate dust-dust acceleration 
 				if(j == 0) {
@@ -1966,10 +1966,10 @@ int main(int argc, char* argv[])
 				tempz +=  accDust2[j].z;
 						
 				//print this acceleration to the trace file
-				dustTraceFile << "dust-dust acceleration  ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "dust-dust acceleration  ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
@@ -1998,10 +1998,10 @@ int main(int argc, char* argv[])
 				}
 				
 				//print this acceleration to the trace file
-				dustTraceFile << "dust conf acceleration  ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "dust conf acceleration  ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
@@ -2015,13 +2015,12 @@ int main(int argc, char* argv[])
 				//accDust[j].z -= q_div_m * E_FIELD 
 				//	* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 				tempz -= q_div_m * E_FIELD 
-					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
+					* (4.0*floor(FREQ*dust_time) -
+					2.0 * floor(2.0 *FREQ*dust_time) +1.0 );
 
 				//print this acceleration to the trace file
-				dustTraceFile << "polarity switching  ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "polarity switching  ";
+				//dustTraceFile << tempz << "\n";
 				accDust[j].z += tempz;
 
 				tempx = 0;
@@ -2045,12 +2044,12 @@ int main(int argc, char* argv[])
 				tempy += posDust[j].y * radAcc * q_div_m;
 				tempz += vertAcc * q_div_m;
 				//print this acceleration to the trace file
-				dustTraceFile << "outside ions accel   ";
-				dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
-				dustTraceFile << " vertAcc " << vertAcc;
-				dustTraceFile << ", " << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "outside ions accel   ";
+				//dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
+				//dustTraceFile << " vertAcc " << vertAcc;
+				//dustTraceFile << ", " << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
 				accDust[j].z += tempz;
@@ -2066,10 +2065,10 @@ int main(int argc, char* argv[])
 				tempy -= BETA*velDust[j].y;
 				tempz -= BETA*velDust[j].z;
 				//print this acceleration to the trace file
-				dustTraceFile << "drag force accel     ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "drag force accel     ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
 				accDust[j].z += tempz;
