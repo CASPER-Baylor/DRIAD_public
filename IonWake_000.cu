@@ -560,6 +560,8 @@ int main(int argc, char* argv[])
 		<< "HALF_TIME_STEP    " << HALF_TIME_STEP    << '\n'
 		<< "ION_ION_ACC_MULT  " << ION_ION_ACC_MULT  << '\n'
 		<< "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
+		<< "DUST_ION_ACC_MULT " << DUST_ION_ACC_MULT << '\n'
+		<< "DUST_DUST_ACC_MULT " << DUST_DUST_ACC_MULT << '\n'
 		<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
@@ -1965,8 +1967,8 @@ int main(int argc, char* argv[])
 					tempx += linForce * distdd.x;
 					tempy += linForce * distdd.y;
 					tempz += linForce * distdd.z;
-		//dustTraceFile << "charge " << chargeDust[j];
-		//dustTraceFile << ", dist " << dist << " accz " << tempz << "\n";
+		dustTraceFile << "charge " << chargeDust[j];
+		dustTraceFile << ", dist " << dist << " accz " << tempz << "\n";
 					// add -acceleration to other dust grain
 					accDust2[g].x -= linForce * distdd.x;
 					accDust2[g].y -= linForce * distdd.y;
