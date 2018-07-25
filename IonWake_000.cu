@@ -976,8 +976,6 @@ int main(int argc, char* argv[])
 	// initialize the dust velocities and accelerations 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		dustTraceFile << "OMEGA2 " << OMEGA2 << " q_d " << chargeDust[i];
-		dustTraceFile << " MASS_D " << MASS_DUST << " E_FIELD " << E_FIELD << "\n";
 		velDust[i].x = 0;
 		velDust[i].y = 0;
 		velDust[i].z = 0;
@@ -986,16 +984,6 @@ int main(int argc, char* argv[])
 		accDust[i].z = OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
-
-		dustTraceFile << "Position " << posDust[i].x;
-		dustTraceFile << ", " << posDust[i].y;
-		dustTraceFile << ", " << posDust[i].z << "\n";
-		dustTraceFile << "Velocity " << velDust[i].x;
-		dustTraceFile << ", " << velDust[i].y;
-		dustTraceFile << ", " << velDust[i].z << "\n";
-		dustTraceFile << "Acceleration " << accDust[i].x;
-		dustTraceFile << ", " << accDust[i].y;
-		dustTraceFile << ", " << accDust[i].z << "\n";
 	}
 
 	// loop over all the ions and initialize their velocity, acceleration,
@@ -1459,19 +1447,6 @@ int main(int argc, char* argv[])
 	// ***** time step loop officially begins here *****//
 	// *************************************************//
 
-	for(int j = 0; j < NUM_DUST; j++)
-	{
-		dustTraceFile << "Position " << posDust[j].x;
-		dustTraceFile << ", " << posDust[j].y;
-		dustTraceFile << ", " << posDust[j].z << "\n";
-		dustTraceFile << "Velocity " << velDust[j].x;
-		dustTraceFile << ", " << velDust[j].y;
-		dustTraceFile << ", " << velDust[j].z << "\n";
-		dustTraceFile << "Acceleration " << accDust[j].x;
-		dustTraceFile << ", " << accDust[j].y;
-		dustTraceFile << ", " << accDust[j].z << "\n";
-	}
-
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
 	{
@@ -1907,16 +1882,6 @@ int main(int argc, char* argv[])
 			// loop over dust particles 
 			for (int j = 0; j < NUM_DUST; j++) {
 
-		dustTraceFile << "Position " << posDust[j].x;
-		dustTraceFile << ", " << posDust[j].y;
-		dustTraceFile << ", " << posDust[j].z << "\n";
-		dustTraceFile << "Velocity " << velDust[j].x;
-		dustTraceFile << ", " << velDust[j].y;
-		dustTraceFile << ", " << velDust[j].z << "\n";
-		dustTraceFile << "Accleration " << accDust[j].x;
-		dustTraceFile << ", " << accDust[j].y;
-		dustTraceFile << ", " << accDust[j].z << "\n";
-
 				//kick half a  time step
 				velDust[j].x += accDust[j].x * half_dust_dt;
 				velDust[j].y += accDust[j].y * half_dust_dt;
@@ -1943,12 +1908,6 @@ int main(int argc, char* argv[])
 				tempx = 0; tempy = 0; tempz = 0;
 
 				dustTraceFile << "j " << j << "\n";
-				dustTraceFile << "Position " << posDust[j].x;
-				dustTraceFile << ", " << posDust[j].y;
-				dustTraceFile << ", " << posDust[j].z << "\n";
-				dustTraceFile << "Velocity " << velDust[j].x;
-				dustTraceFile << ", " << velDust[j].y;
-				dustTraceFile << ", " << velDust[j].z << "\n";
 
 				// acceleration from the ions
 				for(int w = 0; w < blocksPerGridIon; w++) {
