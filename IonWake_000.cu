@@ -976,14 +976,26 @@ int main(int argc, char* argv[])
 	// initialize the dust velocities and accelerations 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
+		dustTraceFile << "OMEGA2 " << OMEGA2 << " q_d " << chargeDust[i];
+		dustTraceFile << " MASS_D " << MASS_DUST << " E_FIELD " << E_FIELD << "\n";
 		velDust[i].x = 0;
 		velDust[i].y = 0;
 		velDust[i].z = 0;
-		accDust[i].x -= OMEGA2 * chargeDust[i] * posDust[i].x;
-		accDust[i].y -= OMEGA2 * chargeDust[i] * posDust[i].y;
-		accDust[i].z -= OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
+		accDust[i].x = OMEGA2 * chargeDust[i] * posDust[i].x;
+		accDust[i].y = OMEGA2 * chargeDust[i] * posDust[i].y;
+		accDust[i].z = OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
+
+		dustTraceFile << "Position " << posDust[i].x;
+		dustTraceFile << ", " << posDust[i].y;
+		dustTraceFile << ", " << posDust[i].z << "\n";
+		dustTraceFile << "Velocity " << velDust[i].x;
+		dustTraceFile << ", " << velDust[i].y;
+		dustTraceFile << ", " << velDust[i].z << "\n";
+		dustTraceFile << "Acceleration " << accDust[i].x;
+		dustTraceFile << ", " << accDust[i].y;
+		dustTraceFile << ", " << accDust[i].z << "\n";
 	}
 
 	// loop over all the ions and initialize their velocity, acceleration,
@@ -1065,11 +1077,11 @@ int main(int argc, char* argv[])
 		accIonDust[i].z = 0;
 
 		// set the initial DustIon acceleration to 0
-		for(int d = 0; d < NUM_DUST; d++) {
-		accDustIon[d * NUM_ION + i].x = 0;
-		accDustIon[d * NUM_ION + i].y = 0;
-		accDustIon[d * NUM_ION + i].z = 0;
-		}
+		//for(int d = 0; d < NUM_DUST; d++) {
+		//accDustIon[d * NUM_ION + i].x = 0;
+		//accDustIon[d * NUM_ION + i].y = 0;
+		//accDustIon[d * NUM_ION + i].z = 0;
+		//}
 	}
 
 	if (debugMode) {
@@ -1083,6 +1095,7 @@ int main(int argc, char* argv[])
 		<< "posIon  " 		  << sizeof(*posIon) * NUM_ION << '\n'
 		<< "accIon  " 		  << sizeof(*accIon) * NUM_ION << '\n'
 		<< "accIonDust  " 	  << sizeof(*accIonDust) * NUM_ION << '\n'
+		<< "accDustIon  " 	  << sizeof(*accDustIon) * NUM_ION*NUM_DUST<< '\n'
 		<< "boundsIon  " 	  << sizeof(*boundsIon) * NUM_ION << '\n'
 		<< "m  " 			  << sizeof(*m) * NUM_ION << '\n'
 		<< "timeStepFactor  " << sizeof(*timeStepFactor) * NUM_ION << '\n'
@@ -1236,6 +1249,14 @@ int main(int argc, char* argv[])
 		 d_ionDensity.getDevPtr());
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
+
+	// zero the ionDustAcc
+	zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
+		(d_accDustIon.getDevPtr(),
+		d_NUM_DUST.getDevPtr(),
+		d_NUM_ION.getDevPtr());
+
+   	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", false);
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
@@ -1437,6 +1458,19 @@ int main(int argc, char* argv[])
 	// *************************************************//
 	// ***** time step loop officially begins here *****//
 	// *************************************************//
+
+	for(int j = 0; j < NUM_DUST; j++)
+	{
+		dustTraceFile << "Position " << posDust[j].x;
+		dustTraceFile << ", " << posDust[j].y;
+		dustTraceFile << ", " << posDust[j].z << "\n";
+		dustTraceFile << "Velocity " << velDust[j].x;
+		dustTraceFile << ", " << velDust[j].y;
+		dustTraceFile << ", " << velDust[j].z << "\n";
+		dustTraceFile << "Acceleration " << accDust[j].x;
+		dustTraceFile << ", " << accDust[j].y;
+		dustTraceFile << ", " << accDust[j].z << "\n";
+	}
 
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
@@ -1873,6 +1907,16 @@ int main(int argc, char* argv[])
 			// loop over dust particles 
 			for (int j = 0; j < NUM_DUST; j++) {
 
+		dustTraceFile << "Position " << posDust[j].x;
+		dustTraceFile << ", " << posDust[j].y;
+		dustTraceFile << ", " << posDust[j].z << "\n";
+		dustTraceFile << "Velocity " << velDust[j].x;
+		dustTraceFile << ", " << velDust[j].y;
+		dustTraceFile << ", " << velDust[j].z << "\n";
+		dustTraceFile << "Accleration " << accDust[j].x;
+		dustTraceFile << ", " << accDust[j].y;
+		dustTraceFile << ", " << accDust[j].z << "\n";
+
 				//kick half a  time step
 				velDust[j].x += accDust[j].x * half_dust_dt;
 				velDust[j].y += accDust[j].y * half_dust_dt;
@@ -1898,15 +1942,23 @@ int main(int argc, char* argv[])
 
 				tempx = 0; tempy = 0; tempz = 0;
 
+				dustTraceFile << "j " << j << "\n";
+				dustTraceFile << "Position " << posDust[j].x;
+				dustTraceFile << ", " << posDust[j].y;
+				dustTraceFile << ", " << posDust[j].z << "\n";
+				dustTraceFile << "Velocity " << velDust[j].x;
+				dustTraceFile << ", " << velDust[j].y;
+				dustTraceFile << ", " << velDust[j].z << "\n";
+
 				// acceleration from the ions
 				for(int w = 0; w < blocksPerGridIon; w++) {
-					tempx += accDustIon[j*NUM_ION + w].x /N_IONDT_PER_DUSTDT;
-					tempy += accDustIon[j*NUM_ION + w].y /N_IONDT_PER_DUSTDT;
-					tempz += accDustIon[j*NUM_ION + w].z /N_IONDT_PER_DUSTDT;
+					tempx += accDustIon[j*NUM_ION + w].x;
+					tempy += accDustIon[j*NUM_ION + w].y;
+					tempz += accDustIon[j*NUM_ION + w].z;
 				}
-				accDust[j].x = tempx;
-				accDust[j].y = tempy;
-				accDust[j].z = tempz;
+				accDust[j].x = tempx/N_IONDT_PER_DUSTDT;
+				accDust[j].y = tempy/N_IONDT_PER_DUSTDT;
+				accDust[j].z = tempz/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
 				dustTraceFile << "ion acceleration  ";
@@ -1941,9 +1993,11 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
-						* (chargeDust[g] + adj_q) / (dist*dist*dist);
-				//		 *(1+dist/DEBYE)*exp(-dist/DEBYE);
+					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
+					//	* (chargeDust[g] + adj_q) / (dist*dist*dist);
+					//	 *(1+dist/DEBYE)*exp(-dist/DEBYE);
+					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
+						* (chargeDust[g]) / (dist*dist*dist);
         
 					// add the acceleration to the current dust grain
 					//accDust[j].x += linForce * distdd.x;
@@ -1952,8 +2006,8 @@ int main(int argc, char* argv[])
 					tempx += linForce * distdd.x;
 					tempy += linForce * distdd.y;
 					tempz += linForce * distdd.z;
-		dustTraceFile << "charge " << chargeDust[j] + adj_q;
-		dustTraceFile << ", dist " << dist << " accz " << tempz << "\n";
+		//dustTraceFile << "charge " << chargeDust[j];
+		//dustTraceFile << ", dist " << dist << " accz " << tempz << "\n";
 					// add -acceleration to other dust grain
 					accDust2[g].x -= linForce * distdd.x;
 					accDust2[g].y -= linForce * distdd.y;
@@ -2000,10 +2054,10 @@ int main(int argc, char* argv[])
 				}
 				
 				//print this acceleration to the trace file
-				dustTraceFile << "dust conf acceleration  ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "dust conf acceleration  ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
@@ -2013,17 +2067,18 @@ int main(int argc, char* argv[])
 				tempy = 0;
 				tempz = 0;
 				//polarity switching
-				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				q_div_m = (chargeDust[j] ) / MASS_DUST;
 				//accDust[j].z -= q_div_m * E_FIELD 
 				//	* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 				tempz -= q_div_m * E_FIELD 
 					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
 
 				//print this acceleration to the trace file
-				dustTraceFile << "polarity switching  ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "polarity switching  ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 				accDust[j].z += tempz;
 
 				tempx = 0;
@@ -2047,12 +2102,13 @@ int main(int argc, char* argv[])
 				tempy += posDust[j].y * radAcc * q_div_m;
 				tempz += vertAcc * q_div_m;
 				//print this acceleration to the trace file
-				dustTraceFile << "outside ions accel   ";
-				dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
-				dustTraceFile << " vertAcc " << vertAcc;
-				dustTraceFile << ", " << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "outside ions accel   ";
+				//dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
+				//dustTraceFile << " posDust.z " << posDust[j].z << "\n";
+				//dustTraceFile << " vertAcc " << vertAcc;
+				//dustTraceFile << ",  Acc " << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
 				accDust[j].z += tempz;
@@ -2068,10 +2124,10 @@ int main(int argc, char* argv[])
 				tempy -= BETA*velDust[j].y;
 				tempz -= BETA*velDust[j].z;
 				//print this acceleration to the trace file
-				dustTraceFile << "drag force accel     ";
-				dustTraceFile << tempx;
-				dustTraceFile << ", " << tempy;
-				dustTraceFile << ", " << tempz << "\n";
+				//dustTraceFile << "drag force accel     ";
+				//dustTraceFile << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 				accDust[j].x += tempx;
 				accDust[j].y += tempy;
 				accDust[j].z += tempz;
@@ -2081,11 +2137,20 @@ int main(int argc, char* argv[])
 				tempz = 0;
 				// Add Brownian motion
 				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].x += randNum * SIGMA;
+				//accDust[j].x += randNum * SIGMA;
+				tempx += randNum * SIGMA;
 				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].y += randNum * SIGMA;
+				//accDust[j].y += randNum * SIGMA;
+				tempy += randNum * SIGMA;
 				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].z += randNum * SIGMA;
+				//accDust[j].z += randNum * SIGMA;
+				tempz += randNum * SIGMA;
+				accDust[j].x += tempx;
+				accDust[j].y += tempy;
+				accDust[j].z += tempz;
+				//dustTraceFile << "Brownian  " << tempx;
+				//dustTraceFile << ", " << tempy;
+				//dustTraceFile << ", " << tempz << "\n";
 						
 				//kick half a  time step
 				velDust[j].x += accDust[j].x * half_dust_dt;

@@ -138,8 +138,9 @@ __global__ void sumDustIonAcc_103(
 				sumData[localID].x += sumData[localID + i].x;
 				sumData[localID].y += sumData[localID + i].y;
 				sumData[localID].z += sumData[localID + i].z;
-				__syncthreads();
+			//	__syncthreads();
 			}
+			__syncthreads();
 		}
 	
 		if (localID == 0) {
