@@ -142,15 +142,31 @@ __global__ void sumDustIonAcc_103(
 	
 		__syncthreads();
 	
-		for(int s = blockDim.x / 2; s > 32; s>>=1){
-			if (tid< s) {
-				sumData[tid].x += sumData[tid + s].x;
-				sumData[tid].y += sumData[tid + s].y;
-				sumData[tid].z += sumData[tid + s].z;
-			//	__syncthreads();
+			if (tid< 512) {
+				sumData[tid].x += sumData[tid + 512].x;
+				sumData[tid].y += sumData[tid + 512].y;
+				sumData[tid].z += sumData[tid + 512].z;
 			}
 			__syncthreads();
-		}
+			if (tid< 256) {
+				sumData[tid].x += sumData[tid + 256].x;
+				sumData[tid].y += sumData[tid + 256].y;
+				sumData[tid].z += sumData[tid + 256].z;
+			}
+			__syncthreads();
+			if (tid< 128) {
+				sumData[tid].x += sumData[tid + 128].x;
+				sumData[tid].y += sumData[tid + 128].y;
+				sumData[tid].z += sumData[tid + 128].z;
+			}
+			__syncthreads();
+			if (tid< 64) {
+				sumData[tid].x += sumData[tid + 64].x;
+				sumData[tid].y += sumData[tid + 64].y;
+				sumData[tid].z += sumData[tid + 64].z;
+			}
+			__syncthreads();
+	
 
 		if(tid < 32) {
 			sumData[tid].x += sumData[tid +32].x;
