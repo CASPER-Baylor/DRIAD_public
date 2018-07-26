@@ -94,6 +94,10 @@ __global__ void calcDustIonAcc_103(
 *
 * Description:
 *	Sums the forces on each dust particle due to each ion. 
+*	Each dust particle has force from NUM_ION, where there are
+* 	2*blockDim * X ions.  The first step
+* 	in the sum loads and adds from X blocks. The function
+*	is called with as many blocks as there are NUM_DUST. 
 *
 * Inputs:
 *	d_accDustIon: dust accleration due to each dust-ion pair
@@ -106,8 +110,8 @@ __global__ void calcDustIonAcc_103(
 *		added to the input accDust
 *	
 * Assumptions:
-*	The number of ions is a multiple of the block size
-*	The number of threads is equal to half the number of ions
+*	The number of ions is a multiple of 2 * block size
+*	The number of threads is equal to the number of ions
 *
 * Includes:
 *	cuda_runtime.h
@@ -122,34 +126,77 @@ __global__ void sumDustIonAcc_103(
 
 	extern __shared__ float3 sumData[];
 
-	int localID = threadIdx.x;
-	int globalID = blockIdx.x * blockDim.x * 2 + threadIdx.x; 
+	int  tid= threadIdx.x;
+	int i = blockIdx.x * *d_NUM_ION + threadIdx.x; 
+	int blockSize = blockDim.x;
 	
-	for(int j = 0; j < *d_NUM_DUST; j++) {
+	//for(int j = 0; j < *d_NUM_DUST; j++) {
 
-		sumData[localID].x = d_accDustIon[globalID].x + d_accDustIon[globalID + blockDim.x].x;
-		sumData[localID].y = d_accDustIon[globalID].y + d_accDustIon[globalID + blockDim.x].y;
-		sumData[localID].z = d_accDustIon[globalID].z + d_accDustIon[globalID + blockDim.x].z;
+		// Add data from all of the blocks of ions into first block
+		while( i < (blockIdx.x +1)* *d_NUM_ION) {
+		  sumData[tid].x = d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
+		  sumData[tid].y = d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
+		  sumData[tid].z = d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
+		  i += 2 * blockSize;
+		}
 	
 		__syncthreads();
 	
-		for(int i = blockDim.x / 2; i > 0; i>>=1){
-			if (localID < i) {
-				sumData[localID].x += sumData[localID + i].x;
-				sumData[localID].y += sumData[localID + i].y;
-				sumData[localID].z += sumData[localID + i].z;
-				__syncthreads();
+			if (tid< 512) {
+				sumData[tid].x += sumData[tid + 512].x;
+				sumData[tid].y += sumData[tid + 512].y;
+				sumData[tid].z += sumData[tid + 512].z;
 			}
+			__syncthreads();
+			if (tid< 256) {
+				sumData[tid].x += sumData[tid + 256].x;
+				sumData[tid].y += sumData[tid + 256].y;
+				sumData[tid].z += sumData[tid + 256].z;
+			}
+			__syncthreads();
+			if (tid< 128) {
+				sumData[tid].x += sumData[tid + 128].x;
+				sumData[tid].y += sumData[tid + 128].y;
+				sumData[tid].z += sumData[tid + 128].z;
+			}
+			__syncthreads();
+			if (tid< 64) {
+				sumData[tid].x += sumData[tid + 64].x;
+				sumData[tid].y += sumData[tid + 64].y;
+				sumData[tid].z += sumData[tid + 64].z;
+			}
+			__syncthreads();
+	
+
+		if(tid < 32) {
+			sumData[tid].x += sumData[tid +32].x;
+			sumData[tid].y += sumData[tid +32].y;
+			sumData[tid].z += sumData[tid +32].z;
+			sumData[tid].x += sumData[tid +16].x;
+			sumData[tid].y += sumData[tid +16].y;
+			sumData[tid].z += sumData[tid +16].z;
+			sumData[tid].x += sumData[tid + 8].x;
+			sumData[tid].y += sumData[tid + 8].y;
+			sumData[tid].z += sumData[tid + 8].z;
+			sumData[tid].x += sumData[tid + 4].x;
+			sumData[tid].y += sumData[tid + 4].y;
+			sumData[tid].z += sumData[tid + 4].z;
+			sumData[tid].x += sumData[tid + 2].x;
+			sumData[tid].y += sumData[tid + 2].y;
+			sumData[tid].z += sumData[tid + 2].z;
+			sumData[tid].x += sumData[tid + 1].x;
+			sumData[tid].y += sumData[tid + 1].y;
+			sumData[tid].z += sumData[tid + 1].z;
 		}
 	
-		if (localID == 0) {
-			d_accDustIon[blockIdx.x + j * *d_NUM_ION] = sumData[0];
-			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].y = sumData[0].y;
-			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].z = sumData[0].z;
+		if (tid== 0) {
+			d_accDustIon[blockIdx.x * *d_NUM_ION].x = sumData[0].x;
+			d_accDustIon[blockIdx.x * *d_NUM_ION].y = sumData[0].y;
+			d_accDustIon[blockIdx.x * *d_NUM_ION].z = sumData[0].z;
 		}
 
-		globalID += *d_NUM_ION;
-	}
+		//i = tid + *d_NUM_ION;
+	//}
 }
 
 

@@ -283,7 +283,8 @@ int main(int argc, char* argv[])
 
 	// assign user defined parameters
 	// GEOMETRY: use 0 = Sphere, 1 = Cylinder
-	const int   NUM_ION = static_cast<int>(params[0] / DIM_BLOCK) * DIM_BLOCK;
+	const int   NUM_ION = static_cast<int>(params[0] / (2*DIM_BLOCK)) 
+							* (2 * DIM_BLOCK);
 	const float DEN_FAR_PLASMA = params[1];
 	const float TEMP_ELC = params[2];
 	const float TEMP_ION = params[3];
@@ -477,7 +478,7 @@ int main(int argc, char* argv[])
 	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_q = 0;
 	//float adj_zsq = 0;
-    float tempx, tempy, tempz; // for debugging purposes
+    //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
 	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
@@ -560,6 +561,8 @@ int main(int argc, char* argv[])
 		<< "HALF_TIME_STEP    " << HALF_TIME_STEP    << '\n'
 		<< "ION_ION_ACC_MULT  " << ION_ION_ACC_MULT  << '\n'
 		<< "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
+		<< "DUST_ION_ACC_MULT " << DUST_ION_ACC_MULT << '\n'
+		<< "DUST_DUST_ACC_MULT " << DUST_DUST_ACC_MULT << '\n'
 		<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
@@ -979,9 +982,9 @@ int main(int argc, char* argv[])
 		velDust[i].x = 0;
 		velDust[i].y = 0;
 		velDust[i].z = 0;
-		accDust[i].x -= OMEGA2 * chargeDust[i] * posDust[i].x;
-		accDust[i].y -= OMEGA2 * chargeDust[i] * posDust[i].y;
-		accDust[i].z -= OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
+		accDust[i].x = OMEGA2 * chargeDust[i] * posDust[i].x;
+		accDust[i].y = OMEGA2 * chargeDust[i] * posDust[i].y;
+		accDust[i].z = OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
 	}
@@ -1065,11 +1068,11 @@ int main(int argc, char* argv[])
 		accIonDust[i].z = 0;
 
 		// set the initial DustIon acceleration to 0
-		for(int d = 0; d < NUM_DUST; d++) {
-		accDustIon[d * NUM_DUST + i].x = 0;
-		accDustIon[d * NUM_DUST + i].y = 0;
-		accDustIon[d * NUM_DUST + i].z = 0;
-		}
+		//for(int d = 0; d < NUM_DUST; d++) {
+		//accDustIon[d * NUM_ION + i].x = 0;
+		//accDustIon[d * NUM_ION + i].y = 0;
+		//accDustIon[d * NUM_ION + i].z = 0;
+		//}
 	}
 
 	if (debugMode) {
@@ -1083,6 +1086,7 @@ int main(int argc, char* argv[])
 		<< "posIon  " 		  << sizeof(*posIon) * NUM_ION << '\n'
 		<< "accIon  " 		  << sizeof(*accIon) * NUM_ION << '\n'
 		<< "accIonDust  " 	  << sizeof(*accIonDust) * NUM_ION << '\n'
+		<< "accDustIon  " 	  << sizeof(*accDustIon) * NUM_ION*NUM_DUST<< '\n'
 		<< "boundsIon  " 	  << sizeof(*boundsIon) * NUM_ION << '\n'
 		<< "m  " 			  << sizeof(*m) * NUM_ION << '\n'
 		<< "timeStepFactor  " << sizeof(*timeStepFactor) * NUM_ION << '\n'
@@ -1236,6 +1240,14 @@ int main(int argc, char* argv[])
 		 d_ionDensity.getDevPtr());
 
 	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
+
+	// zero the ionDustAcc
+	zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
+		(d_accDustIon.getDevPtr(),
+		d_NUM_DUST.getDevPtr(),
+		d_NUM_ION.getDevPtr());
+
+   	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", false);
 
 	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
 
@@ -1855,7 +1867,7 @@ int main(int argc, char* argv[])
 			// Print the command number to the status file 
 			statusFile << "5 ";
 					
-			sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 				(d_accDustIon.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
 				d_NUM_ION.getDevPtr()); 
@@ -1891,22 +1903,16 @@ int main(int argc, char* argv[])
 					posDust[j].z += 2*HT_CYL;
 				}
 
+				dustTraceFile << "j " << j << "\n";
+
 				// zero the acceleration
 				accDust[j].x = 0;
 				accDust[j].y = 0;
 				accDust[j].z = 0;
 
-				tempx = 0; tempy = 0; tempz = 0;
-
-				// acceleration from the ions
-				for(int w = 0; w < blocksPerGridIon; w++) {
-					tempx += accDustIon[j*NUM_ION + w].x;
-					tempy += accDustIon[j*NUM_ION + w].y;
-					tempz += accDustIon[j*NUM_ION + w].z;
-				}
-				accDust[j].x = tempx / N_IONDT_PER_DUSTDT;
-				accDust[j].y = tempy / N_IONDT_PER_DUSTDT;
-				accDust[j].z = tempz / N_IONDT_PER_DUSTDT;
+				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+				accDust[j].y = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+				accDust[j].z = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
 				//dustTraceFile << "ion acceleration  ";
@@ -1938,14 +1944,17 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
-						* (chargeDust[g] + adj_q) / (dist*dist*dist)
-						 *(1+dist/DEBYE)*exp(-dist/DEBYE);
+					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
+					//	* (chargeDust[g] + adj_q) / (dist*dist*dist);
+					//	 *(1+dist/DEBYE)*exp(-dist/DEBYE);
+					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
+						* (chargeDust[g]) / (dist*dist*dist);
         
 					// add the acceleration to the current dust grain
 					accDust[j].x += linForce * distdd.x;
 					accDust[j].y += linForce * distdd.y;
 					accDust[j].z += linForce * distdd.z;
+
 					// add -acceleration to other dust grain
 					accDust2[g].x -= linForce * distdd.x;
 					accDust2[g].y -= linForce * distdd.y;
@@ -1956,12 +1965,6 @@ int main(int argc, char* argv[])
 				accDust[j].y +=  accDust2[j].y;
 				accDust[j].z +=  accDust2[j].z;
 						
-				//print this acceleration to the trace file
-				//dustTraceFile << "dust-dust acceleration  ";
-				//dustTraceFile << tempx;
-				//dustTraceFile << ", " << tempy;
-				//dustTraceFile << ", " << tempz << "\n";
-
 				// calculate acceleration of the dust
 				//radial acceleration from confinement
 				accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
@@ -1977,21 +1980,11 @@ int main(int argc, char* argv[])
 					accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z;
 				}
 				
-				//print this acceleration to the trace file
-				//dustTraceFile << "dust conf acceleration  ";
-				//dustTraceFile << tempx;
-				//dustTraceFile << ", " << tempy;
-				//dustTraceFile << ", " << tempz << "\n";
-
-
 				//polarity switching
-				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
 					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
-
-				//print this acceleration to the trace file
-				//dustTraceFile << "polarity switching  ";
-				//dustTraceFile << tempz << "\n";
 
 				// forces from ions outside simulation region
 				rad = sqrt(posDust[j].x * posDust[j].x +
@@ -2007,23 +2000,11 @@ int main(int argc, char* argv[])
 				accDust[j].x += posDust[j].x * radAcc * q_div_m;
 				accDust[j].y += posDust[j].y * radAcc * q_div_m;
 				accDust[j].z += vertAcc * q_div_m;
-				//print this acceleration to the trace file
-				//dustTraceFile << "outside ions accel   ";
-				//dustTraceFile << "rad " << rad << " qdivm " << q_div_m; 
-				//dustTraceFile << " vertAcc " << vertAcc;
-				//dustTraceFile << ", " << tempx;
-				//dustTraceFile << ", " << tempy;
-				//dustTraceFile << ", " << tempz << "\n";
-			
+
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
 				accDust[j].y -= BETA*velDust[j].y;
 				accDust[j].z -= BETA*velDust[j].z;
-				//print this acceleration to the trace file
-				//dustTraceFile << "drag force accel     ";
-				//dustTraceFile << tempx;
-				//dustTraceFile << ", " << tempy;
-				//dustTraceFile << ", " << tempz << "\n";
     
 				// Add Brownian motion
 				randNum = (((rand() % (num*2)) - num) / (float)num);
