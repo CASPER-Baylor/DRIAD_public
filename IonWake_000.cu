@@ -283,7 +283,8 @@ int main(int argc, char* argv[])
 
 	// assign user defined parameters
 	// GEOMETRY: use 0 = Sphere, 1 = Cylinder
-	const int   NUM_ION = static_cast<int>(params[0] / DIM_BLOCK) * DIM_BLOCK;
+	const int   NUM_ION = static_cast<int>(params[0] / (2*DIM_BLOCK)) 
+							* (2 * DIM_BLOCK);
 	const float DEN_FAR_PLASMA = params[1];
 	const float TEMP_ELC = params[2];
 	const float TEMP_ION = params[3];
@@ -1866,7 +1867,8 @@ int main(int argc, char* argv[])
 			// Print the command number to the status file 
 			statusFile << "5 ";
 					
-			sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+			//sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+			sumDustIonAcc_103<<<1, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 				(d_accDustIon.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
 				d_NUM_ION.getDevPtr()); 
@@ -1912,11 +1914,15 @@ int main(int argc, char* argv[])
 				dustTraceFile << "j " << j << "\n";
 
 				// acceleration from the ions
-				for(int w = 0; w < blocksPerGridIon; w++) {
-					tempx += accDustIon[j*NUM_ION + w].x;
-					tempy += accDustIon[j*NUM_ION + w].y;
-					tempz += accDustIon[j*NUM_ION + w].z;
-				}
+				//for(int w = 0; w < blocksPerGridIon; w++) {
+			//		tempx += accDustIon[j*NUM_ION + w].x;
+			//		tempy += accDustIon[j*NUM_ION + w].y;
+			//		tempz += accDustIon[j*NUM_ION + w].z;
+			//	}
+				tempx = accDustIon[j*NUM_ION].x;
+				tempy = accDustIon[j*NUM_ION].y;
+				tempz = accDustIon[j*NUM_ION].z;
+
 				accDust[j].x = tempx/N_IONDT_PER_DUSTDT;
 				accDust[j].y = tempy/N_IONDT_PER_DUSTDT;
 				accDust[j].z = tempz/N_IONDT_PER_DUSTDT;
