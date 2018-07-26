@@ -106,7 +106,7 @@ __global__ void calcDustIonAcc_103(
 *		added to the input accDust
 *	
 * Assumptions:
-*	The number of ions is a multiple of the block size
+*	The number of ions is a multiple of 2 * block size
 *	The number of threads is equal to half the number of ions
 *
 * Includes:
@@ -133,7 +133,7 @@ __global__ void sumDustIonAcc_103(
 	
 		__syncthreads();
 	
-		for(int i = blockDim.x / 2; i > 0; i>>=1){
+		for(int i = blockDim.x / 2; i > 32; i>>=1){
 			if (localID < i) {
 				sumData[localID].x += sumData[localID + i].x;
 				sumData[localID].y += sumData[localID + i].y;
@@ -142,11 +142,32 @@ __global__ void sumDustIonAcc_103(
 			}
 			__syncthreads();
 		}
+
+		if(localID < 32) {
+			sumData[localID].x += sumData[localID+32].x;
+			sumData[localID].y += sumData[localID+32].y;
+			sumData[localID].z += sumData[localID+32].z;
+			sumData[localID].x += sumData[localID+16].x;
+			sumData[localID].y += sumData[localID+16].y;
+			sumData[localID].z += sumData[localID+16].z;
+			sumData[localID].x += sumData[localID+ 8].x;
+			sumData[localID].y += sumData[localID+ 8].y;
+			sumData[localID].z += sumData[localID+ 8].z;
+			sumData[localID].x += sumData[localID+ 4].x;
+			sumData[localID].y += sumData[localID+ 4].y;
+			sumData[localID].z += sumData[localID+ 4].z;
+			sumData[localID].x += sumData[localID+ 2].x;
+			sumData[localID].y += sumData[localID+ 2].y;
+			sumData[localID].z += sumData[localID+ 2].z;
+			sumData[localID].x += sumData[localID+ 1].x;
+			sumData[localID].y += sumData[localID+ 1].y;
+			sumData[localID].z += sumData[localID+ 1].z;
+		}
 	
 		if (localID == 0) {
-			d_accDustIon[blockIdx.x + j * *d_NUM_ION] = sumData[0];
-			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].y = sumData[0].y;
-			//d_accDustIon[blockIdx.x + j * *d_NUM_ION].z = sumData[0].z;
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION].x = sumData[0].x;
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION].y = sumData[0].y;
+			d_accDustIon[blockIdx.x + j * *d_NUM_ION].z = sumData[0].z;
 		}
 
 		globalID += *d_NUM_ION;
