@@ -1868,7 +1868,7 @@ int main(int argc, char* argv[])
 			statusFile << "5 ";
 					
 			//sumDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
-			sumDustIonAcc_103<<<1, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
+			sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
 				(d_accDustIon.getDevPtr(),
 				d_NUM_DUST.getDevPtr(),
 				d_NUM_ION.getDevPtr()); 

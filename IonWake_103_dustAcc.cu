@@ -95,9 +95,9 @@ __global__ void calcDustIonAcc_103(
 * Description:
 *	Sums the forces on each dust particle due to each ion. 
 *	Each dust particle has force from NUM_ION, where there are
-* 	NUM_ION = numBlocks * dimBlock total ions. As the first step
-* 	in the sum loads and adds from multiple blocks, the function
-*	is called with only one block instead of blocksPerGridIon. 
+* 	2*blockDim * X ions.  The first step
+* 	in the sum loads and adds from X blocks. The function
+*	is called with as many blocks as there are NUM_DUST. 
 *
 * Inputs:
 *	d_accDustIon: dust accleration due to each dust-ion pair
@@ -127,15 +127,13 @@ __global__ void sumDustIonAcc_103(
 	extern __shared__ float3 sumData[];
 
 	int  tid= threadIdx.x;
-	//Note: this is overkill since code is called with one block,
-	// so blockIdx.x = 0;
-	int i = blockIdx.x * blockDim.x + threadIdx.x; 
+	int i = blockIdx.x * *d_NUM_ION + threadIdx.x; 
 	int blockSize = blockDim.x;
 	
-	for(int j = 0; j < *d_NUM_DUST; j++) {
+	//for(int j = 0; j < *d_NUM_DUST; j++) {
 
 		// Add data from all of the blocks of ions into first block
-		while( i < (j+1) * *d_NUM_ION) {
+		while( i < (blockIdx.x +1)* *d_NUM_ION) {
 		  sumData[tid].x = d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
 		  sumData[tid].y = d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
 		  sumData[tid].z = d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
@@ -176,13 +174,13 @@ __global__ void sumDustIonAcc_103(
 		}
 	
 		if (tid== 0) {
-			d_accDustIon[j * *d_NUM_ION].x = sumData[0].x;
-			d_accDustIon[j * *d_NUM_ION].y = sumData[0].y;
-			d_accDustIon[j * *d_NUM_ION].z = sumData[0].z;
+			d_accDustIon[blockIdx.x * *d_NUM_ION].x = sumData[0].x;
+			d_accDustIon[blockIdx.x * *d_NUM_ION].y = sumData[0].y;
+			d_accDustIon[blockIdx.x * *d_NUM_ION].z = sumData[0].z;
 		}
 
-		i = tid + *d_NUM_ION;
-	}
+		//i = tid + *d_NUM_ION;
+	//}
 }
 
 
