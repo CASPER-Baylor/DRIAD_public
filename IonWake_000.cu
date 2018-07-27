@@ -995,11 +995,11 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < NUM_ION; i++) {
 		if(GEOMETRY == 0) {
 			// give the ion a random position
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].x = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].y = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].z = randNum * RAD_SIM;
 
 			// calculate the distance from the ion to the center of the
@@ -1011,11 +1011,11 @@ int main(int argc, char* argv[])
 			// while the ion is outside of the simulation sphere, give it
 			// a new random position.
 			while (dist > RAD_SIM * RAD_SIM) {
-				randNum = (((rand() % (number*2.0)) - number) / (float)number);
+				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2.0)) - number) / (float)number);
+				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2.0)) - number) / (float)number);
+				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].z = randNum * RAD_CYL;
 
 				// recalculate the distance to the center of the simulation
@@ -1025,11 +1025,11 @@ int main(int argc, char* argv[])
 			}
 		} else if(GEOMETRY == 1) {
 			// give the ion a random position
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].x = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].y = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2.0)) - number) / (float)number);
+			randNum = (((rand() % (number*2)) - number) / (float)number);
 			posIon[i].z = randNum * HT_CYL;
 
 			// calculate the distance from the ion to the center of the
@@ -1039,9 +1039,9 @@ int main(int argc, char* argv[])
 			// while the ion is outside of the simulation cylinder, give it
 			// a new random position.
 			while (dist > RAD_CYL * RAD_CYL){
-				randNum = (((rand() % (number*2.0)) - number) / (float)number);
+				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2.0)) - number) / (float)number);
+				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
 
 				// recalculate the distance to the center of the simulation
@@ -1051,11 +1051,11 @@ int main(int argc, char* argv[])
 		}
 
 		// give the ion an initial random velocity
-		randNum = (((rand() % (number*2.0)) - number) / (float)number);
+		randNum = (((rand() % (number*2)) - number) / (float)number);
 		velIon[i].x = ION_SPEED * randNum;
-		randNum = (((rand() % (number*2.0)) - number) / (float)number);
+		randNum = (((rand() % (number*2)) - number) / (float)number);
 		velIon[i].y = ION_SPEED * randNum;
-		randNum = ((rand() % (number*2.0)) / (float)number) + 2.0*MACH;
+		randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
 		velIon[i].z = - ION_SPEED * randNum;
 
 		// set the initial acceleration to 0
@@ -2008,11 +2008,11 @@ int main(int argc, char* argv[])
 				accDust[j].z -= BETA*velDust[j].z;
     
 				// Add Brownian motion
-				randNum = (((rand() % (num*2.0)) - num) / (float)num);
+				randNum = (((rand() % (num*2)) - num) / (float)num);
 				accDust[j].x += randNum * SIGMA;
-				randNum = (((rand() % (num*2.0)) - num) / (float)num);
+				randNum = (((rand() % (num*2)) - num) / (float)num);
 				accDust[j].y += randNum * SIGMA;
-				randNum = (((rand() % (num*2.0)) - num) / (float)num);
+				randNum = (((rand() % (num*2)) - num) / (float)num);
 				accDust[j].z += randNum * SIGMA;
 						
 				//kick half a  time step
