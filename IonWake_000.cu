@@ -340,7 +340,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM = RAD_SIM_DEBYE * DEBYE;
 
 	// inverse debye (1/m)
-	const float INV_DEBYE = 1 / DEBYE;
+	const float INV_DEBYE = 1.0 / DEBYE;
 
 	// soft radius squared (m^2)
 	const float SOFT_RAD_SQRD = SOFT_RAD * SOFT_RAD;
@@ -349,7 +349,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM_SQRD = RAD_SIM * RAD_SIM;
 
 	// half of a time step (s)
-	const float HALF_TIME_STEP = ION_TIME_STEP / 2;
+	const float HALF_TIME_STEP = ION_TIME_STEP / 2.0;
 
 	// dust radius squared (m^2)
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
@@ -370,7 +370,7 @@ int main(int argc, char* argv[])
 		temp_volume = (4.0 / 3.0) * PI * RAD_SIM * RAD_SIM * RAD_SIM;
 	} else {
 		// volume of the simulation cylinder (overwrites vol abv)
-		temp_volume = PI * RAD_CYL_SQRD * 2 * HT_CYL;
+		temp_volume = PI * RAD_CYL_SQRD * 2.0* HT_CYL;
 	}
 	const float SIM_VOLUME = temp_volume;
 
@@ -385,7 +385,7 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to Ion Ion forces
 	const float ION_ION_ACC_MULT =
-		(CHARGE_ION * CHARGE_ION) / (4 * PI * PERM_FREE_SPACE * MASS_ION);
+		(CHARGE_ION * CHARGE_ION) / (4.0 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// a constant multiplier for acceleration due to Ion Dust forces
 	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
@@ -402,7 +402,7 @@ int main(int argc, char* argv[])
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
 	const float EXTERN_ELC_MULT =
-		((RAD_SIM / DEBYE) + 1) * exp(-RAD_SIM / DEBYE) *
+		((RAD_SIM / DEBYE) + 1.0) * exp(-RAD_SIM / DEBYE) *
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
 		(CHARGE_ION / MASS_ION) / (PERM_FREE_SPACE);
 
@@ -418,8 +418,8 @@ int main(int argc, char* argv[])
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;
 
 	// the electron current to an uncharged dust grain
-	const float ELC_CURRENT_0 = 4 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
-		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2 * PI * ELC_MASS));
+	const float ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
 
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
@@ -460,7 +460,7 @@ int main(int argc, char* argv[])
 	const float OMEGA2 = RADIAL_CONF / MASS_DUST;
 	// Damping factor for dust
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -475,20 +475,20 @@ int main(int argc, char* argv[])
 	float vertAcc = 0;
 	float q_div_m = 0;
 	//Adjust the dust charge for non-zero plasma potential
-	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
+	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_q = 0;
 	//float adj_zsq = 0;
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
-	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
+	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
 	const float grid_factor = GRID_FACTOR; 
-	float dx = 2*(RAD_CYL*grid_factor)/RESX;
-	float dz = 2*HT_CYL*grid_factor/RESZ;
+	float dx = 2.0*(RAD_CYL*grid_factor)/RESX;
+	float dz = 2.0*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
 	if (debugMode) {
@@ -546,7 +546,8 @@ int main(int argc, char* argv[])
 		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
 		<< "ELC_CURRENT_0 " << ELC_CURRENT_0 << '\n'
 		<< "ELC_TEMP_EV   " << ELC_TEMP_EV << '\n'
-		<< "MASS_DUST     " << MASS_DUST     << '\n' << '\n';
+		<< "MASS_DUST     " << MASS_DUST     << '\n'
+		<< "ADJ_Q  		  " << adj_q    << '\n' << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
@@ -796,9 +797,9 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2.0 + dx * x);
 			gridPos[RESX* z + x].y = 0;
-			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2 + dz * z);
+			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2.0 + dz * z);
 		}
 	}
 	
@@ -984,7 +985,7 @@ int main(int argc, char* argv[])
 		velDust[i].z = 0;
 		accDust[i].x = OMEGA2 * chargeDust[i] * posDust[i].x;
 		accDust[i].y = OMEGA2 * chargeDust[i] * posDust[i].y;
-		accDust[i].z = OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
+		accDust[i].z = OMEGA2 /250.0 * chargeDust[i] * posDust[i].z;				
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
 	}
@@ -994,11 +995,11 @@ int main(int argc, char* argv[])
 	for (int i = 0; i < NUM_ION; i++) {
 		if(GEOMETRY == 0) {
 			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].x = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].y = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].z = randNum * RAD_SIM;
 
 			// calculate the distance from the ion to the center of the
@@ -1010,11 +1011,11 @@ int main(int argc, char* argv[])
 			// while the ion is outside of the simulation sphere, give it
 			// a new random position.
 			while (dist > RAD_SIM * RAD_SIM) {
-				randNum = (((rand() % (number*2)) - number) / (float)number);
+				randNum = (((rand() % (number*2.0)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
+				randNum = (((rand() % (number*2.0)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
+				randNum = (((rand() % (number*2.0)) - number) / (float)number);
 				posIon[i].z = randNum * RAD_CYL;
 
 				// recalculate the distance to the center of the simulation
@@ -1024,11 +1025,11 @@ int main(int argc, char* argv[])
 			}
 		} else if(GEOMETRY == 1) {
 			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].x = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].y = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
+			randNum = (((rand() % (number*2.0)) - number) / (float)number);
 			posIon[i].z = randNum * HT_CYL;
 
 			// calculate the distance from the ion to the center of the
@@ -1038,9 +1039,9 @@ int main(int argc, char* argv[])
 			// while the ion is outside of the simulation cylinder, give it
 			// a new random position.
 			while (dist > RAD_CYL * RAD_CYL){
-				randNum = (((rand() % (number*2)) - number) / (float)number);
+				randNum = (((rand() % (number*2.0)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
+				randNum = (((rand() % (number*2.0)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
 
 				// recalculate the distance to the center of the simulation
@@ -1050,11 +1051,11 @@ int main(int argc, char* argv[])
 		}
 
 		// give the ion an initial random velocity
-		randNum = (((rand() % (number*2)) - number) / (float)number);
+		randNum = (((rand() % (number*2.0)) - number) / (float)number);
 		velIon[i].x = ION_SPEED * randNum;
-		randNum = (((rand() % (number*2)) - number) / (float)number);
+		randNum = (((rand() % (number*2.0)) - number) / (float)number);
 		velIon[i].y = ION_SPEED * randNum;
-		randNum = ((rand() % (number*2)) / (float)number) + 2*MACH;
+		randNum = ((rand() % (number*2.0)) / (float)number) + 2.0*MACH;
 		velIon[i].z = - ION_SPEED * randNum;
 
 		// set the initial acceleration to 0
@@ -1535,7 +1536,7 @@ int main(int argc, char* argv[])
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
 			ionTime = dust_time + (j)* ION_TIME_STEP;
-        	xac = int(floor(2*FREQ*ionTime)) % 2;
+        	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
 			// inject ions on the boundary of the simulation
@@ -1736,7 +1737,7 @@ int main(int argc, char* argv[])
 
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * ION_TIME_STEP *
-							exp((-1) * CHARGE_ELC * dustPotential /
+							exp((-1.0) * CHARGE_ELC * dustPotential /
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
@@ -1897,13 +1898,13 @@ int main(int argc, char* argv[])
 
 				// periodic BC in z-dir for dust
 				if(posDust[j].z > HT_CYL) {
-					posDust[j].z -= 2*HT_CYL;
+					posDust[j].z -= 2.0*HT_CYL;
 				} 
 				if(posDust[j].z < -HT_CYL) {
-					posDust[j].z += 2*HT_CYL;
+					posDust[j].z += 2.0*HT_CYL;
 				}
 
-				dustTraceFile << "j " << j << "\n";
+				//dustTraceFile << "j " << j << "\n";
 
 				// zero the acceleration
 				accDust[j].x = 0;
@@ -1944,11 +1945,11 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
-					//	* (chargeDust[g] + adj_q) / (dist*dist*dist);
-					//	 *(1+dist/DEBYE)*exp(-dist/DEBYE);
-					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
-						* (chargeDust[g]) / (dist*dist*dist);
+					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
+						* (chargeDust[g] + adj_q) / (dist*dist*dist)
+						* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
+					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
+					//	* (chargeDust[g]) / (dist*dist*dist);
         
 					// add the acceleration to the current dust grain
 					accDust[j].x += linForce * distdd.x;
@@ -1977,14 +1978,14 @@ int main(int argc, char* argv[])
 					} else {
 						adj_z = posDust[j].z + axialConfine;
 					}	
-					accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z;
+					accDust[j].z += OMEGA2*100.0* chargeDust[j] * adj_z;
 				}
 				
 				//polarity switching
-				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
-				q_div_m = (chargeDust[j] ) / MASS_DUST;
+				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
-					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
+					* (4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
 				// forces from ions outside simulation region
 				rad = sqrt(posDust[j].x * posDust[j].x +
@@ -2007,11 +2008,11 @@ int main(int argc, char* argv[])
 				accDust[j].z -= BETA*velDust[j].z;
     
 				// Add Brownian motion
-				randNum = (((rand() % (num*2)) - num) / (float)num);
+				randNum = (((rand() % (num*2.0)) - num) / (float)num);
 				accDust[j].x += randNum * SIGMA;
-				randNum = (((rand() % (num*2)) - num) / (float)num);
+				randNum = (((rand() % (num*2.0)) - num) / (float)num);
 				accDust[j].y += randNum * SIGMA;
-				randNum = (((rand() % (num*2)) - num) / (float)num);
+				randNum = (((rand() % (num*2.0)) - num) / (float)num);
 				accDust[j].z += randNum * SIGMA;
 						
 				//kick half a  time step
