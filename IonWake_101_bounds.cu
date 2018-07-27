@@ -345,7 +345,7 @@ __global__ void injectIonSphere_101(
 		int tempIndex,
 			tempIndex1;
 	
-		float velScale = __fsqrt_rn( 3 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
+		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);
                         
 		float driftVelIon = (*d_SOUND_SPEED) * (*d_MACH); 
@@ -380,7 +380,7 @@ __global__ void injectIonSphere_101(
 		// interpolate between upperFloatGIndex and lowerFloatGIndex to get 
         // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
 		radVel = (partQIndex * upperFloatGIndex) + 
-                 ( 1 - partQIndex ) * lowerFloatGIndex;
+                 ( 1.0 - partQIndex ) * lowerFloatGIndex;
 		
         // integer part of radVel 
 		tempIndex = static_cast<int>(radVel); 
@@ -391,15 +391,15 @@ __global__ void injectIonSphere_101(
 		
         // interpolate the value of radVel from Vcom 
         radVel = part_radVel * d_VCOM[tempIndex1] + 
-                 (1-part_radVel) * d_VCOM[tempIndex];
+                 (1.0-part_radVel) * d_VCOM[tempIndex];
 		
 		
 		// cos(theta), where theta is the angle of the velocity 
 		// opposite to the opposite to the radius
-		cosTheta = 1 - (2 * floatQIndex)/(*d_NUM_DIV_QTH - 1);
+		cosTheta = 1.0 - (2.0 * floatQIndex)/(*d_NUM_DIV_QTH - 1);
 		
 		// sin(theta)
-		sinTheta = __fsqrt_rn( 1 - cosTheta * cosTheta );
+		sinTheta = __fsqrt_rn( 1.0 - cosTheta * cosTheta );
 		
 		// get a random number from a normal distribution
 		randNum = curand_normal(&randStates[IDion]);
@@ -415,7 +415,7 @@ __global__ void injectIonSphere_101(
 		randNum = curand_uniform(&randStates[IDion]);
 
 		// get phi
-		phi = randNum * 2 * *d_PI;
+		phi = randNum * 2.0 * *d_PI;
 		cosPhi = cosf(phi);
 		sinPhi = sinf(phi);
 		
@@ -435,8 +435,8 @@ __global__ void injectIonSphere_101(
 		
 		// polarity switching
 		if(xac ==1) {
-			d_posIon[IDion].z *= -1;
-			d_velIon[IDion].z *= -1;
+			d_posIon[IDion].z *= -1.0;
+			d_velIon[IDion].z *= -1.0;
 		}
 
 		// reset the acceleration
@@ -547,7 +547,7 @@ __global__ void injectIonCylinder_101(
 		int tempIndex,
 			tempIndex1;
 	
-		float velScale = __fsqrt_rn( 3 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
+		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);
                         
 		float driftVelIon = (*d_SOUND_SPEED) * (*d_MACH); 
@@ -601,15 +601,15 @@ __global__ void injectIonCylinder_101(
 		
         // interpolate the value of radVel from Vcom 
         radVel = part_radVel * d_VCOM[tempIndex1] + 
-        	(1-part_radVel) * d_VCOM[tempIndex];
+        	(1.0-part_radVel) * d_VCOM[tempIndex];
 		
 		
 		// cos(theta), where theta is the angle of the velocity 
 		// from the z-axis
-		cosTheta = 1 - (2 * QIndex)/(*d_NUM_DIV_QTH - 1);
+		cosTheta = 1.0 - (2.0 * QIndex)/(*d_NUM_DIV_QTH - 1);
 		
 		// sin(theta)
-		sinTheta = __fsqrt_rn( 1 - cosTheta * cosTheta );
+		sinTheta = __fsqrt_rn( 1.0 - cosTheta * cosTheta );
 
 		
 		// get a random number from a normal distribution
@@ -626,7 +626,7 @@ __global__ void injectIonCylinder_101(
 		randNum = curand_uniform(&randStates[IDion]);
 
 		// get phi
-		phi = randNum * 2 * *d_PI;
+		phi = randNum * 2.0 * *d_PI;
 		cosPhi = cosf(phi);
 		sinPhi = sinf(phi);
 		
@@ -645,7 +645,7 @@ __global__ void injectIonCylinder_101(
 			//location is on the side, so choose a random z 
 			// get a random number from 0 to 1
 			randNum = curand_uniform(&randStates[IDion]);
-      			d_posIon[IDion].z =  rfrac * (randNum * 2 - 1) * *d_HT_CYL * rfrac;
+      			d_posIon[IDion].z =  rfrac * (randNum * 2.0 - 1.0) * *d_HT_CYL * rfrac;
       			d_posIon[IDion].y = *d_RAD_CYL * rfrac * sinTheta * sinPhi;
       			d_posIon[IDion].x = *d_RAD_CYL * rfrac * sinTheta * cosPhi;
 		} else {
@@ -655,9 +655,9 @@ __global__ void injectIonCylinder_101(
 			float dist = 1.1  * *d_RAD_CYL * *d_RAD_CYL;
 			while (dist > *d_RAD_CYL * *d_RAD_CYL) {
 				randNum = curand_uniform(&randStates[IDion]);
-				d_posIon[IDion].x = (randNum*2-1) * *d_RAD_CYL;
+				d_posIon[IDion].x = (randNum*2.0-1.0) * *d_RAD_CYL;
 				randNum = curand_uniform(&randStates[IDion]);
-				d_posIon[IDion].y = (randNum*2-1) * *d_RAD_CYL;
+				d_posIon[IDion].y = (randNum*2.0-1.0) * *d_RAD_CYL;
 
 				// See if this position is inside the cylinder
 				dist = d_posIon[IDion].x * d_posIon[IDion].x + 
@@ -668,8 +668,8 @@ __global__ void injectIonCylinder_101(
 		
 		// polarity switching
 		if(xac == 1) {
-			d_posIon[IDion].z *= -1;
-			d_velIon[IDion].z *= -1;
+			d_posIon[IDion].z *= -1.0;
+			d_velIon[IDion].z *= -1.0;
 		}	
 		
 		// reset the acceleration
@@ -836,14 +836,14 @@ void initInjectIonSphere_101(
 	float* Gcom = new float[NUM_DIV_QTH * NUM_DIV_VEL];
 	
 	// useful variables 
-	float const1 = 1/sqrt(2 * PI);
+	float const1 = 1/sqrt(2.0 * PI);
 	float const2 = 1/sqrt(2.0);
 	
 	// normalized ion temperature 
-	float normTempIon = 3 * BOLTZMANN * TEMP_ION / MASS_SINGLE_ION;
+	float normTempIon = 3.0 * BOLTZMANN * TEMP_ION / MASS_SINGLE_ION;
 	
 	// range of velocities (times (Ti/m_i)^1/2) permitted for injection
-	float vspread = 5 +  (DRIFT_VEL_ION/ sqrt(normTempIon));
+	float vspread = 5.0 +  (DRIFT_VEL_ION/ sqrt(normTempIon));
 	
 	// first term of Qcom
 	Qcom[0] = 0;
@@ -859,13 +859,13 @@ void initInjectIonSphere_101(
 	for (int i = 0; i < NUM_DIV_QTH; i++)
 	{
 		// Qth is the cosine angle of the ith interpolation position
-		Qth = 1 - (2 * i / static_cast<float>(NUM_DIV_QTH - 1));
+		Qth = 1.0 - (2.0 * i / static_cast<float>(NUM_DIV_QTH - 1));
 
 		// scale drift velocity to the ion temperature
 		vdr = DRIFT_VEL_ION * Qth /sqrt(normTempIon);
 		
 		dqn = (const1 * exp((-0.5) * vdr * vdr) )
-				+ ((0.5) * vdr * erfcf( (-1) * const2 * vdr));
+				+ ((0.5) * vdr * erfcf( (-1.0) * const2 * vdr));
 
 		
 		if (i > 0){
@@ -1040,14 +1040,14 @@ void initInjectIonCylinder_101(
 	float* Gcom = new float[NUM_DIV_QTH * NUM_DIV_VEL];
 	
 	// useful variables 
-	float const1 = 1/sqrt(2 * PI);
+	float const1 = 1/sqrt(2.0 * PI);
 	float const2 = 1/sqrt(2.0);
 	
 	// normalized ion temperature 
-	float normTempIon = 3 * BOLTZMANN * TEMP_ION / MASS_SINGLE_ION;
+	float normTempIon = 3.0 * BOLTZMANN * TEMP_ION / MASS_SINGLE_ION;
 	
 	// range of velocities (times (Ti/m_i)^1/2) permitted for injection
-	float vspread = 5 +  (DRIFT_VEL_ION/ sqrt(normTempIon));
+	float vspread = 5.0 +  (DRIFT_VEL_ION/ sqrt(normTempIon));
 	
 	
 	// variables used in the loop over the angles
@@ -1065,7 +1065,7 @@ void initInjectIonCylinder_101(
 
 	//Area of each side to weight the fluxes
 	area[0] = PI * RAD_CYL * RAD_CYL;
-	area[1] = 4 * PI * RAD_CYL * HT_CYL; //Since we are using half-height
+	area[1] = 4.0 * PI * RAD_CYL * HT_CYL; //Since we are using half-height
 	area[2] = PI * RAD_CYL * RAD_CYL;
 
 	// loop over the angles
@@ -1079,7 +1079,7 @@ void initInjectIonCylinder_101(
 		
 		// dqn is really Gamma(infinity)
 		dqn = (const1 * exp((-0.5) * vdr * vdr) )
-				+ ((0.5) * vdr * erfcf( (-1) * const2 * vdr));
+				+ ((0.5) * vdr * erfcf( (-1.0) * const2 * vdr));
 
 		
 		if (i == 0){
@@ -1233,34 +1233,3 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 
 	return floatIndex;
 }	
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
