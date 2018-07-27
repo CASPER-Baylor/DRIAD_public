@@ -246,7 +246,7 @@ __global__ void select_100
 	// m = ceil(v2)
 	// v2 is being used to as an intermediat step in calculating m 
 	v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / 
-		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
+		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2.0);
 
 	// timestep depth
 	mtemp = ceil(v2);
