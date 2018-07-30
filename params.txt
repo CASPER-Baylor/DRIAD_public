@@ -28,9 +28,10 @@
  [27]	       PRESSURE	  100
  [28]	           FREQ	  500
  [29]	        E_FIELD	  350
- [30]  			 OMEGA2	  2.63e6
- [31]  		RADIAL_CONF	  0.9
- [32]  		 AXIAL_CONF	  0.95
- [33] N_IONDT_PER_DUSTDT  100
- [34] 		GRID_FACTOR   1.00
+ [30]  			 OMEGA1	  2.55e5
+ [31]  			 OMEGA2	  1.136e13
+ [32]  		RADIAL_CONF	  0.9
+ [33]  		 AXIAL_CONF	  0.95
+ [34] N_IONDT_PER_DUSTDT  100
+ [35] 		GRID_FACTOR   1.00
 

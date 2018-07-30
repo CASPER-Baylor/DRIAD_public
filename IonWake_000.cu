@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 35;
+	const int NUM_USER_PARAMS = 36;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -314,11 +314,12 @@ int main(int argc, char* argv[])
 	const float PRESSURE = params[27];
 	const float FREQ = params[28];
 	const float E_FIELD = params[29];
-	const float OMEGA2 = params[30];
-	const float RADIAL_CONF = params[31];
-	const float AXIAL_CONF = params[32];
-	const int	N_IONDT_PER_DUSTDT = params[33];
-	const float GRID_FACTOR = params[34];
+	const float OMEGA1 = params[30];
+	const float OMEGA2 = params[31];
+	const float RADIAL_CONF = params[32];
+	const float AXIAL_CONF = params[33];
+	const int	N_IONDT_PER_DUSTDT = params[34];
+	const float GRID_FACTOR = params[35];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -458,7 +459,7 @@ int main(int argc, char* argv[])
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
-	const float OMEGA_DIV_M = OMEGA2 / MASS_DUST;
+	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	// Damping factor for dust
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
@@ -469,6 +470,7 @@ int main(int argc, char* argv[])
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
 	float ionTime = 0;
+	float rhoDustsq = 0; // for radial dust confinement
 	float rhoDust = 0; // for radial dust confinement
 	float acc = 0; //for radial dust confinement
 	float adj_z = 0; //for dust confinement in z
@@ -479,8 +481,8 @@ int main(int argc, char* argv[])
 	float vertAcc = 0;
 	float q_div_m = 0;
 	//Adjust the dust charge for non-zero plasma potential
-	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
-	//float adj_q = 0;
+	//float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
+	float adj_q = 0;
 	//float adj_zsq = 0;
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
@@ -527,6 +529,7 @@ int main(int argc, char* argv[])
 		<< "PRESSURE          " << PRESSURE          << '\n'
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
+		<< "OMEGA1			  " << OMEGA1			 << '\n'
 		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
 		<< "AXIAL_CONF		  "	<< AXIAL_CONF		 << '\n'
@@ -573,6 +576,7 @@ int main(int argc, char* argv[])
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
 		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
+		<< "OMEGA1			  " << OMEGA1			 << '\n'
 		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "BETA			  " << BETA				 << '\n' 
 		<< "SIGMA			  " << SIGMA			 << '\n'
@@ -628,6 +632,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
+	<< std::setw(14) << OMEGA1			  << " % OMEGA1"            << '\n'
 	<< std::setw(14) << OMEGA2			  << " % OMEGA2"            << '\n'
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
@@ -1977,8 +1982,13 @@ int main(int argc, char* argv[])
 				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
 				//accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
 				//Radial position of dust
-				rhoDust = sqrt(posDust[j].x * posDust[j].x +
-							   posDust[j].y * posDust[j].y);
+				rhoDustsq = posDust[j].x * posDust[j].x +
+							   posDust[j].y * posDust[j].y;
+				acc = chargeDust[j]/MASS_DUST*(OMEGA1 + OMEGA2 * rhoDustsq);
+				accDust[j].x += acc * posDust[j].x;
+				accDust[j].y += acc * posDust[j].y;
+				// Big accel to keep dust from leaving sides of cylinder
+				rhoDust = sqrt(rhoDustsq);
 				if(rhoDust > radialConfine) {
 					acc = OMEGA_DIV_M * 100.0 * chargeDust[j] 
 						* (rhoDust - radialConfine) / rhoDust;
@@ -1997,8 +2007,8 @@ int main(int argc, char* argv[])
 				}
 				
 				//polarity switching
-				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
-				//q_div_m = (chargeDust[j] ) / MASS_DUST;
+				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
 					* (4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
