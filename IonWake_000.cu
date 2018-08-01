@@ -481,8 +481,8 @@ int main(int argc, char* argv[])
 	float vertAcc = 0;
 	float q_div_m = 0;
 	//Adjust the dust charge for non-zero plasma potential
-	//float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
-	float adj_q = 0;
+	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
+	//float adj_q = 0;
 	//float adj_zsq = 0;
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
@@ -1752,10 +1752,14 @@ int main(int argc, char* argv[])
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-						chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+						chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+
+						//dustChargeFile << chargeDust[g] << ", ";
 						//save charge for averaging
 						tempCharge[g] += chargeDust[g];
 					}
+
+					//dustChargeFile << "\n";
 
 					// copy the dust charge to the GPU
 					d_chargeDust.hostToDev(); 
@@ -1856,6 +1860,8 @@ int main(int argc, char* argv[])
 
 			// print all the dust charges to the trace file
 			
+			//dustChargeFile << std::endl;
+
 			for (int k = 0; k < NUM_DUST; k++){
 				//average the charge over last N timesteps
 				// and reset the tempCharge to zero
@@ -2007,8 +2013,8 @@ int main(int argc, char* argv[])
 				}
 				
 				//polarity switching
-				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
-				q_div_m = (chargeDust[j] ) / MASS_DUST;
+				q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
+				//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
 					* (4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
