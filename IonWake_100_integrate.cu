@@ -339,7 +339,7 @@ __global__ void KDK_100
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 		
 	//local variables
-	int timeStepFactor = *d_tsFactor;
+	int timeStepFactor = d_tsFactor[threadID];
 	float timeStep = *d_TIME_STEP / timeStepFactor;
 	float halfTimeStep = timeStep * 0.5;
 	//bool stopflag = false;
