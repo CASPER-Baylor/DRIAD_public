@@ -139,6 +139,10 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_ion-pos.txt";
 	std::ofstream ionPosFile(fileName.c_str());
 
+	// open an output file for holding ion velocities 
+	//fileName = dataDirName + runName + "_ion-vel.txt";
+	//std::ofstream ionVelFile(fileName.c_str());
+
 	// open an output file for holding dust positions
 	fileName = dataDirName + runName + "_dust-pos.txt";
 	std::ofstream dustPosFile(fileName.c_str());
@@ -2142,6 +2146,15 @@ int main(int argc, char* argv[])
 		ionPosFile << ", " << posIon[i].z << std::endl;
 	}
 
+	// print final ion velocities to the ionVelFile
+	// loop over all of the positions
+	//for (int i = 0; i < NUM_ION; i++) {
+		// print the ion position
+	//	ionVelFile << velIon[i].x;
+	//	ionVelFile << ", " << velIon[i].y;
+	//	ionVelFile << ", " << velIon[i].z << std::endl;
+	//}
+
 	// print the final dust charges to the dustChargeFile
 	// loop over all of the dust particles
 	for (int i = 0; i < NUM_DUST; i++) {
@@ -2309,6 +2322,7 @@ int main(int argc, char* argv[])
 	traceFile.close();
 	statusFile.close();
 	ionPosFile.close();
+	//ionVelFile.close();
 	dustPosFile.close();
 	dustTraceFile.close();
 	dustChargeFile.close();
