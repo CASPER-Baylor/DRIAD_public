@@ -1869,7 +1869,9 @@ int main(int argc, char* argv[])
 			for (int k = 0; k < NUM_DUST; k++){
 				//average the charge over last N timesteps
 				// and reset the tempCharge to zero
-				chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
+				chargeDust[k] = 0.9 * chargeDust[k] 
+					+ 0.1 * tempCharge[k]/N_IONDT_PER_DUSTDT;
+				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
 				tempCharge[k] = 0;
 				dustChargeFile << chargeDust[k];
 				dustChargeFile << ", ";
