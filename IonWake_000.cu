@@ -674,6 +674,7 @@ int main(int argc, char* argv[])
 	// pointer for dust charges;
 	float* chargeDust = NULL;
 	float* tempCharge = NULL; 
+	float* q_ti = NULL; 
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
@@ -706,6 +707,7 @@ int main(int argc, char* argv[])
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
 		tempCharge = (float*)malloc(memFloatDust); 
+		q_ti = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -743,6 +745,7 @@ int main(int argc, char* argv[])
 		posDust[i].y *= DEBYE;
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
+		q_ti[i] = chargeDust[i];
 		tempCharge[i] = 0;
 	}
 
@@ -921,6 +924,7 @@ int main(int argc, char* argv[])
 
 	// holds electron current to a dust grain in the time step in C
 	float elcCurrent = 0;
+    //float delta_q = 0; //change in charge in one time step
 
 	// holds a dust grain potential in the time step in V
 	float dustPotential = 0;
@@ -1745,10 +1749,12 @@ int main(int argc, char* argv[])
 					}
 
 					// Update charge on dust
+					float dum_charge = 0;
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-						dustPotential =
-							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
+					//dustPotential =(COULOMB_CONST*chargeDust[g] / RAD_DUST) 
+					dustPotential =(COULOMB_CONST* q_ti[g]/ RAD_DUST) 
+						- ELC_TEMP_EV;
 
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * ION_TIME_STEP *
@@ -1756,11 +1762,13 @@ int main(int argc, char* argv[])
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-						chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+					//chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+						q_ti[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
 
 						//dustChargeFile << chargeDust[g] << ", ";
 						//save charge for averaging
-						tempCharge[g] += chargeDust[g];
+						tempCharge[g] += q_ti[g];
+						//tempCharge[g] += chargeDust[g];
 					}
 
 					//dustChargeFile << "\n";
@@ -1869,16 +1877,21 @@ int main(int argc, char* argv[])
 			for (int k = 0; k < NUM_DUST; k++){
 				//average the charge over last N timesteps
 				// and reset the tempCharge to zero
-				chargeDust[k] = 0.9 * chargeDust[k] 
-					+ 0.1 * tempCharge[k]/N_IONDT_PER_DUSTDT;
+				dustChargeFile << chargeDust[k] << ", " ;
+				chargeDust[k] = 0.9*chargeDust[k] 
+					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT;
 				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
-				tempCharge[k] = 0;
 				dustChargeFile << chargeDust[k];
+				dustChargeFile << ", " << tempCharge[k]/N_IONDT_PER_DUSTDT;
 				dustChargeFile << ", ";
+				//q_ti[k]= tempCharge[k];
+				tempCharge[k] = 0;
 			}
 			
-
 			dustChargeFile << std::endl;
+
+			// copy the dust charge to the GPU
+			d_chargeDust.hostToDev(); 
 			
 
 		// print the ion current to the first dust particle to
