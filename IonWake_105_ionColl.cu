@@ -86,8 +86,34 @@ void setIonCrossSection_105
 			cs1_v[i] = 1e-20 * cs1_vNe[i];
 			cs2_v[i] = 1e-20 * cs2_vNe[i];
   	  } 
-  	} else if (gasType == 2) {
-			fileName << "Argon coming soon \n";
+  	} else if (gasType == 2) {   
+		//Ar cross sections for isotropic scatt. (cs1) and backscattering (cs2)
+		//Ref:  Phelps, J. Appl. Phys. 76, 747 (1994)
+		//energy in eV
+		fileName << "Using collision cross sections for Argon \n";
+		float en_vAr[] = {0.00e+0, 2.20e-4, 5.20e-4, 7.40e-4, 1.90e-3, 3.10e-3,
+		5.20e-3, 1.60e-2, 3.70e-2, 7.40e-2, 3.10e-1, 1.60e+0, 5.20e+0, 1.40e+1, 
+		7.40e+1, 3.10e+2, 8.80e+3, 1.0e+4};
+
+		//cross sections in m^2
+		// isotropic cross setion
+		float cs1_vAr[] = {1.413940e-17, 9.530560e-18, 6.195610e-18, 5.191510e-18, 
+		3.233280e-18, 2.526200e-18, 1.944070e-18, 1.092730e-18, 7.055470e-19, 
+		4.925980e-19, 2.775330e-19, 2.073990e-19, 1.052540e-19, 4.034480e-20, 
+		5.519310e-21, 8.830350e-22, 1.144000e-23, 9.687080e-24};
+
+		// backscattering cross section
+		float cs2_vAr[] = {1.104590e-17, 5.764980e-18, 2.802400e-18, 2.088700e-18, 
+		1.003440e-18, 7.358180e-19, 5.790820e-19, 4.753280e-19, 4.806000e-19, 
+		4.912610e-19, 4.731020e-19, 4.096010e-19, 4.027170e-19, 3.920120e-19, 
+		3.461140e-19, 3.018560e-19, 2.163240e-19, 2.135770e-19};
+
+		for (int i=0;i<=n;i++){
+			en_v[i] = en_vAr[i];
+			cs1_v[i] = cs1_vAr[i];
+			cs2_v[i] = cs2_vAr[i];
+		} 
+
   	} else { 
 			fileName << "Unknown gas type \n";
   	}
