@@ -674,7 +674,7 @@ int main(int argc, char* argv[])
 	// pointer for dust charges;
 	float* chargeDust = NULL;
 	float* tempCharge = NULL; 
-	float* q_ti = NULL; 
+	float* dynCharge = NULL; 
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
@@ -707,7 +707,7 @@ int main(int argc, char* argv[])
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
 		tempCharge = (float*)malloc(memFloatDust); 
-		q_ti = (float*)malloc(memFloatDust); 
+		dynCharge = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -747,6 +747,7 @@ int main(int argc, char* argv[])
 		chargeDust[i] *= CHARGE_ELC;
 		q_ti[i] = chargeDust[i];
 		tempCharge[i] = 0;
+		dynCharge[i] = chargeDust[i];
 	}
 
 	// check if any of the dust particles are outside of
@@ -1875,14 +1876,14 @@ int main(int argc, char* argv[])
 			//dustChargeFile << std::endl;
 
 			for (int k = 0; k < NUM_DUST; k++){
-				//average the charge over last N timesteps
+				//average the charge over last N ion timesteps
 				// and reset the tempCharge to zero
-				dustChargeFile << chargeDust[k] << ", " ;
-				chargeDust[k] = 0.9*chargeDust[k] 
-					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT;
 				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
-				dustChargeFile << chargeDust[k];
-				dustChargeFile << ", " << tempCharge[k]/N_IONDT_PER_DUSTDT;
+				dynCharge[k] = 0.8 * dynCharge[k] 
+					+ 0.2*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+				tempCharge[k] = 0;
+				dustChargeFile << chargeDust[k] << ",";
+				dustChargeFile << dynCharge[k];
 				dustChargeFile << ", ";
 				//q_ti[k]= tempCharge[k];
 				tempCharge[k] = 0;
@@ -2311,6 +2312,8 @@ int main(int argc, char* argv[])
 	free(accDust);
 	free(accDust2);
 	free(chargeDust);
+	free(tempCharge);
+	free(dynCharge);
 	free(commands);
 	free(posIon);
 	free(velIon);
