@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 36;
+	const int NUM_USER_PARAMS = 38;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -324,6 +324,8 @@ int main(int argc, char* argv[])
 	const float AXIAL_CONF = params[33];
 	const int	N_IONDT_PER_DUSTDT = params[34];
 	const float GRID_FACTOR = params[35];
+	const float GAS_TYPE = params[36];
+	const float BOX_CENTER = params[37];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -432,7 +434,7 @@ int main(int argc, char* argv[])
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
-	int gasType = 1; // 1 = Neon, 2 = Argon
+	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
@@ -478,6 +480,8 @@ int main(int argc, char* argv[])
 	float rhoDust = 0; // for radial dust confinement
 	float acc = 0; //for radial dust confinement
 	float adj_z = 0; //for dust confinement in z
+	float ht = 0; //for adjusting dust height above electrode
+	float ht2 = 0; 
 	// for force from ions outside simulation
 	float rad = 0; 
 	float zsq = 0;
@@ -544,7 +548,9 @@ int main(int argc, char* argv[])
 		<< "GRID_FACTOR	      " << GRID_FACTOR		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
 		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
+		<< "GAS_TYPE		  " << GAS_TYPE			 << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
+		<< "BOX_CENTER		  " << BOX_CENTER		 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -641,6 +647,8 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
+	<< std::setw(14) << GAS_TYPE		  << " % GAS_TYPE"	 		<< '\n'
+	<< std::setw(14) << BOX_CENTER		  << " % BOX_CENTER" 		<< '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
 	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
@@ -748,7 +756,7 @@ int main(int argc, char* argv[])
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
 		tempCharge[i] = 0;
-		dynCharge[i] = 0;
+		dynCharge[i] = chargeDust[i];
 		simCharge[i] = chargeDust[i];
 	}
 
@@ -1007,9 +1015,11 @@ int main(int argc, char* argv[])
 		velDust[i].z = 0;
 		accDust[i].x = OMEGA_DIV_M * chargeDust[i] * posDust[i].x;
 		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
-		accDust[i].z = OMEGA_DIV_M /250.0 * chargeDust[i] * posDust[i].z;				
+
 		//polarity switching
-		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
+		accDust[i].z -= chargeDust[i] / MASS_DUST * E_FIELD;
+		//gravity
+		accDust[i].z -= 9.81;
 	}
 
 	// loop over all the ions and initialize their velocity, acceleration,
@@ -1883,8 +1893,8 @@ int main(int argc, char* argv[])
 
 				//average the tempCharge over ion timesteps
 				//smooth the simulated dust charge over past timesteps 
-				simCharge[k] = 0.8 * simCharge[k] 
-					+ 0.2*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+				simCharge[k] = 0.9 * simCharge[k] 
+					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
 				dynCharge[k] = simCharge[k] + adj_q;
 
@@ -2001,6 +2011,9 @@ int main(int argc, char* argv[])
 					accDust2[g].z -= linForce * distdd.z;     
 				}
     
+				//dustTraceFile << "dust acceleration  ";
+				//dustTraceFile << accDust[j].z << std::endl;
+
 				accDust[j].x +=  accDust2[j].x;
 				accDust[j].y +=  accDust2[j].y;
 				accDust[j].z +=  accDust2[j].z;
@@ -2034,11 +2047,26 @@ int main(int argc, char* argv[])
 					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
 				}
 				
-				//polarity switching
+				// gravity for dust in glass box
+				accDust[j].z -= 9.81;
+
 				q_div_m = (dynCharge[j]) / MASS_DUST;
-				//q_div_m = (chargeDust[j] ) / MASS_DUST;
-				accDust[j].z -= q_div_m * E_FIELD 
-					* (4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
+				// electric field in sheath
+				//  adjust dust position for height of BOX_CENTER above
+				//  the lower electrode
+				ht = posDust[j].z + BOX_CENTER;
+				ht2 = ht*ht;
+				acc = -8083 + 553373*ht + 2.0e8*ht2 -
+					3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+				accDust[j].z += q_div_m * acc;
+
+				//dustTraceFile << "sheath E acceleration  ";
+				//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
+				//dustTraceFile << q_div_m * acc << std::endl;
+
+				//polarity switching
+				//accDust[j].z -= q_div_m * E_FIELD  *
+			//(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
 				// forces from ions outside simulation region
 				rad = sqrt(posDust[j].x * posDust[j].x +
