@@ -1883,8 +1883,8 @@ int main(int argc, char* argv[])
 
 				//average the tempCharge over ion timesteps
 				//smooth the simulated dust charge over past timesteps 
-				simCharge[k] = 0.8 * simCharge[k] 
-					+ 0.2*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+				simCharge[k] = 0.9 * simCharge[k] 
+					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
 				dynCharge[k] = simCharge[k] + adj_q;
 
