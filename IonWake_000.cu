@@ -1931,6 +1931,7 @@ int main(int argc, char* argv[])
 
 			dust_time += dust_dt;
 			dustTraceFile << dust_time << std::endl;
+			debugSpecificFile << dust_time << std::endl;
 
 			// loop over dust particles 
 			for (int j = 0; j < NUM_DUST; j++) {
@@ -1961,14 +1962,14 @@ int main(int argc, char* argv[])
 				accDust[j].z = 0;
 
 				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].y = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].z = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
+				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
-				//dustTraceFile << "ion acceleration  ";
-				//dustTraceFile << accDust[j].x;
-				//dustTraceFile << ", " << accDust[j].y;
-				//dustTraceFile << ", " << accDust[j].z << "\n";
+				debugSpecificFile << "ion acceleration  ";
+				debugSpecificFile << accDust[j].x;
+				debugSpecificFile << ", " << accDust[j].y;
+				debugSpecificFile << ", " << accDust[j].z << "\n";
 
 				// Calculate dust-dust acceleration 
 				if(j == 0) {
@@ -2037,6 +2038,10 @@ int main(int argc, char* argv[])
 					accDust[j].y += acc * posDust[j].y;
 				}
 				
+				debugSpecificFile << "confinement acceleration ";
+				debugSpecificFile << acc*posDust[j].x << ", ";
+				debugSpecificFile << acc*posDust[j].y << ", ";
+
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
 					if(posDust[j].z > 0) {
@@ -2062,7 +2067,7 @@ int main(int argc, char* argv[])
 
 				//dustTraceFile << "sheath E acceleration  ";
 				//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
-				//dustTraceFile << q_div_m * acc << std::endl;
+				debugSpecificFile << q_div_m * acc << std::endl;
 
 				//polarity switching
 				//accDust[j].z -= q_div_m * E_FIELD  *
@@ -2082,6 +2087,11 @@ int main(int argc, char* argv[])
 				accDust[j].x += posDust[j].x * radAcc * q_div_m;
 				accDust[j].y += posDust[j].y * radAcc * q_div_m;
 				accDust[j].z += vertAcc * q_div_m;
+
+				debugSpecificFile << "outside ion acceleration  ";
+				debugSpecificFile << posDust[j].x*radAcc*q_div_m;
+				debugSpecificFile << ", " << posDust[j].y*radAcc*q_div_m;
+				debugSpecificFile << ", " << vertAcc*q_div_m << "\n";
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
