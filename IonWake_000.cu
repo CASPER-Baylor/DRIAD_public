@@ -1951,8 +1951,8 @@ int main(int argc, char* argv[])
 				accDust[j].z = 0;
 
 				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].y = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].z = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
+				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
 				//dustTraceFile << "ion acceleration  ";
