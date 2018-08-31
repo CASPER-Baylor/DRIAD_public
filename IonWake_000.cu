@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 36;
+	const int NUM_USER_PARAMS = 38;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -324,6 +324,8 @@ int main(int argc, char* argv[])
 	const float AXIAL_CONF = params[33];
 	const int	N_IONDT_PER_DUSTDT = params[34];
 	const float GRID_FACTOR = params[35];
+	const float GAS_TYPE = params[36];
+    const float BOX_CENTER = params[37];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -432,7 +434,7 @@ int main(int argc, char* argv[])
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
-	int gasType = 1; // 1 = Neon, 2 = Argon
+	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
@@ -544,6 +546,7 @@ int main(int argc, char* argv[])
 		<< "GRID_FACTOR	      " << GRID_FACTOR		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
 		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
+     	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< '\n';
 
@@ -641,6 +644,8 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
+ 	<< std::setw(14) << GAS_TYPE          << " % GAS_TYPE"          << '\n'
+    << std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
 	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
@@ -2038,22 +2043,35 @@ int main(int argc, char* argv[])
 				q_div_m = (dynCharge[j]) / MASS_DUST;
 				//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
-					* (4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
+				*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
-				// forces from ions outside simulation region
-				rad = sqrt(posDust[j].x * posDust[j].x +
-							posDust[j].y * posDust[j].y);
-				zsq = posDust[j].z * posDust[j].z;
+				// forces for sheath above lower electrode
+				// force due to gravity
+				//accDust[j].z -= 9.81;
+	
+				// electric field -- adjust pos.z for ht above lower electr.
+                //ht = posDust[j].z + BOX_CENTER;
+                //ht2 = ht*ht;
+                //acc = -8083 + 553373*ht + 2.0e8*ht2 -
+                //   3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+                //accDust[j].z += q_div_m * acc;
 
-				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-				vertAcc = P01Z * posDust[j].z +
-						  P21Z * rad * rad * posDust[j].z +
-						  P03Z * posDust[j].z * zsq +
-						  P23Z * rad * rad * posDust[j].z * zsq +
-						  P05Z * posDust[j].z * zsq * zsq;
-				accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				accDust[j].z += vertAcc * q_div_m;
+				// outside ion forces destabilize dust
+			/*******************************************
+			*	// forces from ions outside simulation region
+			*	rad = sqrt(posDust[j].x * posDust[j].x +
+			*				posDust[j].y * posDust[j].y);
+			*	zsq = posDust[j].z * posDust[j].z;
+			*	radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+			*	vertAcc = P01Z * posDust[j].z +
+			*			  P21Z * rad * rad * posDust[j].z +
+			*			  P03Z * posDust[j].z * zsq +
+			*			  P23Z * rad * rad * posDust[j].z * zsq +
+			*			  P05Z * posDust[j].z * zsq * zsq;
+			*	accDust[j].x += posDust[j].x * radAcc * q_div_m;
+			*	accDust[j].y += posDust[j].y * radAcc * q_div_m;
+			*	accDust[j].z += vertAcc * q_div_m;
+			*******************************************/
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
