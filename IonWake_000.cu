@@ -2073,6 +2073,7 @@ int main(int argc, char* argv[])
 				//accDust[j].z -= q_div_m * E_FIELD  *
 			//(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
+		//Outside ion forces only destabilize dust motion, so remove
 			 /***************************************
 		*		// forces from ions outside simulation region
 		*		rad = sqrt(posDust[j].x * posDust[j].x +
