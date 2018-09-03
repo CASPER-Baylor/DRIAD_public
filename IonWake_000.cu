@@ -1931,7 +1931,7 @@ int main(int argc, char* argv[])
 
 			dust_time += dust_dt;
 			dustTraceFile << dust_time << std::endl;
-			debugSpecificFile << dust_time << std::endl;
+			//debugSpecificFile << dust_time << std::endl;
 
 			// loop over dust particles 
 			for (int j = 0; j < NUM_DUST; j++) {
@@ -1966,10 +1966,10 @@ int main(int argc, char* argv[])
 				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
-				debugSpecificFile << "ion acceleration  ";
-				debugSpecificFile << accDust[j].x;
-				debugSpecificFile << ", " << accDust[j].y;
-				debugSpecificFile << ", " << accDust[j].z << "\n";
+				//debugSpecificFile << "ion acceleration  ";
+				//debugSpecificFile << accDust[j].x;
+				//debugSpecificFile << ", " << accDust[j].y;
+				//debugSpecificFile << ", " << accDust[j].z << "\n";
 
 				// Calculate dust-dust acceleration 
 				if(j == 0) {
@@ -2038,9 +2038,9 @@ int main(int argc, char* argv[])
 					accDust[j].y += acc * posDust[j].y;
 				}
 				
-				debugSpecificFile << "confinement acceleration ";
-				debugSpecificFile << acc*posDust[j].x << ", ";
-				debugSpecificFile << acc*posDust[j].y << ", ";
+				//debugSpecificFile << "confinement acceleration ";
+				//debugSpecificFile << acc*posDust[j].x << ", ";
+				//debugSpecificFile << acc*posDust[j].y << ", ";
 
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
