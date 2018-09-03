@@ -1888,8 +1888,8 @@ int main(int argc, char* argv[])
 
 				//average the tempCharge over ion timesteps
 				//smooth the simulated dust charge over past timesteps 
-				simCharge[k] = 0.9 * simCharge[k] 
-					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+				simCharge[k] = 0.95 * simCharge[k] 
+					+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
 				dynCharge[k] = simCharge[k] + adj_q;
 
@@ -2057,21 +2057,19 @@ int main(int argc, char* argv[])
                 //accDust[j].z += q_div_m * acc;
 
 				// outside ion forces destabilize dust
-			/*******************************************
-			*	// forces from ions outside simulation region
-			*	rad = sqrt(posDust[j].x * posDust[j].x +
-			*				posDust[j].y * posDust[j].y);
-			*	zsq = posDust[j].z * posDust[j].z;
-			*	radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-			*	vertAcc = P01Z * posDust[j].z +
-			*			  P21Z * rad * rad * posDust[j].z +
-			*			  P03Z * posDust[j].z * zsq +
-			*			  P23Z * rad * rad * posDust[j].z * zsq +
-			*			  P05Z * posDust[j].z * zsq * zsq;
-			*	accDust[j].x += posDust[j].x * radAcc * q_div_m;
-			*	accDust[j].y += posDust[j].y * radAcc * q_div_m;
-			*	accDust[j].z += vertAcc * q_div_m;
-			*******************************************/
+				// forces from ions outside simulation region
+				//rad = sqrt(posDust[j].x * posDust[j].x +
+				//			posDust[j].y * posDust[j].y);
+				zsq = posDust[j].z * posDust[j].z;
+				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+			//	vertAcc = P01Z * posDust[j].z +
+			//			  P21Z * rad * rad * posDust[j].z +
+			//			  P03Z * posDust[j].z * zsq +
+			//			  P23Z * rad * rad * posDust[j].z * zsq +
+			//			  P05Z * posDust[j].z * zsq * zsq;
+				accDust[j].x += posDust[j].x * radAcc * q_div_m;
+				accDust[j].y += posDust[j].y * radAcc * q_div_m;
+			//	accDust[j].z += vertAcc * q_div_m;
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
