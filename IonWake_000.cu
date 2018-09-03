@@ -2052,10 +2052,10 @@ int main(int argc, char* argv[])
 					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
 				}
 				
+				q_div_m = (dynCharge[j]) / MASS_DUST;
 				// gravity for dust in glass box
 				accDust[j].z -= 9.81;
 
-				q_div_m = (dynCharge[j]) / MASS_DUST;
 				// electric field in sheath
 				//  adjust dust position for height of BOX_CENTER above
 				//  the lower electrode
@@ -2064,6 +2064,11 @@ int main(int argc, char* argv[])
 				acc = -8083 + 553373*ht + 2.0e8*ht2 -
 					3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
 				accDust[j].z += q_div_m * acc;
+
+				// laser push on lower particle
+				if(dust_time > 0.30 & dust_time < 0.36 & j==1) {
+					accDust[j].x -= 0.5;
+				}
 
 				//dustTraceFile << "sheath E acceleration  ";
 				//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
@@ -2218,7 +2223,8 @@ int main(int argc, char* argv[])
 	// loop over all of the dust particles
 	for (int i = 0; i < NUM_DUST; i++) {
 		// print the dust charge
-		dustChargeFile << chargeDust[i] << ", ";
+		//dustChargeFile << chargeDust[i] << ", ";
+		dustChargeFile << dynCharge[i] << ", ";
 	}
 	dustChargeFile << std::endl;
 
