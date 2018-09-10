@@ -83,8 +83,6 @@ int main(int argc, char* argv[])
 
 	std::cout << deviceCount << std::endl;
 
-	return 0;
-
 	/*************************
 	open files
 	*************************/
