@@ -1,71 +1,6 @@
-/*
-* Project: IonWake
-* File Type: script - main
-* File Name: IonWake_000.cu
-*
-* Created: 6/13/2017
-*
-* Editors
-*	Last Modified: 11/20/2017
-*	Contributor(s):
-*		Name: Dustin Sanford
-*		Contact: Dustin_Sanford@baylor.edu
-*		Last Contribution: 11/12/2017
-*
-*       Name: Lorin Matthews
-*       Contact: Lorin_Matthews@baylor.edu
-*		Last contribution: 3/01/2018
-*		Added adaptive time steps for ions
-*       Last Contribution: 02/19/2018
-*		Added dust motion.
-*       Last Contribution: 11/20/2017
-*		Added in variables for cylindrical simulation region.  See addition
-*		of variables RAD_CYL_DEBYE, HT_CYL_DEBYE, RAD_CYL, RAD_CYL_SQRD,
-*		HT_CYL.  Calculation of SIM_VOLUME is changed appropriately.  Added
-*		code to check that ions initially placed inside cylinder.
-*
-* Description:
-*	Handles the execution of the IonWake simulation. Provides a user interface
-*   in the form of input and output files. Handles memory allocation and
-*   declaration for non-function specific variables on both the CPU host and
-*   GPU device. Includes a modular time-step for rapid development and testing
-*   of various time step schemes. For descriptions of the scope of the IonWake
-*   simulation as well as user interface, program input and output, and
-*   time-step options please see the respective sections of the README file.
-*
-* Output:
-*	Determined by user settings. For a complete description of all available
-*   program output please see the README file.
-*
-* Input:
-*	Determined by user settings. For a complete description of all available
-*   program input please see the README file.
-*
-* Implementation:
-*	The program begins by opening all the input and output text files.
-*   Constant values are defined and general user parameters are pulled from
-*   the params.txt file. Derived parameters are then calculated from the user
-*   parameters. The charges and positions of the dust particles, if any, are
-*   pulled from the dust-params.txt file. The time step commands are then
-*   pulled from the timestep.txt file and parsed. Host memory is initialized
-*   and initial values are assigned. Then Device memory is allocated and the
-*   respective host variables are copied to the device. Then the time step is
-*   begun. For each time step, all the time step commands are processed in
-*   order. The time step is repeated the number of times specified in the
-*   parameters. After the time step, the calculated values are copied to the
-*   host and saved to their respective output file. Device variables that
-*   should remain constant are copied to the host and checked against their
-*   const counterparts. Finally, dynamically allocated host memory is freed,
-*   all files are closed and the program terminates.
-*
-* Assumptions:
-*	Determined by user time-step settings. For a complete description of all
-*	available time-step settings please see the README file.
-*/
 
 // header file
 #include "IonWake_000.h"
-#include <iostream>
 
 void fatalError() {
 	exit(-1);
@@ -81,7 +16,7 @@ int main(int argc, char* argv[])
 	int deviceCount;
 	cudaGetDeviceCount(&deviceCount);
 
-	std::cout << deviceCount << std::endl;
+	// std::cout << deviceCount << std::endl;
 
 	/*************************
 	open files
