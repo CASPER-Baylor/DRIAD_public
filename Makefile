@@ -146,7 +146,7 @@ else ifneq ($(TARGET_ARCH),$(HOST_ARCH))
         HOST_COMPILER ?= powerpc64le-linux-gnu-g++
     endif
 endif
-HOST_COMPILER ?= g++
+HOST_COMPILER ?= g++ -std=c++11
 NVCC          := $(CUDA_PATH)/bin/nvcc -ccbin $(HOST_COMPILER)
 
 # internal flags
@@ -253,7 +253,7 @@ IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
 	@echo " "
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h \
-    IonWake_102_ionAcc.h IonWake_105_ionColl.h \
+    IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h\
 	IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
