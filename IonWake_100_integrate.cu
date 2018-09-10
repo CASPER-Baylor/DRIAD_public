@@ -246,7 +246,7 @@ __global__ void select_100
 	// m = ceil(v2)
 	// v2 is being used to as an intermediat step in calculating m 
 	v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / 
-		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2);
+		(minDistDust[threadID] - *d_RAD_DUST)) / __logf(2.0);
 
 	// timestep depth
 	mtemp = ceil(v2);
@@ -339,7 +339,7 @@ __global__ void KDK_100
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 		
 	//local variables
-	int timeStepFactor = *d_tsFactor;
+	int timeStepFactor = d_tsFactor[threadID];
 	float timeStep = *d_TIME_STEP / timeStepFactor;
 	float halfTimeStep = timeStep * 0.5;
 	//bool stopflag = false;

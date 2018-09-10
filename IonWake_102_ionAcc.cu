@@ -131,7 +131,7 @@ __global__ void calcIonIonAcc_102
 			softDist = __fsqrt_rn(distSquared + *d_SOFT_RAD_SQRD);
 
 			// calculate a scaler intermediate
-			linForce = *d_ION_ION_ACC_MULT*(1 + (hardDist**d_INV_DEBYE))
+			linForce = *d_ION_ION_ACC_MULT*(1.0 + (hardDist**d_INV_DEBYE))
 				*__expf(-hardDist**d_INV_DEBYE) / (softDist*softDist*softDist);
 
 			// add the acceleration to the current ion's acceleration
@@ -483,8 +483,8 @@ __global__ void calcIonDensityPotential_102
 	float potCrntGrid = 0;
 	float densCrntGrid = 0;
 	int tileThreadID;
-	float r_dens = 1 / *d_INV_DEBYE / 6;
-	float volume = 4/3 * 3.141593 * r_dens * r_dens * r_dens;
+	float r_dens = 1.0 / *d_INV_DEBYE / 6.0;
+	float volume = 4.0/3.0 * 3.141593 * r_dens * r_dens * r_dens;
 	
 	//d_ionDensity[IDgrid] = 0;
 	//d_ionPotential[IDgrid] = 0;

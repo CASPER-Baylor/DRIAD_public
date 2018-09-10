@@ -28,8 +28,12 @@
  [27]	       PRESSURE	  100
  [28]	           FREQ	  500
  [29]	        E_FIELD	  350
- [30]  		RADIAL_CONF	  2.63e6
- [31]  		 AXIAL_CONF	  0.95
- [32] N_IONDT_PER_DUSTDT  100
- [33] 		GRID_FACTOR   1.00
+ [30]  			 OMEGA1	  2.55e5
+ [31]  			 OMEGA2	  1.136e13
+ [32]  		RADIAL_CONF	  0.9
+ [33]  		 AXIAL_CONF	  0.95
+ [34] N_IONDT_PER_DUSTDT  100
+ [35] 		GRID_FACTOR   1.00
+ [36] 		   GAS_TYPE	  1
+ [37] 		 BOX_CENTER	  0.006
 

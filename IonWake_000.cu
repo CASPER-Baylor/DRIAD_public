@@ -148,6 +148,10 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_ion-pos.txt";
 	std::ofstream ionPosFile(fileName.c_str());
 
+	// open an output file for holding ion velocities 
+	//fileName = dataDirName + runName + "_ion-vel.txt";
+	//std::ofstream ionVelFile(fileName.c_str());
+
 	// open an output file for holding dust positions
 	fileName = dataDirName + runName + "_dust-pos.txt";
 	std::ofstream dustPosFile(fileName.c_str());
@@ -273,7 +277,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 34;
+	const int NUM_USER_PARAMS = 38;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -323,10 +327,14 @@ int main(int argc, char* argv[])
 	const float PRESSURE = params[27];
 	const float FREQ = params[28];
 	const float E_FIELD = params[29];
-	const float RADIAL_CONF = params[30];
-	const float AXIAL_CONF = params[31];
-	const int	N_IONDT_PER_DUSTDT = params[32];
-	const float GRID_FACTOR = params[33];
+	const float OMEGA1 = params[30];
+	const float OMEGA2 = params[31];
+	const float RADIAL_CONF = params[32];
+	const float AXIAL_CONF = params[33];
+	const int	N_IONDT_PER_DUSTDT = params[34];
+	const float GRID_FACTOR = params[35];
+	const float GAS_TYPE = params[36];
+    const float BOX_CENTER = params[37];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -349,7 +357,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM = RAD_SIM_DEBYE * DEBYE;
 
 	// inverse debye (1/m)
-	const float INV_DEBYE = 1 / DEBYE;
+	const float INV_DEBYE = 1.0 / DEBYE;
 
 	// soft radius squared (m^2)
 	const float SOFT_RAD_SQRD = SOFT_RAD * SOFT_RAD;
@@ -358,7 +366,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM_SQRD = RAD_SIM * RAD_SIM;
 
 	// half of a time step (s)
-	const float HALF_TIME_STEP = ION_TIME_STEP / 2;
+	const float HALF_TIME_STEP = ION_TIME_STEP / 2.0;
 
 	// dust radius squared (m^2)
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
@@ -379,7 +387,7 @@ int main(int argc, char* argv[])
 		temp_volume = (4.0 / 3.0) * PI * RAD_SIM * RAD_SIM * RAD_SIM;
 	} else {
 		// volume of the simulation cylinder (overwrites vol abv)
-		temp_volume = PI * RAD_CYL_SQRD * 2 * HT_CYL;
+		temp_volume = PI * RAD_CYL_SQRD * 2.0* HT_CYL;
 	}
 	const float SIM_VOLUME = temp_volume;
 
@@ -394,7 +402,7 @@ int main(int argc, char* argv[])
 
 	// a constant multiplier for acceleration due to Ion Ion forces
 	const float ION_ION_ACC_MULT =
-		(CHARGE_ION * CHARGE_ION) / (4 * PI * PERM_FREE_SPACE * MASS_ION);
+		(CHARGE_ION * CHARGE_ION) / (4.0 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// a constant multiplier for acceleration due to Ion Dust forces
 	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
@@ -411,7 +419,7 @@ int main(int argc, char* argv[])
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
 	const float EXTERN_ELC_MULT =
-		((RAD_SIM / DEBYE) + 1) * exp(-RAD_SIM / DEBYE) *
+		((RAD_SIM / DEBYE) + 1.0) * exp(-RAD_SIM / DEBYE) *
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
 		(CHARGE_ION / MASS_ION) / (PERM_FREE_SPACE);
 
@@ -427,15 +435,15 @@ int main(int argc, char* argv[])
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;
 
 	// the electron current to an uncharged dust grain
-	const float ELC_CURRENT_0 = 4 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
-		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2 * PI * ELC_MASS));
+	const float ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
 
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
-	int gasType = 1; // 1 = Neon, 2 = Argon
+	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
@@ -466,16 +474,20 @@ int main(int argc, char* argv[])
 	
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
-	const float OMEGA2 = RADIAL_CONF / MASS_DUST;
+	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	// Damping factor for dust
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8* PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
+	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
 	float ionTime = 0;
+	float rhoDustsq = 0; // for radial dust confinement
+	float rhoDust = 0; // for radial dust confinement
+	float acc = 0; //for radial dust confinement
 	float adj_z = 0; //for dust confinement in z
 	// for force from ions outside simulation
 	float rad = 0; 
@@ -484,20 +496,20 @@ int main(int argc, char* argv[])
 	float vertAcc = 0;
 	float q_div_m = 0;
 	//Adjust the dust charge for non-zero plasma potential
-	float adj_q = 4*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
+	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_q = 0;
 	//float adj_zsq = 0;
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
-	const float SIGMA = sqrt(2 * BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
+	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
 	const float grid_factor = GRID_FACTOR; 
-	float dx = 2*(RAD_CYL*grid_factor)/RESX;
-	float dz = 2*HT_CYL*grid_factor/RESZ;
+	float dx = 2.0*(RAD_CYL*grid_factor)/RESX;
+	float dz = 2.0*HT_CYL*grid_factor/RESZ;
 	const int NUM_GRID_PTS = RESX * RESZ;
 	
 	if (debugMode) {
@@ -532,6 +544,8 @@ int main(int argc, char* argv[])
 		<< "PRESSURE          " << PRESSURE          << '\n'
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
+		<< "OMEGA1			  " << OMEGA1			 << '\n'
+		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
 		<< "AXIAL_CONF		  "	<< AXIAL_CONF		 << '\n'
 		<< "N_IONDT_PER_DUSTDT" << N_IONDT_PER_DUSTDT << '\n'
@@ -541,6 +555,7 @@ int main(int argc, char* argv[])
 		<< "GRID_FACTOR	      " << GRID_FACTOR		 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
 		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
+     	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< '\n';
 
@@ -555,7 +570,8 @@ int main(int argc, char* argv[])
 		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
 		<< "ELC_CURRENT_0 " << ELC_CURRENT_0 << '\n'
 		<< "ELC_TEMP_EV   " << ELC_TEMP_EV << '\n'
-		<< "MASS_DUST     " << MASS_DUST     << '\n' << '\n';
+		<< "MASS_DUST     " << MASS_DUST     << '\n'
+		<< "ADJ_Q  		  " << adj_q    << '\n' << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
@@ -576,6 +592,7 @@ int main(int argc, char* argv[])
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
 		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
+		<< "OMEGA1			  " << OMEGA1			 << '\n'
 		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "BETA			  " << BETA				 << '\n' 
 		<< "SIGMA			  " << SIGMA			 << '\n'
@@ -631,9 +648,13 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
+	<< std::setw(14) << OMEGA1			  << " % OMEGA1"            << '\n'
+	<< std::setw(14) << OMEGA2			  << " % OMEGA2"            << '\n'
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
+ 	<< std::setw(14) << GAS_TYPE          << " % GAS_TYPE"          << '\n'
+    << std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
 	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
@@ -667,6 +688,8 @@ int main(int argc, char* argv[])
 	// pointer for dust charges;
 	float* chargeDust = NULL;
 	float* tempCharge = NULL; 
+	float* dynCharge = NULL; 
+	float* simCharge = NULL; 
 
 	// counts the number of dust particles
 	int tempNumDust = 0;
@@ -699,6 +722,8 @@ int main(int argc, char* argv[])
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
 		tempCharge = (float*)malloc(memFloatDust); 
+		dynCharge = (float*)malloc(memFloatDust); 
+		simCharge = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
@@ -737,6 +762,8 @@ int main(int argc, char* argv[])
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
 		tempCharge[i] = 0;
+		dynCharge[i] = 0;
+		simCharge[i] = chargeDust[i];
 	}
 
 	// check if any of the dust particles are outside of
@@ -805,9 +832,9 @@ int main(int argc, char* argv[])
 		//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
-			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2 + dx * x);
+			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2.0 + dx * x);
 			gridPos[RESX* z + x].y = 0;
-			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2 + dz * z);
+			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2.0 + dz * z);
 		}
 	}
 	
@@ -914,6 +941,7 @@ int main(int argc, char* argv[])
 
 	// holds electron current to a dust grain in the time step in C
 	float elcCurrent = 0;
+    //float delta_q = 0; //change in charge in one time step
 
 	// holds a dust grain potential in the time step in V
 	float dustPotential = 0;
@@ -991,9 +1019,9 @@ int main(int argc, char* argv[])
 		velDust[i].x = 0;
 		velDust[i].y = 0;
 		velDust[i].z = 0;
-		accDust[i].x = OMEGA2 * chargeDust[i] * posDust[i].x;
-		accDust[i].y = OMEGA2 * chargeDust[i] * posDust[i].y;
-		accDust[i].z = OMEGA2 /250 * chargeDust[i] * posDust[i].z;				
+		accDust[i].x = OMEGA_DIV_M * chargeDust[i] * posDust[i].x;
+		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
+		accDust[i].z = OMEGA_DIV_M /250.0 * chargeDust[i] * posDust[i].z;				
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
 	}
@@ -1063,7 +1091,7 @@ int main(int argc, char* argv[])
 		velIon[i].x = ION_SPEED * randNum;
 		randNum = (((rand() % (number*2)) - number) / (float)number);
 		velIon[i].y = ION_SPEED * randNum;
-		randNum = ((rand() % (number*2)) / (float)number) + 2*MACH;
+		randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
 		velIon[i].z = - ION_SPEED * randNum;
 
 		// set the initial acceleration to 0
@@ -1544,7 +1572,7 @@ int main(int argc, char* argv[])
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
 			ionTime = dust_time + (j)* ION_TIME_STEP;
-        	xac = int(floor(2*FREQ*ionTime)) % 2;
+        	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
 			// inject ions on the boundary of the simulation
@@ -1740,19 +1768,23 @@ int main(int argc, char* argv[])
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-						dustPotential =
-							(COULOMB_CONST*chargeDust[g] / RAD_DUST) - ELC_TEMP_EV;
+					dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST) 
+						- ELC_TEMP_EV;
 
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * ION_TIME_STEP *
-							exp((-1) * CHARGE_ELC * dustPotential /
+							exp((-1.0) * CHARGE_ELC * dustPotential /
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-						chargeDust[g] += elcCurrent + ionCurrent[g] * CHARGE_ION;
+					chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+
+						//dustChargeFile << chargeDust[g] << ", ";
 						//save charge for averaging
 						tempCharge[g] += chargeDust[g];
 					}
+
+					//dustChargeFile << "\n";
 
 					// copy the dust charge to the GPU
 					d_chargeDust.hostToDev(); 
@@ -1853,18 +1885,31 @@ int main(int argc, char* argv[])
 
 			// print all the dust charges to the trace file
 			
+			//dustChargeFile << std::endl;
+
 			for (int k = 0; k < NUM_DUST; k++){
-				//average the charge over last N timesteps
-				// and reset the tempCharge to zero
-				chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
+				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
+				//dustChargeFile << chargeDust[k] << ",";
+
+				//dustChargeFile << simCharge[k] << ", ";
+				//dustChargeFile << tempCharge[k]/N_IONDT_PER_DUSTDT << ", ";
+				//dustChargeFile << adj_q << ", ";
+
+				//average the tempCharge over ion timesteps
+				//smooth the simulated dust charge over past timesteps 
+				simCharge[k] = 0.9 * simCharge[k] 
+					+ 0.1*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+				//Adjust the charge on dust for dust dynamics
+				dynCharge[k] = simCharge[k] + adj_q;
+
+				//reset the tempCharge to zero
 				tempCharge[k] = 0;
-				dustChargeFile << chargeDust[k];
+
+				dustChargeFile << dynCharge[k];
 				dustChargeFile << ", ";
 			}
 			
-
 			dustChargeFile << std::endl;
-			
 
 		// print the ion current to the first dust particle to
 		// the trace file
@@ -1906,13 +1951,13 @@ int main(int argc, char* argv[])
 
 				// periodic BC in z-dir for dust
 				if(posDust[j].z > HT_CYL) {
-					posDust[j].z -= 2*HT_CYL;
+					posDust[j].z -= 2.0*HT_CYL;
 				} 
 				if(posDust[j].z < -HT_CYL) {
-					posDust[j].z += 2*HT_CYL;
+					posDust[j].z += 2.0*HT_CYL;
 				}
 
-				dustTraceFile << "j " << j << "\n";
+				//dustTraceFile << "j " << j << "\n";
 
 				// zero the acceleration
 				accDust[j].x = 0;
@@ -1920,8 +1965,8 @@ int main(int argc, char* argv[])
 				accDust[j].z = 0;
 
 				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].y = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].z = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
+				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 				//print this acceleration to the trace file
 				//dustTraceFile << "ion acceleration  ";
@@ -1953,11 +1998,11 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]+adj_q) 
-					//	* (chargeDust[g] + adj_q) / (dist*dist*dist);
-					//	 *(1+dist/DEBYE)*exp(-dist/DEBYE);
-					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
-						* (chargeDust[g]) / (dist*dist*dist);
+					linForce=DUST_DUST_ACC_MULT*(dynCharge[j]) 
+						* (dynCharge[g]) / (dist*dist*dist)
+						* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
+					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
+					//	* (chargeDust[g]) / (dist*dist*dist);
         
 					// add the acceleration to the current dust grain
 					accDust[j].x += linForce * distdd.x;
@@ -1976,8 +2021,22 @@ int main(int argc, char* argv[])
 						
 				// calculate acceleration of the dust
 				//radial acceleration from confinement
-				accDust[j].x += OMEGA2 * chargeDust[j] * posDust[j].x;
-				accDust[j].y += OMEGA2 * chargeDust[j] * posDust[j].y;
+				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
+				//accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
+				//Radial position of dust
+				rhoDustsq = posDust[j].x * posDust[j].x +
+							   posDust[j].y * posDust[j].y;
+				acc = dynCharge[j]/MASS_DUST*(OMEGA1 + OMEGA2 * rhoDustsq);
+				accDust[j].x += acc * posDust[j].x;
+				accDust[j].y += acc * posDust[j].y;
+				// Big accel to keep dust from leaving sides of cylinder
+				rhoDust = sqrt(rhoDustsq);
+				if(rhoDust > radialConfine) {
+					acc = OMEGA_DIV_M * 100.0 * dynCharge[j] 
+						* (rhoDust - radialConfine) / rhoDust;
+					accDust[j].x += acc * posDust[j].x;
+					accDust[j].y += acc * posDust[j].y;
+				}
 				
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
@@ -1986,29 +2045,42 @@ int main(int argc, char* argv[])
 					} else {
 						adj_z = posDust[j].z + axialConfine;
 					}	
-					accDust[j].z += OMEGA2*100* chargeDust[j] * adj_z;
+					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
 				}
 				
 				//polarity switching
-				//q_div_m = (chargeDust[j] + adj_q) / MASS_DUST;
-				q_div_m = (chargeDust[j] ) / MASS_DUST;
+				q_div_m = (dynCharge[j]) / MASS_DUST;
+				//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
-					* (4*floor(FREQ*dust_time)-2*floor(2*FREQ*dust_time)+1.);
+				*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
-				// forces from ions outside simulation region
-				rad = sqrt(posDust[j].x * posDust[j].x +
-							posDust[j].y * posDust[j].y);
-				zsq = posDust[j].z * posDust[j].z;
+				// forces for sheath above lower electrode
+				// force due to gravity
+				//accDust[j].z -= 9.81;
+	
+				// electric field -- adjust pos.z for ht above lower electr.
+                //ht = posDust[j].z + BOX_CENTER;
+                //ht2 = ht*ht;
+                //acc = -8083 + 553373*ht + 2.0e8*ht2 -
+                //   3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+                //accDust[j].z += q_div_m * acc;
 
-				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-				vertAcc = P01Z * posDust[j].z +
-						  P21Z * rad * rad * posDust[j].z +
-						  P03Z * posDust[j].z * zsq +
-						  P23Z * rad * rad * posDust[j].z * zsq +
-						  P05Z * posDust[j].z * zsq * zsq;
-				accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				accDust[j].z += vertAcc * q_div_m;
+				// outside ion forces destabilize dust
+			/*******************************************
+			*	// forces from ions outside simulation region
+			*	rad = sqrt(posDust[j].x * posDust[j].x +
+			*				posDust[j].y * posDust[j].y);
+			*	zsq = posDust[j].z * posDust[j].z;
+			*	radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+			*	vertAcc = P01Z * posDust[j].z +
+			*			  P21Z * rad * rad * posDust[j].z +
+			*			  P03Z * posDust[j].z * zsq +
+			*			  P23Z * rad * rad * posDust[j].z * zsq +
+			*			  P05Z * posDust[j].z * zsq * zsq;
+			*	accDust[j].x += posDust[j].x * radAcc * q_div_m;
+			*	accDust[j].y += posDust[j].y * radAcc * q_div_m;
+			*	accDust[j].z += vertAcc * q_div_m;
+			*******************************************/
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
@@ -2118,6 +2190,15 @@ int main(int argc, char* argv[])
 		ionPosFile << ", " << posIon[i].y;
 		ionPosFile << ", " << posIon[i].z << std::endl;
 	}
+
+	// print final ion velocities to the ionVelFile
+	// loop over all of the positions
+	//for (int i = 0; i < NUM_ION; i++) {
+		// print the ion position
+	//	ionVelFile << velIon[i].x;
+	//	ionVelFile << ", " << velIon[i].y;
+	//	ionVelFile << ", " << velIon[i].z << std::endl;
+	//}
 
 	// print the final dust charges to the dustChargeFile
 	// loop over all of the dust particles
@@ -2260,6 +2341,8 @@ int main(int argc, char* argv[])
 	free(accDust);
 	free(accDust2);
 	free(chargeDust);
+	free(tempCharge);
+	free(dynCharge);
 	free(commands);
 	free(posIon);
 	free(velIon);
@@ -2286,6 +2369,7 @@ int main(int argc, char* argv[])
 	traceFile.close();
 	statusFile.close();
 	ionPosFile.close();
+	//ionVelFile.close();
 	dustPosFile.close();
 	dustTraceFile.close();
 	dustChargeFile.close();
