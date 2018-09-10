@@ -65,6 +65,7 @@
 
 // header file
 #include "IonWake_000.h"
+#include <iostream>
 
 void fatalError() {
 	exit(-1);
@@ -76,6 +77,14 @@ void roadBlock_000(ofstream&, int, string, string, bool);
 
 int main(int argc, char* argv[])
 {
+
+	int deviceCount;
+	cudaGetDeviceCount(&deviceCount);
+
+	std::cout << deviceCount << std::endl;
+
+	return 0;
+
 	/*************************
 	open files
 	*************************/

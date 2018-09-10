@@ -43,7 +43,8 @@
 	*	handeling CUDA errors
 	*/
 	#include "CUDAerr.h"
-    
+   
+	//! A container for CUDA variables. 
 	/*
 	* Name: CUDAvar
 	*
