@@ -6,7 +6,7 @@ void fatalError() {
 	exit(-1);
 }
 
-// Declaration of the roadBlock_000 function defined at the botom of
+// Declaration of the roadBlock_000 function defined at the bottom of
 // this file. Needs to be moved to another file at a later date.
 void roadBlock_000(ofstream&, int, string, string, bool);
 
@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	int deviceCount;
 	cudaGetDeviceCount(&deviceCount);
 
-	// std::cout << deviceCount << std::endl;
+	// std::cout << deviceCount << '\n';
 
 	/*************************
 	open files
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 
 	// open an output file for general debugging output
 	fileName = dataDirName + runName + "_debug.txt";
-	std::ofstream debugFile(fileName.c_str());
+	OFile debugFile(fileName.c_str());
 
 	// open an output file for specific debugging output
 	fileName = dataDirName + runName + "_debug-specific.txt";
@@ -132,8 +132,8 @@ int main(int argc, char* argv[])
 		cudaGetDeviceProperties(&prop, 0);
 
 		// display GPU device properties
-		debugFile << "-- Debugging: GPU Properties --" << '\n'
-		<< "sharedMemPerBlock: " << prop.sharedMemPerBlock << '\n'
+		debugFile.printTitle( "Debugging: GPU Properties" );
+		debugFile.printPair( "sharedMemPerBlock", prop.sharedMemPerBlock );	
 		<< "totalGlobalMem: " << prop.totalGlobalMem << '\n'
 		<< "regsPerBlock: " << prop.regsPerBlock << '\n'
 		<< "warpSize: " << prop.warpSize << '\n'
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
 		<< prop.kernelExecTimeoutEnabled << '\n'
 		<< "integrated: " << prop.integrated << '\n'
 		<< "canMapHostMemory: " << prop.canMapHostMemory << '\n'
-		<< "computeMode: " << prop.computeMode << std::endl
+		<< "computeMode: " << prop.computeMode << '\n'
 		<< "concurrentKernels: " << prop.concurrentKernels << '\n'
 		<< "ECCEnabled: " << prop.ECCEnabled << '\n'
 		<< "pciBusID: " << prop.pciBusID << '\n'
@@ -733,17 +733,17 @@ int main(int argc, char* argv[])
 	}
 
 	if (debugMode) {
-		debugFile << "-- Dust Positions --" << std::endl;
-		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
+		debugFile << "-- Dust Positions --" << '\n';
+		debugFile << "NUM_DUST: " << NUM_DUST << '\n';
 
 		for (int i = 0; i < NUM_DUST; i++) {
 			debugFile << "X: " << posDust[i].x <<
 			" Y: " << posDust[i].y <<
 			" Z: " << posDust[i].z <<
-			" Q: " << chargeDust[i] << std::endl;
+			" Q: " << chargeDust[i] << '\n';
 		}
 
-		debugFile << std::endl;
+		debugFile << '\n';
 		debugFile.flush();
 	}
 
@@ -775,9 +775,9 @@ int main(int argc, char* argv[])
 	for (int j =0; j< NUM_GRID_PTS; j++) {
 		ionDensOutFile << gridPos[j].x;
 		ionDensOutFile << ", " << gridPos[j].y;
-		ionDensOutFile << ", " << gridPos[j].z << std::endl;
+		ionDensOutFile << ", " << gridPos[j].z << '\n';
 	}
-	ionDensOutFile << "" << std::endl;
+	ionDensOutFile << "" << '\n';
 
 	// number of blocks per grid for grid points
 	int blocksPerGridGrid = (NUM_GRID_PTS +1) / DIM_BLOCK;	
@@ -850,21 +850,21 @@ int main(int argc, char* argv[])
 	}
 
 	if (debugMode) {
-		debugFile << "-- Time Step Commands --" << std::endl;
+		debugFile << "-- Time Step Commands --" << '\n';
 		debugFile << "Commands: " << '\n'
 		<< "1:  TR-ion-pos" << '\n'
 		<< "2:  TR-ion-vel" << '\n'
 		<< "3:  TR-ion-acc"  << '\n'
 		<< "4:  CH-charge-dust" << '\n'
 		<< "5:  CH-move-dust" << '\n';
-		debugFile << "--------------------" << std::endl;
-		debugFile << "Number of commands: " << numCommands << std::endl;
+		debugFile << "--------------------" << '\n';
+		debugFile << "Number of commands: " << numCommands << '\n';
 
 		for (int i = 0; i < numCommands; i++) {
-			debugFile << "i: " << i << " | " << commands[i] << std::endl;
+			debugFile << "i: " << i << " | " << commands[i] << '\n';
 		}
 
-		debugFile << "--------------------" << std::endl << std::endl;
+		debugFile << "--------------------" << '\n' << '\n';
 		debugFile.flush();
 	}
 
@@ -1064,40 +1064,40 @@ int main(int argc, char* argv[])
 		<< "ionCurrent  "     << sizeof(*ionCurrent) * NUM_DUST << '\n'
 		<< '\n';
 
-		debugFile << "-- Initial Host Variables --" << std::endl;
-		debugFile << "First 20 ion positions: " << std::endl;
+		debugFile << "-- Initial Host Variables --" << '\n';
+		debugFile << "First 20 ion positions: " << '\n';
 		for (int i = 0; i < 20; i++) {
 			debugFile << "X: " << posIon[i].x <<
 			" Y: " << posIon[i].y <<
-			" Z: " << posIon[i].z << std::endl;
+			" Z: " << posIon[i].z << '\n';
 		}
 
-		debugFile << std::endl << "Last 20 ion positions: " << std::endl;
+		debugFile << '\n' << "Last 20 ion positions: " << '\n';
 		for (int i = 1; i <= 20; i++) {
 			int ID = NUM_ION - i;
 			debugFile << "X: "  << posIon[ID].x
 			<< " Y: " << posIon[ID].y
 			<< " Z: " << posIon[ID].z
-			<< std::endl;
+			<< '\n';
 		}
 
-		debugFile << std::endl << "First 20 ion velocities: " << std::endl;
+		debugFile << '\n' << "First 20 ion velocities: " << '\n';
 		for (int i = 0; i < 20; i++) {
 			debugFile << "X: " << velIon[i].x <<
 			" Y: " << velIon[i].y <<
-			" Z: " << velIon[i].z << std::endl;
+			" Z: " << velIon[i].z << '\n';
 		}
 
-		debugFile << std::endl << "Last 20 ion velocities: " << std::endl;
+		debugFile << '\n' << "Last 20 ion velocities: " << '\n';
 		for (int i = 1; i <= 20; i++) {
 			int ID = NUM_ION - i;
 			debugFile << "X: "  << velIon[ID].x
 			<< " Y: " << velIon[ID].y
 			<< " Z: " << velIon[ID].z
-			<< std::endl;
+			<< '\n';
 		}
 
-		debugFile << std::endl;
+		debugFile << '\n';
 		debugFile.flush();
 	}
 
@@ -1423,10 +1423,10 @@ int main(int argc, char* argv[])
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
 	{
-		//statusFile << "In the timestep loop " << std::endl;
+		//statusFile << "In the timestep loop " << '\n';
 
 		// print the time step number to the status file
-		statusFile << i << ": "<< std::endl;
+		statusFile << i << ": "<< '\n';
 
 		//Start of ion loop
 		for (int j = 1; j <= N_IONDT_PER_DUSTDT; j++){
@@ -1450,11 +1450,11 @@ int main(int argc, char* argv[])
 			// copy ion m_value to host
 			//d_m.devToHost();
 			//d_timeStepFactor.devToHost();
-			//debugFile << "First 20 ion m values: " << std::endl;
+			//debugFile << "First 20 ion m values: " << '\n';
 			//for (int ii = 0; ii < 20; ii++)
 			//{
 			//		debugFile << "m: " << m[ii] <<
-			//			   "tsf: " << timeStepFactor[ii] << std::endl;
+			//			   "tsf: " << timeStepFactor[ii] << '\n';
 			//	}
 			//KDK using just the ion-dust acceleration for s^m iterations
  
@@ -1649,7 +1649,7 @@ int main(int argc, char* argv[])
 					// print the position of the specified ion to the trace file
 					traceFile << posIon[ionTraceIndex].x;
 					traceFile << ", " << posIon[ionTraceIndex].y;
-					traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
+					traceFile << ", " << posIon[ionTraceIndex].z << '\n';
 
 				// copy the ion velocities to the host
 				} else if (commands[c] == 2) {
@@ -1661,7 +1661,7 @@ int main(int argc, char* argv[])
 					// print the velocity of the specified ion to the trace file
 					traceFile << velIon[ionTraceIndex].x;
 					traceFile << ", " << velIon[ionTraceIndex].y;
-					traceFile << ", " << velIon[ionTraceIndex].z << std::endl;
+					traceFile << ", " << velIon[ionTraceIndex].z << '\n';
 	
 				// copy the ion accelerations to the host
 				} else if (commands[c] == 3) {
@@ -1674,7 +1674,7 @@ int main(int argc, char* argv[])
 					// print the acceleration of the specified ion to the trace file
 					traceFile << accIon[ionTraceIndex].x;
 					traceFile << ", " << accIon[ionTraceIndex].y;
-					traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
+					traceFile << ", " << accIon[ionTraceIndex].z << '\n';
 				
 				} else if (commands[c] == 4){
 					// copy ion bounds to host
@@ -1818,7 +1818,7 @@ int main(int argc, char* argv[])
 
 			// print all the dust charges to the trace file
 			
-			//dustChargeFile << std::endl;
+			//dustChargeFile << '\n';
 
 			for (int k = 0; k < NUM_DUST; k++){
 				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
@@ -1842,11 +1842,11 @@ int main(int argc, char* argv[])
 				dustChargeFile << ", ";
 			}
 			
-			dustChargeFile << std::endl;
+			dustChargeFile << '\n';
 
 		// print the ion current to the first dust particle to
 		// the trace file
-		//traceFile << ionCurrent[0] << std::endl;
+		//traceFile << ionCurrent[0] << '\n';
 
 		// move the dust
 		} else if (commands[c] == 5) {
@@ -1867,7 +1867,7 @@ int main(int argc, char* argv[])
 			d_posDust.devToHost();
 
 			dust_time += dust_dt;
-			dustTraceFile << dust_time << std::endl;
+			dustTraceFile << dust_time << '\n';
 
 			// loop over dust particles 
 			for (int j = 0; j < NUM_DUST; j++) {
@@ -2034,7 +2034,7 @@ int main(int argc, char* argv[])
 				velDust[j].z += accDust[j].z * half_dust_dt;
 
 				// print the dust position to the dustPosTrace file
-				//dustTraceFile << "After the dust timestep" << std::endl;
+				//dustTraceFile << "After the dust timestep" << '\n';
 				dustTraceFile << posDust[j].x;
 				dustTraceFile << ", " << posDust[j].y;
 				dustTraceFile << ", " << posDust[j].z;
@@ -2043,7 +2043,7 @@ int main(int argc, char* argv[])
 				dustTraceFile << ", " << velDust[j].z;
 				dustTraceFile << ", " << accDust[j].x;
 				dustTraceFile << ", " << accDust[j].y;
-				dustTraceFile << ", " << accDust[j].z << std::endl;
+				dustTraceFile << ", " << accDust[j].z << '\n';
 	
 			} // End of dust timestep
  
@@ -2070,9 +2070,9 @@ int main(int argc, char* argv[])
         // print the data to the ionDensOutFile
         for(int j = 0; j < NUM_GRID_PTS; j++){
             ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
-            ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT << std::endl;
+            ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT << '\n';
 		}
-        ionDensOutFile << "" << std::endl;
+        ionDensOutFile << "" << '\n';
 
         //reset the potential and density to zero
         zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
@@ -2084,7 +2084,7 @@ int main(int argc, char* argv[])
 	 }
 
 
-	statusFile << "|" << std::endl;
+	statusFile << "|" << '\n';
 	} // ***** end time step loop **** //
 
 	if (debugMode) {
@@ -2093,9 +2093,9 @@ int main(int argc, char* argv[])
 	}
 
 	//Checking Dust charge
-	debugFile << "**********DUST CHARGE**********" << std::endl;
+	debugFile << "**********DUST CHARGE**********" << '\n';
 	for (int g = 0; g < NUM_DUST ; g++){
-		debugFile << "DUST CHARGE: " << g << ": " << chargeDust[g] << std::endl;
+		debugFile << "DUST CHARGE: " << g << ": " << chargeDust[g] << '\n';
 	
 	}
 	
@@ -2121,7 +2121,7 @@ int main(int argc, char* argv[])
 		// print the ion position
 		ionPosFile << posIon[i].x;
 		ionPosFile << ", " << posIon[i].y;
-		ionPosFile << ", " << posIon[i].z << std::endl;
+		ionPosFile << ", " << posIon[i].z << '\n';
 	}
 
 	// print final ion velocities to the ionVelFile
@@ -2130,7 +2130,7 @@ int main(int argc, char* argv[])
 		// print the ion position
 	//	ionVelFile << velIon[i].x;
 	//	ionVelFile << ", " << velIon[i].y;
-	//	ionVelFile << ", " << velIon[i].z << std::endl;
+	//	ionVelFile << ", " << velIon[i].z << '\n';
 	//}
 
 	// print the final dust charges to the dustChargeFile
@@ -2139,7 +2139,7 @@ int main(int argc, char* argv[])
 		// print the dust charge
 		dustChargeFile << chargeDust[i] << ", ";
 	}
-	dustChargeFile << std::endl;
+	dustChargeFile << '\n';
 
 	// print the final dust positions to the dustPosFile
 	// loop over all of the dust particles
@@ -2147,18 +2147,18 @@ int main(int argc, char* argv[])
 		// print the dust positions
 		dustPosFile << posDust[i].x << ", ";
 		dustPosFile << posDust[i].y << ", ";
-		dustPosFile << posDust[i].z << std::endl;
+		dustPosFile << posDust[i].z << '\n';
 	}
 
 	if (debugMode) {
 
-		debugFile << "-- Final Ion Positions: First 20 Ions --" << std::endl;
+		debugFile << "-- Final Ion Positions: First 20 Ions --" << '\n';
 		for (int i = 0; i < 20; i++) {
 			debugFile << "#: "  << i
 			<< " X: " << posIon[i].x
 			<< " Y: " << posIon[i].y
 			<< " Z: " << posIon[i].z
-			<< std::endl;
+			<< '\n';
 		}
 
 		debugFile << '\n' << "-- Final Ion Positions: Last 20 Ions --" << '\n';
@@ -2168,7 +2168,7 @@ int main(int argc, char* argv[])
 			<< " X: " << posIon[ID].x
 			<< " Y: " << posIon[ID].y
 			<< " Z: " << posIon[ID].z
-			<< std::endl;
+			<< '\n';
 		}
 
 		debugFile << '\n'
@@ -2179,7 +2179,7 @@ int main(int argc, char* argv[])
 			<< " X: " << velIon[i].x
 			<< " Y: " << velIon[i].y
 			<< " Z: " << velIon[i].z
-			<< std::endl;
+			<< '\n';
 		}
 
 		debugFile << '\n'
@@ -2191,7 +2191,7 @@ int main(int argc, char* argv[])
 			<< " X: " << velIon[ID].x
 			<< " Y: " << velIon[ID].y
 			<< " Z: " << velIon[ID].z
-			<< std::endl;
+			<< '\n';
 		}
 
 		debugFile << '\n'
@@ -2202,7 +2202,7 @@ int main(int argc, char* argv[])
 			<< " X: " << accIon[i].x
 			<< " Y: " << accIon[i].y
 			<< " Z: " << accIon[i].z
-			<< std::endl;
+			<< '\n';
 		}
 
 		debugFile << '\n'
@@ -2214,10 +2214,10 @@ int main(int argc, char* argv[])
 			<< " X: " << accIon[ID].x
 			<< " Y: " << accIon[ID].y
 			<< " Z: " << accIon[ID].z
-			<< std::endl;
+			<< '\n';
 		}
 
-		debugFile << std::endl;
+		debugFile << '\n';
 	}
 
 	/**********************
@@ -2252,7 +2252,6 @@ int main(int argc, char* argv[])
 	paramFile.close();
 	dustParamFile.close();
 	timestepFile.close();
-	debugFile.close();
 	debugSpecificFile.close();
 	traceFile.close();
 	statusFile.close();
@@ -2301,7 +2300,7 @@ void roadBlock_000(ofstream& statusFile, int line, string file, string name, boo
 
         if (print) {
                 // print the name to the status file
-                statusFile << name << std::endl;
+                statusFile << name << '\n';
         }
 
         // check if there is a CUDA error after the kernel launch

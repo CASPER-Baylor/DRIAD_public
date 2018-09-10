@@ -2,7 +2,10 @@
 #define IONWAKE_OFILE_INCLUDED
 
 #include <ostream>
+#include <fstream>
 #include <string>
+
+class FileNotOpen{};
 
 class OFile
 {
@@ -35,7 +38,28 @@ public:
 		return *this;
 	}
 
-	void printTitle( std::string );
+	void flush() 
+	{
+		file.flush();
+	}
+
+	void precision( int num )
+	{
+		file.precision( num );
+	}
+
+	void printTitle( std::string title )
+	{
+    int titleLength = title.length();    
+                                                                                                   
+    int padding = (this->fileWidth - titleLength - 1) / 2;                              
+    if (padding < 0) padding = 0;                 
+                                                  
+    int filler = this->fileWidth - (2 + 2*padding + titleLength);                             
+                       
+    file << "\n" << std::string(padding, '-')  << " " << title << " " 
+		 << std::string(padding + filler, '-') <<  "\n";                             
+	}
 
 	template< typename Printable >
 	void printPair( std::string, Printable );
@@ -46,23 +70,10 @@ private:
 
 };
 
-void OFile::printTitle( std::string title )
-{
-    int titleLength = title.length();    
-                                                                                                   
-    int padding = (this->fileWidth - titleLength - 1) / 2;                              
-    if (padding < 0) padding = 0;                 
-                                                  
-    int filler = this->fileWidth - (2 + 2*padding + titleLength);                             
-                       
-    file << "\n" << std::string(padding, '-')  << " " << title << " " 
-		 << std::string(padding + filler, '-') <<  "\n";                             
-}
-
 template< typename Printable >
 void OFile::printPair( std::string name , Printable value )
 {
-	file << '\n' << name << "= " << value;
+	file << name << "= " << value << '\n';
 }
 
 #endif // include guard
