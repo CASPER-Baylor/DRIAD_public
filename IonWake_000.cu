@@ -2287,51 +2287,6 @@ int main(int argc, char* argv[])
 		debugFile << std::endl;
 	}
 
-	/*************************
-	check device "constants"
-	*************************/
-
-	d_NUM_DIV_QTH.compare();
-	d_NUM_DIV_VEL.compare();
-	d_NUM_ION.compare();
-	d_NUM_DUST.compare();
-	d_INV_DEBYE.compare();
-	d_RAD_DUST.compare();
-	d_RAD_DUST_SQRD.compare();
-	d_SOFT_RAD_SQRD.compare();
-	d_RAD_SIM.compare();
-	d_M_FACTOR.compare();
-	d_RAD_SIM_SQRD.compare();
-	d_RAD_CYL.compare();
-	d_RAD_CYL_SQRD.compare();
-	d_HT_CYL.compare();
-	d_HALF_TIME_STEP.compare();
-	d_ION_ION_ACC_MULT.compare();
-	d_ION_DUST_ACC_MULT.compare();
-	d_ION_POTENTIAL_MULT.compare();
-	d_EXTERN_ELC_MULT.compare();
-	d_TEMP_ION.compare();
-	d_DRIFT_VEL_ION.compare();
-	d_TEMP_ELC.compare();
-	d_SOUND_SPEED.compare();
-	d_PI.compare();
-	d_MACH.compare();
-	d_MASS_SINGLE_ION.compare();
-	d_BOLTZMANN.compare();
-	d_P10X.compare();
-	d_P12X.compare();
-	d_P14X.compare();
-	d_P01Z.compare();
-	d_P21Z.compare();
-	d_P03Z.compare();
-	d_P23Z.compare();
-	d_P05Z.compare();
-	d_E_FIELD.compare();
-	d_Q_DIV_M.compare();
-	d_MAX_DEPTH.compare();
-	d_I_CS_RANGES.compare();
-	d_TOT_ION_COLL_FREQ.compare();
-
 	/**********************
 	free memory
 	**********************/
