@@ -38,9 +38,10 @@ public:
 		return *this;
 	}
 
-	void flush() 
+	OFile& flush() 
 	{
 		file.flush();
+		return *this;
 	}
 
 	void precision( int num )
@@ -48,21 +49,23 @@ public:
 		file.precision( num );
 	}
 
-	void printTitle( std::string title )
+	OFile& printTitle( std::string title )
 	{
-    int titleLength = title.length();    
+    	int titleLength = title.length();    
                                                                                                    
-    int padding = (this->fileWidth - titleLength - 1) / 2;                              
-    if (padding < 0) padding = 0;                 
+    	int padding = (this->fileWidth - titleLength - 1) / 2;                              
+    	if (padding < 0) padding = 0;                 
                                                   
-    int filler = this->fileWidth - (2 + 2*padding + titleLength);                             
+    	int filler = this->fileWidth - (2 + 2*padding + titleLength);                             
                        
-    file << "\n" << std::string(padding, '-')  << " " << title << " " 
-		 << std::string(padding + filler, '-') <<  "\n";                             
+    	file << "\n" << std::string(padding, '-')  << " " << title << " " 
+			 << std::string(padding + filler, '-') <<  "\n";                             
+	
+		return *this;
 	}
 
 	template< typename Printable >
-	void printPair( std::string, Printable );
+	OFile& printPair( std::string, Printable );
 
 private:
 	std::ofstream file;
@@ -71,9 +74,10 @@ private:
 };
 
 template< typename Printable >
-void OFile::printPair( std::string name , Printable value )
+OFile& OFile::printPair( std::string name , Printable value )
 {
 	file << name << "= " << value << '\n';
+	return *this;
 }
 
 #endif // include guard
