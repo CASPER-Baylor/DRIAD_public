@@ -10,52 +10,6 @@ void fatalError() {
 // this file. Needs to be moved to another file at a later date.
 void roadBlock_000(OFile&, int, string, string, bool);
 
-#include <cassert>
-
-class IFile {
-public:
-
-	IFile( std::string fileName )
-	{
-		std::ifstream file(fileName.c_str());
-		assert( file );
-	}
-
-	~IFile()
-	{
-		file.close();
-	}
-
-	operator std::ifstream& () { return file; }
-
-	template< typename T > 
-	IFile& operator>>( T& rhs )
-	{
-		file >> rhs;
-		return *this;
-	}
-
-	bool getline( std::string line ) 
-	{
-		return 	std::getline(file, line);
-	}
-
-	void clear() 
-	{
-		file.clear();
-	}
-
-	void reset()
-	{
-		file.seekg(0, std::ios::beg);
-	}
-
-private:
-
-	std::ifstream file;
-
-};
-
 int main(int argc, char* argv[])
 {
 

@@ -254,7 +254,7 @@ IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
 	@echo " "
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h \
-    IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h OFiles.h\
+    IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h OFiles.h IFile.h\
 	IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
