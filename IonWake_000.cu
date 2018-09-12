@@ -10,6 +10,52 @@ void fatalError() {
 // this file. Needs to be moved to another file at a later date.
 void roadBlock_000(OFile&, int, string, string, bool);
 
+#include <cassert>
+
+class IFile {
+public:
+
+	IFile( std::string fileName )
+	{
+		std::ifstream file(fileName.c_str());
+		assert( file );
+	}
+
+	~IFile()
+	{
+		file.close();
+	}
+
+	operator std::ifstream& () { return file; }
+
+	template< typename T > 
+	IFile& operator>>( T& rhs )
+	{
+		file >> rhs;
+		return *this;
+	}
+
+	bool getline( std::string line ) 
+	{
+		return 	std::getline(file, line);
+	}
+
+	void clear() 
+	{
+		file.clear();
+	}
+
+	void reset()
+	{
+		file.seekg(0, std::ios::beg);
+	}
+
+private:
+
+	std::ifstream file;
+
+};
+
 int main(int argc, char* argv[])
 {
 
@@ -33,33 +79,15 @@ int main(int argc, char* argv[])
 
 	// open input file for general input parameters
 	fileName = inputDirName + "params.txt";
-	std::ifstream paramFile(fileName.c_str());
-	if (!paramFile){
-		fprintf(stderr, "ERROR on line number %d in file %s\n",
-			__LINE__, __FILE__);
-		fprintf(stderr, "ERROR: paramFile not open\n");
-		fatalError();
-	}
+	IFile paramFile(inputDirName + "params.txt");
 
 	// open input file for dust parameters
 	fileName = inputDirName + "dust-params.txt";
-	std::ifstream dustParamFile(fileName.c_str());
-	if (!dustParamFile){
-		fprintf(stderr, "ERROR on line number %d in file %s\n",
-			__LINE__, __FILE__);
-		fprintf(stderr, "ERROR: dustParamFile not open\n");
-		fatalError();
-	}
+	IFile dustParamFile(fileName);
 
 	// open an input file for time step parameters
 	fileName = inputDirName + "timestep.txt";
-	std::ifstream timestepFile(fileName.c_str());
-	if (!timestepFile){
-		fprintf(stderr, "ERROR on line number %d in file %s\n",
-			__LINE__, __FILE__);
-		fprintf(stderr, "ERROR: timestepFile not open\n");
-		fatalError();
-	}
+	IFile timestepFile(fileName);
 
 	// open output files
 	OFiles oFiles( dataDirName + runName );
@@ -589,10 +617,10 @@ int main(int argc, char* argv[])
 	std::string line;
 
 	// skip the first line
-	std::getline(dustParamFile, line);
+	dustParamFile.getline(line);
 
 	// count the remaining lines in the file
-	while (std::getline(dustParamFile, line)) {
+	while (dustParamFile.getline(line)) {
 		tempNumDust++;
 	}
 
@@ -619,10 +647,10 @@ int main(int argc, char* argv[])
 		dustParamFile.clear();
 
 		// seek to the beginning  of the file
-		dustParamFile.seekg(0, std::ios::beg);
+		dustParamFile.reset();
 
 		// skip the first line of the file
-		std::getline(dustParamFile, line);
+		dustParamFile.getline(line);
 
 		// loop over the remaining lines in the file
 		// saving the dust positions
@@ -748,7 +776,7 @@ int main(int argc, char* argv[])
 	int* commands;
 
 	// loop over all the commands in the file to find the number of commands
-	while (getline(timestepFile, line)) {
+	while (timestepFile.getline(line)) {
 		numCommands++;
 	}
 
@@ -759,7 +787,7 @@ int main(int argc, char* argv[])
 	timestepFile.clear();
 
 	// seek to the beginning of the file
-	timestepFile.seekg(0, std::ios::beg);
+	timestepFile.reset();
 
 	bool MOVE_DUST = 0;
 	// loop over all the commands and save them to the commands array
