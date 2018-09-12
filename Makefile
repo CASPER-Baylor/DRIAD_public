@@ -254,12 +254,12 @@ IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
 	@echo " "
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h \
-    IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h\
+    IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h OFiles.h\
 	IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
-IonWake_100_integrate.o: IonWake_100_integrate.cu IonWake_100_integrate.h
+IonWake_100_integrate.o: IonWake_100_integrate.cu IonWake_100_integrate.h OFile.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
@@ -275,7 +275,7 @@ IonWake_103_dustAcc.o: IonWake_103_dustAcc.cu IonWake_103_dustAcc.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "		
 	
-IonWake_105_ionColl.o: IonWake_105_ionColl.cu IonWake_105_ionColl.h 
+IonWake_105_ionColl.o: IonWake_105_ionColl.cu IonWake_105_ionColl.h OFile.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "			
 	

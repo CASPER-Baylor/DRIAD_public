@@ -41,6 +41,7 @@
 	// includes utility functions
 	#include "IonWake_106_Utilities.h"
 	// includes output file handler class 
+	#include "OFiles.h"
 	#include "OFile.h"
 	
     // includes abstractions for CUDA
