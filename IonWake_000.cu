@@ -2066,7 +2066,7 @@ int main(int argc, char* argv[])
 				accDust[j].z += q_div_m * acc;
 
 				// laser push on lower particle
-				if(dust_time > 0.30 & dust_time < 0.36 & j==1) {
+				if(dust_time > 0.15 & dust_time < 0.20 & j==1) {
 					accDust[j].x -= 0.5;
 				}
 
