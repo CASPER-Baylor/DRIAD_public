@@ -319,7 +319,7 @@ int main(int argc, char* argv[])
 	const float FREQ = params[28];
 	const float E_FIELD = params[29];
 	const float OMEGA1 = params[30];
-	const float OMEGA2 = params[31];
+	const float E_MULT = params[31];
 	const float RADIAL_CONF = params[32];
 	const float AXIAL_CONF = params[33];
 	const int	N_IONDT_PER_DUSTDT = params[34];
@@ -538,7 +538,7 @@ int main(int argc, char* argv[])
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
 		<< "OMEGA1			  " << OMEGA1			 << '\n'
-		<< "OMEGA2			  " << OMEGA2			 << '\n'
+		<< "E_MULT			  " << E_MULT			 << '\n'
 		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
 		<< "AXIAL_CONF		  "	<< AXIAL_CONF		 << '\n'
 		<< "N_IONDT_PER_DUSTDT" << N_IONDT_PER_DUSTDT << '\n'
@@ -587,7 +587,7 @@ int main(int argc, char* argv[])
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
 		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
 		<< "OMEGA1			  " << OMEGA1			 << '\n'
-		<< "OMEGA2			  " << OMEGA2			 << '\n'
+		<< "E_MULT			  " << E_MULT			 << '\n'
 		<< "BETA			  " << BETA				 << '\n' 
 		<< "SIGMA			  " << SIGMA			 << '\n'
 		<< "RESX			  " << RESX				 << '\n'
@@ -643,7 +643,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
 	<< std::setw(14) << OMEGA1			  << " % OMEGA1"            << '\n'
-	<< std::setw(14) << OMEGA2			  << " % OMEGA2"            << '\n'
+	<< std::setw(14) << E_MULT			  << " % E_MULT"            << '\n'
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
@@ -2024,9 +2024,10 @@ int main(int argc, char* argv[])
 				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
 				//accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
 				//Radial position of dust
-				rhoDustsq = posDust[j].x * posDust[j].x +
-							   posDust[j].y * posDust[j].y;
-				acc = dynCharge[j]/MASS_DUST*(OMEGA1 + OMEGA2 * rhoDustsq);
+			//	rhoDustsq = posDust[j].x * posDust[j].x +
+			//				   posDust[j].y * posDust[j].y;
+			//  acc = dynCharge[j]/MASS_DUST*(OMEGA1 + OMEGA2 * rhoDustsq);
+				acc = dynCharge[j]/MASS_DUST*OMEGA1;
 				accDust[j].x += acc * posDust[j].x;
 				accDust[j].y += acc * posDust[j].y;
 				// Big accel to keep dust from leaving sides of cylinder
@@ -2063,7 +2064,8 @@ int main(int argc, char* argv[])
 				ht2 = ht*ht;
 				acc = -8083 + 553373*ht + 2.0e8*ht2 -
 					3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
-				accDust[j].z += q_div_m * acc;
+				// Multiple by E_MULT to change steepness as power changes
+				accDust[j].z += q_div_m * acc * E_MULT;
 
 				// laser push on lower particle
 				if(dust_time > 0.15 & dust_time < 0.20 & j==1) {
