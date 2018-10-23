@@ -828,7 +828,7 @@ void initInjectIonSphere_101(
 		float* d_VCOM,
 		float* d_GCOM,
 		const bool debugMode,
-		std::ostream& fileName){ 
+		OFile& fileName){ 
 	
 	// allocate memory to create the matrices on the host
 	float* Qcom = new float[NUM_DIV_QTH];
@@ -927,19 +927,19 @@ void initInjectIonSphere_101(
 	
 	if (debugMode){
 		
-		fileName << "--- Qcom ---" << std::endl;
+		fileName << "--- Qcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_QTH; i++){
-			fileName << Qcom[i] << ";..." << std::endl;		
+			fileName << Qcom[i] << ";..." << '\n';		
 		}
-		fileName << std::endl;
+		fileName << '\n';
 		
-		fileName << "--- Vcom ---" << std::endl;
+		fileName << "--- Vcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_VEL; i++){
-			fileName << Vcom[i] << std::endl;
+			fileName << Vcom[i] << '\n';
 		}
-		fileName << std::endl;
+		fileName << '\n';
 		
-		fileName << "--- Gcom ---" << std::endl;
+		fileName << "--- Gcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_QTH; i++){
 			for (int j = 0; j < NUM_DIV_VEL; j++){
 				
@@ -951,7 +951,7 @@ void initInjectIonSphere_101(
 				
 				fileName << "  ";
 			}
-			fileName << std::endl;
+			fileName << '\n';
 		}
 	} 
 	
@@ -1032,7 +1032,7 @@ void initInjectIonCylinder_101(
 		float* d_VCOM,
 		float* d_GCOM,
 		const bool debugMode,
-		std::ostream& fileName){ 
+		OFile& fileName){ 
 	
 	// allocate memory to create the matrices on the host
 	float* Qcom = new float[NUM_DIV_QTH];
@@ -1143,19 +1143,19 @@ void initInjectIonCylinder_101(
 	
 	if (debugMode){
 		
-		fileName << "--- Qcom ---" << std::endl;
+		fileName << "--- Qcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_QTH; i++){
-			fileName << Qcom[i] << ";..." << std::endl;		
+			fileName << Qcom[i] << ";..." << '\n';		
 		}
-		fileName << std::endl;
+		fileName << '\n';
 		
-		fileName << "--- Vcom ---" << std::endl;
+		fileName << "--- Vcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_VEL; i++){
-			fileName << Vcom[i] << std::endl;
+			fileName << Vcom[i] << '\n';
 		}
-		fileName << std::endl;
+		fileName << '\n';
 		
-		fileName << "--- Gcom ---" << std::endl;
+		fileName << "--- Gcom ---" << '\n';
 		for (int i = 0; i < NUM_DIV_QTH; i++){
 			for (int j = 0; j < NUM_DIV_VEL; j++){
 				
@@ -1167,7 +1167,7 @@ void initInjectIonCylinder_101(
 				
 				fileName << "  ";
 			}
-			fileName << std::endl;
+			fileName << '\n';
 		}
 	} 
 	

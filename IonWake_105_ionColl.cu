@@ -58,7 +58,7 @@ void setIonCrossSection_105
         float* sigma_i_tot, 
         float* tot_ion_coll_freq,
 		const bool debugMode,
-		std::ostream& fileName) {
+		OFile& fileName) {
 		 
 	const float depsilon_i 	= 0.001;
 	const float ev_to_j = 1.602e-19;
@@ -121,7 +121,7 @@ void setIonCrossSection_105
 	//fileName << "----- Collision Cross Sections -----" << std::endl;
 	for (int i = 0; i < n; i++) {
 		fileName << en_v[i] << ", " << cs1_v[i] << ", "
-			<< cs2_v[i] << std::endl;
+			<< cs2_v[i] << '\n';
 	}
 	
 	// Interpolate for fine divisions in energy scale
@@ -170,15 +170,15 @@ void setIonCrossSection_105
   	*tot_ion_coll_freq = nu_max; 
 
 	if (debugMode) {
-		fileName << "--- 1st 20 Interpolated Cross Sections ---" << std::endl;
+		fileName << "--- 1st 20 Interpolated Cross Sections ---" << '\n';
 		for (int i = 0; i < 20; i++) {
 			fileName << sigma_i1[i] << ", " << sigma_i2[i] << ", "
-				<< sigma_i_tot[i] << std::endl;
+				<< sigma_i_tot[i] << '\n';
 		}
-		fileName << "--- Last 20 Interpolated Cross Sections ---" << std::endl;
+		fileName << "--- Last 20 Interpolated Cross Sections ---" << '\n';
 		for (int i = (i_cs_ranges - 20); i < i_cs_ranges; i++) {
 			fileName << sigma_i1[i] << ", " << sigma_i2[i] << ", "
-				<< sigma_i_tot[i] << std::endl;
+				<< sigma_i_tot[i] << '\n';
 		}
 	}
 } 

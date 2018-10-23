@@ -131,6 +131,15 @@
 	*	stderr
 	*/
 	#include <cstdio>
+
+	/*
+ 	* Required By:
+ 	* 	initInjectIonSphere_101()
+ 	* 	initInjecyIonCylinder_101()
+ 	* For:
+ 	* 	OFile 	
+  	*/
+	#include "OFile.h"
 	
 	/*
 	* Required By:
@@ -523,7 +532,7 @@ __global__ void injectIonCylinder_101(
 		float*,
 		float*,
 		const bool,
-		std::ostream&);
+		OFile&);
 
 /*
 * Name: initInjectIonCylinder_101
@@ -595,7 +604,7 @@ void initInjectIonCylinder_101(
                 float* ,
                 float* ,
                 const bool ,
-                std::ostream&);
+                OFile&);
 
 		
 	/*

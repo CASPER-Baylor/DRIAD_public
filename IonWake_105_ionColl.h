@@ -49,6 +49,8 @@
 //time
 #include <time.h>
 
+#include "OFile.h"
+
 //for std::vector
 //#include <vector>
 
@@ -92,7 +94,7 @@ void setIonCrossSection_105
         float*, 
         float*,
 		const bool, 
-		std::ostream&) ;
+		OFile&) ;
 		 
 
 /*

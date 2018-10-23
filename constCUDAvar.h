@@ -42,7 +42,14 @@
     *   handeling CUDA errors
     */
     #include "CUDAerr.h"
-    
+ 
+/*
+ *  An exception type for when the value of a constCUDAvar is edited
+ */
+class ConstCUDAvarChanged 
+{
+};
+   
 	/*
 	* Name: constCUDAvar
 	*
@@ -271,6 +278,9 @@
     */
     template <class Type>
     constCUDAvar<Type>::~constCUDAvar(){
+		// check that the value of the constCUDAvar was not changed
+		if( !(this->compare()) ) throw( ConstCUDAvarChanged() );
+
         cudaFree(devPtr);
     }
     

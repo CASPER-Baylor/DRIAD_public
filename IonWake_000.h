@@ -40,6 +40,10 @@
 	#include "IonWake_105_ionColl.h"
 	// includes utility functions
 	#include "IonWake_106_Utilities.h"
+	// includes file handler classes 
+	#include "OFiles.h"
+	#include "OFile.h"
+	#include "IFile.h"	
 
     // includes abstractions for CUDA
     #include "CUDAvar.h"
