@@ -1891,7 +1891,8 @@ int main(int argc, char* argv[])
 				simCharge[k] = 0.95 * simCharge[k] 
 					+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
-				dynCharge[k] = simCharge[k] + adj_q;
+				//dynCharge[k] = simCharge[k] + adj_q;
+				dynCharge[k] = simCharge[k];
 
 				//reset the tempCharge to zero
 				tempCharge[k] = 0;
