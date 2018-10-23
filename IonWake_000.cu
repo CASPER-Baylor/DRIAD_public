@@ -2017,9 +2017,13 @@ int main(int argc, char* argv[])
 				//Radial position of dust
 				rhoDustsq = posDust[j].x * posDust[j].x +
 							   posDust[j].y * posDust[j].y;
-				acc = dynCharge[j]/MASS_DUST*(OMEGA1 + OMEGA2 * rhoDustsq);
+
+				rhoDust = sqrt(rhoDustsq);
+				if(rhoDust > 0.5*RAD_CYL) {
+				acc = dynCharge[j]/MASS_DUST*OMEGA1 *(rhoDust-0.5*RAD_CYL);
 				accDust[j].x += acc * posDust[j].x;
 				accDust[j].y += acc * posDust[j].y;
+				}
 				// Big accel to keep dust from leaving sides of cylinder
 				rhoDust = sqrt(rhoDustsq);
 				if(rhoDust > radialConfine) {
