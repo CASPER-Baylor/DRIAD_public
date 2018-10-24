@@ -2,3 +2,5 @@ in
 build
 *.swp
 *.o
+*doc/*
+
