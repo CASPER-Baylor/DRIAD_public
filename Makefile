@@ -176,7 +176,7 @@ ifneq ($(TARGET_ARCH),$(HOST_ARCH))
             LDFLAGS += --sysroot=$(TARGET_FS)
             LDFLAGS += -rpath-link=$(TARGET_FS)/lib
             LDFLAGS += -rpath-link=$(TARGET_FS)/usr/lib
-            LDFLAGS += -rpath-link=$(TARGET_FS)/usr/lib/arm-linux-gnueabihf
+        	LDFLAS += -rpath-link=$(TARGET_FS)/usr/lib/arm-linux-gnueabif
         endif
     endif
 endif
@@ -249,13 +249,14 @@ endif
 
 IonWake_EXE: IonWake_000.o IonWake_100_integrate.o IonWake_101_bounds.o \
     IonWake_102_ionAcc.o IonWake_103_dustAcc.o IonWake_105_ionColl.o \
-	IonWake_106_Utilities.o 
+	IonWake_106_Utilities.o FunctionTable.o FunctionGenerators.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES) -Wno-deprecated-gpu-targets
 	@echo " "
 
 IonWake_000.o: IonWake_000.cu IonWake_100_integrate.h IonWake_101_bounds.h \
     IonWake_102_ionAcc.h IonWake_105_ionColl.h OFile.h OFiles.h IFile.h\
-	IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h
+	IonWake_106_Utilities.h CUDAvar.h constCUDAvar.h CUDAerr.h ErrorBase.h \
+	FunctionTable.h FunctionGenerators.h
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "
 	
@@ -282,6 +283,12 @@ IonWake_105_ionColl.o: IonWake_105_ionColl.cu IonWake_105_ionColl.h OFile.h
 IonWake_106_Utilities.o: IonWake_106_Utilities.cpp IonWake_106_Utilities.h 
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	@echo " "			
+
+FunctionGenerators.o: FunctionGenerators.cpp FunctionGenerators.h
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
+
+FunctionTable.o: FunctionTable.cpp FunctionTable.h
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -Wno-deprecated-gpu-targets
 	
 #	$(EXEC) mkdir -p ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 #	$(EXEC) cp $@ ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)

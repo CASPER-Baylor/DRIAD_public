@@ -44,6 +44,9 @@
 	#include "OFiles.h"
 	#include "OFile.h"
 	#include "IFile.h"	
+	// includes files for FunctionGenerators 
+	#include "FunctionGenerators.h"
+	#include "FunctionTable.h"
 
     // includes abstractions for CUDA
     #include "CUDAvar.h"
