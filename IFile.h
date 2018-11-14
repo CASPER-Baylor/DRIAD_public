@@ -8,40 +8,42 @@ public:
 
     IFile( std::string fileName )
     {    
-        std::ifstream file(fileName.c_str());
+        file = new std::ifstream;
+		file->open(fileName.c_str());
         assert( file );
     }    
 
     ~IFile()
     {    
-        file.close();
+        file->close();
+		delete file;
     }    
 
     template< typename T >  
     IFile& operator>>( T& rhs )
     {    
-        file >> rhs; 
+        *file >> rhs; 
         return *this;
     }    
 
     bool getline( std::string line ) 
     {    
-        return  std::getline(file, line);
+        return  std::getline(*file, line);
     }    
 
     void clear() 
     {    
-        file.clear();
+        file->clear();
     }    
 
     void reset()
     {    
-        file.seekg(0, std::ios::beg);
+        file->seekg(0, std::ios::beg);
     }    
 
 private:
 
-    std::ifstream file;
+    std::ifstream* file;
 
 };
 
