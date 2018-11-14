@@ -146,7 +146,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 38;
+	const int NUM_USER_PARAMS = 39;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -170,40 +170,41 @@ int main(int argc, char* argv[])
 	const float DEN_FAR_PLASMA = params[1];
 	const float TEMP_ELC = params[2];
 	const float TEMP_ION = params[3];
-	const short DEN_DUST = params[4];
-	const float MASS_SINGLE_ION = params[5];
-	const float MACH = params[6];
-	const float SOFT_RAD = params[7];
-	const float RAD_DUST = params[8];
-	const float M_FACTOR = params[9];
-	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
-	const float ION_TIME_STEP = params[11];
-	const int   NUM_TIME_STEP = params[12];
-	const int  GEOMETRY = params[13]; 
-	const float RAD_SIM_DEBYE = params[14];
-	const int   NUM_DIV_VEL = params[15];
-	const int   NUM_DIV_QTH = params[16];
-  	const float RAD_CYL_DEBYE = params[17];
-	const float HT_CYL_DEBYE = params[18];
-	const float P10X = params[19];
-	const float P12X = params[20];
-	const float P14X = params[21];
-	const float P01Z = params[22];
-	const float P21Z = params[23];
-	const float P03Z = params[24];
-	const float P23Z = params[25];
-	const float P05Z = params[26];
-	const float PRESSURE = params[27];
-	const float FREQ = params[28];
-	const float E_FIELD = params[29];
-	const float OMEGA1 = params[30];
-	const float OMEGA2 = params[31];
-	const float RADIAL_CONF = params[32];
-	const float AXIAL_CONF = params[33];
-	const int	N_IONDT_PER_DUSTDT = params[34];
-	const float GRID_FACTOR = params[35];
-	const float GAS_TYPE = params[36];
-    const float BOX_CENTER = params[37];
+	const float TEMP_GAS = params[4];
+	const short DEN_DUST = params[5];
+	const float MASS_SINGLE_ION = params[6];
+	const float MACH = params[7];
+	const float SOFT_RAD = params[8];
+	const float RAD_DUST = params[9];
+	const float M_FACTOR = params[10];
+	const float CHARGE_SINGLE_ION = params[11] * CHARGE_ELC;
+	const float ION_TIME_STEP = params[12];
+	const int   NUM_TIME_STEP = params[13];
+	const int  GEOMETRY = params[14]; 
+	const float RAD_SIM_DEBYE = params[15];
+	const int   NUM_DIV_VEL = params[16];
+	const int   NUM_DIV_QTH = params[17];
+  	const float RAD_CYL_DEBYE = params[18];
+	const float HT_CYL_DEBYE = params[19];
+	const float P10X = params[20];
+	const float P12X = params[21];
+	const float P14X = params[22];
+	const float P01Z = params[23];
+	const float P21Z = params[24];
+	const float P03Z = params[25];
+	const float P23Z = params[26];
+	const float P05Z = params[27];
+	const float PRESSURE = params[28];
+	const float FREQ = params[29];
+	const float E_FIELD = params[30];
+	const float OMEGA1 = params[31];
+	const float OMEGA2 = params[32];
+	const float RADIAL_CONF = params[33];
+	const float AXIAL_CONF = params[34];
+	const int	N_IONDT_PER_DUSTDT = params[35];
+	const float GRID_FACTOR = params[36];
+	const float GAS_TYPE = params[37];
+    const float BOX_CENTER = params[38];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -315,7 +316,7 @@ int main(int argc, char* argv[])
 	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
-	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
+	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
 	
 	// allocate memory for the collision cross sections
 	typedef float i_cross_section [I_CS_RANGES+1];
@@ -346,7 +347,7 @@ int main(int argc, char* argv[])
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	// Damping factor for dust
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_GAS);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
@@ -371,7 +372,7 @@ int main(int argc, char* argv[])
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
-	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
+	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
@@ -387,6 +388,7 @@ int main(int argc, char* argv[])
 		<< "DEN_FAR_PLASMA    " << DEN_FAR_PLASMA    << '\n'
 		<< "TEMP_ELC          " << TEMP_ELC          << '\n'
 		<< "TEMP_ION          " << TEMP_ION          << '\n'
+		<< "TEMP_GAS          " << TEMP_GAS          << '\n'
 		<< "DEN_DUST          " << DEN_DUST          << '\n'
 		<< "MASS_SINGLE_ION   " << MASS_SINGLE_ION   << '\n'
 		<< "MACH              " << MACH              << '\n'
@@ -486,6 +488,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << DEN_FAR_PLASMA    << " % DEN_FAR_PLASMA"    << '\n'
 	<< std::setw(14) << TEMP_ELC          << " % TEMP_ELC"          << '\n'
 	<< std::setw(14) << TEMP_ION          << " % TEMP_ION"          << '\n'
+	<< std::setw(14) << TEMP_GAS          << " % TEMP_GAS"          << '\n'
 	<< std::setw(14) << DEN_DUST          << " % DEN_DUST"          << '\n'
 	<< std::setw(14) << MASS_SINGLE_ION   << " % MASS_SINGLE_ION"   << '\n'
 	<< std::setw(14) << MACH              << " % MACH"              << '\n'
@@ -1077,6 +1080,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
 	constCUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
+	constCUDAvar<float> d_TEMP_GAS(&TEMP_GAS, 1);
 	constCUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
 	constCUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
 	constCUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
@@ -1710,7 +1714,7 @@ int main(int argc, char* argv[])
 		
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_collList.getDevPtr(),
-			d_TEMP_ION.getDevPtr(),
+			d_TEMP_GAS.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_I_CS_RANGES.getDevPtr(),

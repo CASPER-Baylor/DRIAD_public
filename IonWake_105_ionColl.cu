@@ -202,7 +202,7 @@ void setIonCrossSection_105
 * 	tot_ion_coll_freq
 *	TIME_STEP = dt_i: ion time step
 *	velIon
-*	TEMP_ION
+*	TEMP_GAS
 *	MASS_SINGLE_ION
 *	sigma_i1: isotropic scattering cross section
 *	sigma_i2: charge exchange cross section
@@ -215,7 +215,7 @@ void setIonCrossSection_105
 
 __global__ void ionCollisions_105 
 	(int* d_collList,
-	float* const d_TEMP_ION,
+	float* const d_TEMP_GAS,
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
 	int* const i_cs_ranges,
@@ -266,7 +266,7 @@ __global__ void ionCollisions_105
 		randNum = curand_uniform(&randStates[threadID]) * 2.0 - 1.0;
   		vz_a = errorFn_inv(randNum);
 	  }
-	  dum = sqrt(2.0 * *d_BOLTZMANN * *d_TEMP_ION/ *d_MASS_SINGLE_ION);
+	  dum = sqrt(2.0 * *d_BOLTZMANN * *d_TEMP_GAS/ *d_MASS_SINGLE_ION);
 	  vx_a *= dum;
 	  vy_a *= dum;
 	  vz_a *= dum;
