@@ -1909,7 +1909,7 @@ int main(int argc, char* argv[])
 				//}
 				// Big accel to keep dust from leaving sides of cylinder
 				if(rhoDust > radialConfine) {
-					acc = OMEGA_DIV_M * 100.0 * dynCharge[j] 
+					acc = OMEGA2 / MASS_DUST * dynCharge[j] 
 						* (rhoDust - radialConfine) / rhoDust;
 					accDust[j].x += acc * posDust[j].x;
 					accDust[j].y += acc * posDust[j].y;
@@ -1922,7 +1922,7 @@ int main(int argc, char* argv[])
 					} else {
 						adj_z = posDust[j].z + axialConfine;
 					}	
-					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
+					accDust[j].z += OMEGA2 / MASS_DUST * dynCharge[j] * adj_z;
 				}
 				
 				//polarity switching
