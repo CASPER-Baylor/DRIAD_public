@@ -2020,19 +2020,20 @@ int main(int argc, char* argv[])
 							   posDust[j].y * posDust[j].y;
 
 				rhoDust = sqrt(rhoDustsq);
-				if(rhoDust > 0.5*RAD_CYL) {
-				acc = dynCharge[j]/MASS_DUST*OMEGA2 *(rhoDust-0.5*RAD_CYL);
+				if(rhoDust > radialConfine) {
+				acc = dynCharge[j]/MASS_DUST*OMEGA2 
+						*(rhoDust-radialConfine) / rhoDust;
 				accDust[j].x += acc * posDust[j].x;
 				accDust[j].y += acc * posDust[j].y;
 				}
 				// Big accel to keep dust from leaving sides of cylinder
-				rhoDust = sqrt(rhoDustsq);
-				if(rhoDust > radialConfine) {
-					acc = OMEGA_DIV_M * 100.0 * dynCharge[j] 
-						* (rhoDust - radialConfine) / rhoDust;
-					accDust[j].x += acc * posDust[j].x;
-					accDust[j].y += acc * posDust[j].y;
-				}
+				//rhoDust = sqrt(rhoDustsq);
+				//if(rhoDust > radialConfine) {
+			//		acc = OMEGA_DIV_M * 100.0 * dynCharge[j] 
+			//			* (rhoDust - radialConfine) / rhoDust;
+			//		accDust[j].x += acc * posDust[j].x;
+			//		accDust[j].y += acc * posDust[j].y;
+			//	}
 				
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
