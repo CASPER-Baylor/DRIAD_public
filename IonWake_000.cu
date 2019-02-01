@@ -437,7 +437,8 @@ int main(int argc, char* argv[])
 	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
-	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
+	float TEMP_GAS = 300;
+	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
 	
 	// allocate memory for the collision cross sections
 	typedef float i_cross_section [I_CS_RANGES+1];
@@ -468,7 +469,7 @@ int main(int argc, char* argv[])
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	// Damping factor for dust
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_ION);
+		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_GAS);
 	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
@@ -493,7 +494,7 @@ int main(int argc, char* argv[])
     //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
 	//Thermal bath or Brownian motion of dust
-	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_ION/MASS_DUST/dust_dt);
+	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
 
 		// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
@@ -1199,6 +1200,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
 	constCUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
+	constCUDAvar<float> d_TEMP_GAS(&TEMP_GAS, 1);
 	constCUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
 	constCUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
 	constCUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
@@ -1832,7 +1834,7 @@ int main(int argc, char* argv[])
 		
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
 			(d_collList.getDevPtr(),
-			d_TEMP_ION.getDevPtr(),
+			d_TEMP_GAS.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_I_CS_RANGES.getDevPtr(),
@@ -1977,7 +1979,7 @@ int main(int argc, char* argv[])
 
 				// forces between the dust grains
 				for(int g = j+1; g < NUM_DUST; g++) {
-        			// calculate the distance between dust grain j
+       			// calculate the distance between dust grain j
 					//and all other grains
 					distdd.x = posDust[j].x - posDust[g].x;
 					distdd.y = posDust[j].y - posDust[g].y;
@@ -2026,6 +2028,14 @@ int main(int argc, char* argv[])
 				accDust[j].x += acc * posDust[j].x;
 				accDust[j].y += acc * posDust[j].y;
 				}
+				//print this acceleration to the trace file
+				//dustTraceFile << "confinement acceleration  ";
+				//dustTraceFile << posDust[j].x << ", " << accDust[j].x;
+				//dustTraceFile << ", " << posDust[j].y << ", " 
+				//	<< accDust[j].y;
+				//dustTraceFile << ", " << posDust[j].y << ", " 
+				//	<< accDust[j].z << "\n";
+
 				// Big accel to keep dust from leaving sides of cylinder
 				//rhoDust = sqrt(rhoDustsq);
 				//if(rhoDust > radialConfine) {
@@ -2034,48 +2044,48 @@ int main(int argc, char* argv[])
 			//		accDust[j].x += acc * posDust[j].x;
 			//		accDust[j].y += acc * posDust[j].y;
 			//	}
-				
+			
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
 					if(posDust[j].z > 0) {
 						adj_z = posDust[j].z - axialConfine;
 					} else {
-						adj_z = posDust[j].z + axialConfine;
+					adj_z = posDust[j].z + axialConfine;
 					}	
 					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
 				}
 				
 				//polarity switching
 				q_div_m = (dynCharge[j]) / MASS_DUST;
-				//q_div_m = (chargeDust[j] ) / MASS_DUST;
+			//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
-				*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
+			 *(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
 				// forces for sheath above lower electrode
 				// force due to gravity
 				//accDust[j].z -= 9.81;
 	
-				// electric field -- adjust pos.z for ht above lower electr.
+				// sheath -- adjust pos.z for ht above lower electr.
                 //ht = posDust[j].z + BOX_CENTER;
                 //ht2 = ht*ht;
                 //acc = -8083 + 553373*ht + 2.0e8*ht2 -
-                //   3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+                //3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
                 //accDust[j].z += q_div_m * acc;
 
 				// CAREFUL: outside ion forces destabilize dust
 				// forces from ions outside simulation region
-				rad = sqrt(posDust[j].x * posDust[j].x +
-							posDust[j].y * posDust[j].y);
-				zsq = posDust[j].z * posDust[j].z;
-				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-				vertAcc = P01Z * posDust[j].z +
-						  P21Z * rad * rad * posDust[j].z +
-						  P03Z * posDust[j].z * zsq +
-						  P23Z * rad * rad * posDust[j].z * zsq +
-						  P05Z * posDust[j].z * zsq * zsq;
-				accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				accDust[j].z += vertAcc * q_div_m;
+				//rad = sqrt(posDust[j].x * posDust[j].x +
+				//			posDust[j].y * posDust[j].y);
+				//zsq = posDust[j].z * posDust[j].z;
+				//radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+				//vertAcc = P01Z * posDust[j].z +
+			//			  P21Z * rad * rad * posDust[j].z +
+			//			  P03Z * posDust[j].z * zsq +
+			//			  P23Z * rad * rad * posDust[j].z * zsq +
+			//			  P05Z * posDust[j].z * zsq * zsq;
+			//	accDust[j].x += posDust[j].x * radAcc * q_div_m;
+			//	accDust[j].y += posDust[j].y * radAcc * q_div_m;
+			//	accDust[j].z += vertAcc * q_div_m;
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
