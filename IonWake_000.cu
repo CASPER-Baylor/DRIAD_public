@@ -2015,8 +2015,10 @@ int main(int argc, char* argv[])
 						
 				// calculate acceleration of the dust
 				//radial acceleration from confinement
-				accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
-				accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
+				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
+				////accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
+				accDust[j].x += OMEGA_DIV_M * dynCharge[j] * posDust[j].x;
+				accDust[j].y += OMEGA_DIV_M * dynCharge[j] * posDust[j].y;
 				//Radial position of dust
 				rhoDustsq = posDust[j].x * posDust[j].x +
 							   posDust[j].y * posDust[j].y;
