@@ -786,6 +786,7 @@ int main(int argc, char* argv[])
 			// check if the grain is out of the simulation cylinder
 			if (tempDist > RAD_CYL_SQRD || abs(posDust[i].z) > HT_CYL) {
 				fprintf(stderr, "ERROR: Dust out of simulation\n");
+				fprintf(stderr, "Dust grain %i pos %3.2e %3.2e %3.2e \n", i,posDust[i].x, posDust[i].y, posDust[i].z);
 				fatalError();
 			}
 		}
