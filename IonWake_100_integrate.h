@@ -372,6 +372,7 @@ __device__ void checkIonCylinderBounds_101_dev(
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
 *	d_posDust: the dust particle positions
+*	posIon2: ion's old position
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
@@ -388,7 +389,8 @@ __device__ void checkIonDustBounds_101_dev(
 		int*,
 		const float*,
 		const int*,
-		float3* const);
+		float3* const,
+		float3 const);
 /*
 * Name: calcIonDustAcc_102_dev
 * Created: 3/20/2018
