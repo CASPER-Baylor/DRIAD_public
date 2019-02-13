@@ -680,7 +680,7 @@ int main(int argc, char* argv[])
 	// pointer for dust charges;
 	float* chargeDust = NULL;
 	float* tempCharge = NULL; 
-	float* dynCharge = NULL; 
+	//float* dynCharge = NULL; 
 	float* simCharge = NULL; 
 
 	// counts the number of dust particles
@@ -714,7 +714,7 @@ int main(int argc, char* argv[])
 		posDust = (float3*)malloc(memFloat3Dust);
 		chargeDust = (float*)malloc(memFloatDust);
 		tempCharge = (float*)malloc(memFloatDust); 
-		dynCharge = (float*)malloc(memFloatDust); 
+		//dynCharge = (float*)malloc(memFloatDust); 
 		simCharge = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
@@ -754,7 +754,7 @@ int main(int argc, char* argv[])
 		posDust[i].z *= DEBYE;
 		chargeDust[i] *= CHARGE_ELC;
 		tempCharge[i] = 0;
-		dynCharge[i] = 0;
+		//dynCharge[i] = 0;
 		simCharge[i] = chargeDust[i];
 	}
 
@@ -1895,12 +1895,12 @@ int main(int argc, char* argv[])
 					+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
 				//dynCharge[k] = simCharge[k] + adj_q;
-				dynCharge[k] = simCharge[k];
+				//dynCharge[k] = simCharge[k];
 
 				//reset the tempCharge to zero
 				tempCharge[k] = 0;
 
-				dustChargeFile << dynCharge[k] << ", ";
+				dustChargeFile << simCharge[k] << ", ";
 				//dustChargeFile << chargeDust[k] << ", ";
 			}
 			
@@ -1993,8 +1993,8 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					linForce=DUST_DUST_ACC_MULT*(dynCharge[j]) 
-						* (dynCharge[g]) / (dist*dist*dist)
+					linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
+						* (simCharge[g]) / (dist*dist*dist)
 						* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
 					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
 					//	* (chargeDust[g]) / (dist*dist*dist);
@@ -2018,15 +2018,15 @@ int main(int argc, char* argv[])
 				//radial acceleration from confinement
 				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
 				////accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
-				accDust[j].x += OMEGA_DIV_M * dynCharge[j] * posDust[j].x;
-				accDust[j].y += OMEGA_DIV_M * dynCharge[j] * posDust[j].y;
+				accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
+				accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
 				//Radial position of dust
 				rhoDustsq = posDust[j].x * posDust[j].x +
 							   posDust[j].y * posDust[j].y;
 
 				rhoDust = sqrt(rhoDustsq);
 				if(rhoDust > radialConfine) {
-				acc = dynCharge[j]/MASS_DUST*OMEGA2 
+				acc = simCharge[j]/MASS_DUST*OMEGA2 
 						*(rhoDust-radialConfine) / rhoDust;
 				accDust[j].x += acc * posDust[j].x;
 				accDust[j].y += acc * posDust[j].y;
@@ -2042,7 +2042,7 @@ int main(int argc, char* argv[])
 				// Big accel to keep dust from leaving sides of cylinder
 				//rhoDust = sqrt(rhoDustsq);
 				//if(rhoDust > radialConfine) {
-			//		acc = OMEGA_DIV_M * 100.0 * dynCharge[j] 
+			//		acc = OMEGA_DIV_M * 100.0 * simCharge[j] 
 			//			* (rhoDust - radialConfine) / rhoDust;
 			//		accDust[j].x += acc * posDust[j].x;
 			//		accDust[j].y += acc * posDust[j].y;
@@ -2055,11 +2055,11 @@ int main(int argc, char* argv[])
 					} else {
 					adj_z = posDust[j].z + axialConfine;
 					}	
-					accDust[j].z += OMEGA_DIV_M*100.0* dynCharge[j] * adj_z;
+					accDust[j].z += OMEGA_DIV_M*100.0* simCharge[j] * adj_z;
 				}
 				
 				//polarity switching
-				q_div_m = (dynCharge[j]) / MASS_DUST;
+				q_div_m = (simCharge[j]) / MASS_DUST;
 			//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
 			 *(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
@@ -2350,7 +2350,7 @@ int main(int argc, char* argv[])
 	free(accDust2);
 	free(chargeDust);
 	free(tempCharge);
-	free(dynCharge);
+	free(simCharge);
 	free(commands);
 	free(posIon);
 	free(velIon);
