@@ -2075,20 +2075,19 @@ int main(int argc, char* argv[])
                 //3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
                 //accDust[j].z += q_div_m * acc;
 
-				// CAREFUL: outside ion forces destabilize dust
 				// forces from ions outside simulation region
-				//rad = sqrt(posDust[j].x * posDust[j].x +
-				//			posDust[j].y * posDust[j].y);
-				//zsq = posDust[j].z * posDust[j].z;
-				//radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-				//vertAcc = P01Z * posDust[j].z +
-			//			  P21Z * rad * rad * posDust[j].z +
-			//			  P03Z * posDust[j].z * zsq +
-			//			  P23Z * rad * rad * posDust[j].z * zsq +
-			//			  P05Z * posDust[j].z * zsq * zsq;
-			//	accDust[j].x += posDust[j].x * radAcc * q_div_m;
-			//	accDust[j].y += posDust[j].y * radAcc * q_div_m;
-			//	accDust[j].z += vertAcc * q_div_m;
+				rad = sqrt(posDust[j].x * posDust[j].x +
+							posDust[j].y * posDust[j].y);
+				zsq = posDust[j].z * posDust[j].z;
+				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+				vertAcc = P01Z * posDust[j].z +
+						  P21Z * rad * rad * posDust[j].z +
+						  P03Z * posDust[j].z * zsq +
+						  P23Z * rad * rad * posDust[j].z * zsq +
+						  P05Z * posDust[j].z * zsq * zsq;
+				accDust[j].x += posDust[j].x * radAcc * q_div_m;
+				accDust[j].y += posDust[j].y * radAcc * q_div_m;
+				accDust[j].z += vertAcc * q_div_m;
 
 				// drag force
 				accDust[j].x -= BETA*velDust[j].x;
