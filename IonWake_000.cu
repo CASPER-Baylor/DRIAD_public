@@ -1764,8 +1764,8 @@ int main(int argc, char* argv[])
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-					dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST) 
-						- ELC_TEMP_EV;
+					dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST); 
+						//- ELC_TEMP_EV;
 
 						// calculate the electron current to the dust
 						elcCurrent = ELC_CURRENT_0 * ION_TIME_STEP *
@@ -1896,7 +1896,8 @@ int main(int argc, char* argv[])
 				simCharge[k] = 0.95 * simCharge[k] 
 					+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 				//Adjust the charge on dust for dust dynamics
-				dynCharge[k] = simCharge[k] + adj_q;
+				//dynCharge[k] = simCharge[k] + adj_q;
+				dynCharge[k] = simCharge[k];
 
 				//reset the tempCharge to zero
 				tempCharge[k] = 0;
