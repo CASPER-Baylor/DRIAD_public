@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 38;
+	const int NUM_USER_PARAMS = 40;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -326,6 +326,8 @@ int main(int argc, char* argv[])
 	const float GRID_FACTOR = params[35];
 	const float GAS_TYPE = params[36];
 	const float BOX_CENTER = params[37];
+	const float LASER_ON = params[38];
+	const float LASER_OFF = params[39];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -551,6 +553,8 @@ int main(int argc, char* argv[])
 		<< "GAS_TYPE		  " << GAS_TYPE			 << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< "BOX_CENTER		  " << BOX_CENTER		 << '\n'
+		<< "LASER_ON		  " << LASER_ON			 << '\n'
+		<< "LASER_OFF		  " << LASER_OFF		 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -649,6 +653,8 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
 	<< std::setw(14) << GAS_TYPE		  << " % GAS_TYPE"	 		<< '\n'
 	<< std::setw(14) << BOX_CENTER		  << " % BOX_CENTER" 		<< '\n'
+	<< std::setw(14) << LASER_ON          << " % LASER_ON"	 		<< '\n'
+	<< std::setw(14) << LASER_OFF		  << " % LASER_OFF" 		<< '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
 	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
@@ -2069,7 +2075,7 @@ int main(int argc, char* argv[])
 				accDust[j].z += q_div_m * acc * E_MULT;
 
 				// laser push on lower particle
-				if(dust_time > 0.15 & dust_time < 0.20 & j==1) {
+				if(dust_time > LASER_ON & dust_time < LASER_OFF & j==1) {
 					accDust[j].x -= 0.5;
 				}
 
