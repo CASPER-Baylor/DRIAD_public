@@ -69,6 +69,8 @@ void setIonCrossSection_105
 	float cs1_v[n]; 
 	float cs2_v[n];
   
+	fileName << "i_cs_ranges " << i_cs_ranges  << '\n';
+
   	if (gasType == 1) {
 	  //Ne cross sections for isotropic scatt. (cs1) and charge transfer (cs2)
 	  //Ref: Jovanovic, Vrhovac, Petrovic, Eur. Phys. J. D 21, 335-342 (2002) 
@@ -177,7 +179,7 @@ void setIonCrossSection_105
 		}
 		fileName << "--- Last 20 Interpolated Cross Sections ---" << std::endl;
 		for (int i = (i_cs_ranges - 20); i < i_cs_ranges; i++) {
-			fileName << sigma_i1[i] << ", " << sigma_i2[i] << ", "
+			fileName << i << "  " << sigma_i1[i] << ", " << sigma_i2[i] << ", "
 				<< sigma_i_tot[i] << std::endl;
 		}
 	}

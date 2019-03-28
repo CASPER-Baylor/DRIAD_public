@@ -441,6 +441,8 @@ int main(int argc, char* argv[])
 	float totIonCollFreq = 0;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_ION;
 	
+  
+	debugSpecificFile << "I_CS_RANGES " << I_CS_RANGES << '\n';
 	// allocate memory for the collision cross sections
 	typedef float i_cross_section [I_CS_RANGES+1];
 	i_cross_section sigma_i1;
@@ -490,6 +492,8 @@ int main(int argc, char* argv[])
 	float radAcc = 0;
 	float vertAcc = 0;
 	float q_div_m = 0;
+	//const float LASER_ON = 2.00;
+    //const float LASER_OFF = 2.05;
 	//Adjust the dust charge for non-zero plasma potential
 	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
 	//float adj_q = 0;
@@ -1023,7 +1027,7 @@ int main(int argc, char* argv[])
 		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
 
 		//polarity switching
-		accDust[i].z -= chargeDust[i] / MASS_DUST * E_FIELD;
+		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
 		//gravity
 		accDust[i].z -= 9.81;
 	}
@@ -2075,7 +2079,7 @@ int main(int argc, char* argv[])
 				accDust[j].z += q_div_m * acc * E_MULT;
 
 				// laser push on lower particle
-				if(dust_time > LASER_ON & dust_time < LASER_OFF & j==1) {
+				if(dust_time > LASER_ON && dust_time < LASER_OFF && j==1) {
 					accDust[j].x -= 0.5;
 				}
 
