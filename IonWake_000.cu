@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 	*************************/
 
 	// number of user defined parameters
-	const int NUM_USER_PARAMS = 38;
+	const int NUM_USER_PARAMS = 39;
 
 	// allocate memory for user parameters
 	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
@@ -326,6 +326,7 @@ int main(int argc, char* argv[])
 	const float GRID_FACTOR = params[35];
 	const float GAS_TYPE = params[36];
     const float BOX_CENTER = params[37];
+    const float TEMP_GAS = params[38];
 
 	// free memory allocated for user parameters
 	free(params);
@@ -437,7 +438,7 @@ int main(int argc, char* argv[])
 	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
-	float TEMP_GAS = 300;
+	//float TEMP_GAS = 300;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
 	
 	// allocate memory for the collision cross sections
