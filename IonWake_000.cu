@@ -2040,14 +2040,6 @@ int main(int argc, char* argv[])
 				//dustTraceFile << ", " << posDust[j].y << ", " 
 				//	<< accDust[j].z << "\n";
 
-				// Big accel to keep dust from leaving sides of cylinder
-				//rhoDust = sqrt(rhoDustsq);
-				//if(rhoDust > radialConfine) {
-			//		acc = OMEGA_DIV_M * 100.0 * simCharge[j] 
-			//			* (rhoDust - radialConfine) / rhoDust;
-			//		accDust[j].x += acc * posDust[j].x;
-			//		accDust[j].y += acc * posDust[j].y;
-			//	}
 			
 				//axial confinement in z for dust near ends of cylinder	
 				if(abs(posDust[j].z) > axialConfine) {
@@ -2056,12 +2048,12 @@ int main(int argc, char* argv[])
 					} else {
 					adj_z = posDust[j].z + axialConfine;
 					}	
-					accDust[j].z += OMEGA_DIV_M*100.0* simCharge[j] * adj_z;
+					//accDust[j].z += OMEGA_DIV_M*100.0* simCharge[j] * adj_z;
+					accDust[j].z += OMEGA2/MASS_DUST* simCharge[j] * adj_z;
 				}
 				
 				//polarity switching
 				q_div_m = (simCharge[j]) / MASS_DUST;
-			//q_div_m = (chargeDust[j] ) / MASS_DUST;
 				accDust[j].z -= q_div_m * E_FIELD 
 			 *(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
