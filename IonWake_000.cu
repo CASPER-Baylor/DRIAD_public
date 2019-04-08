@@ -2048,7 +2048,7 @@ int main(int argc, char* argv[])
 					} else {
 					adj_z = posDust[j].z + axialConfine;
 					}	
-					//accDust[j].z += OMEGA_DIV_M*100.0* simCharge[j] * adj_z;
+					//accDust[j].z += OMEGA_DIV_M* simCharge[j] * adj_z;
 					accDust[j].z += OMEGA2/MASS_DUST* simCharge[j] * adj_z;
 				}
 				
