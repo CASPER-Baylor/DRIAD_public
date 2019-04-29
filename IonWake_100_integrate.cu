@@ -666,7 +666,7 @@ __device__ void checkIonDustBounds_101_dev(
 				deltaZ * deltaZ;
 
 			// check if the dust particle and ion have collided
-			if (dist < *d_RAD_DUST_SQRD)
+			if (dist < *d_RAD_DUST_SQRD*9)
 			{
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);
