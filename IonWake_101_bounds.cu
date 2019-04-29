@@ -208,6 +208,8 @@ __global__ void checkIonDustBounds_101(
 	
 	// distance
 	float dist;
+	float dustPotential;
+	float coll_radius_sqrd;
 
 	// thread ID 
 	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
@@ -234,8 +236,13 @@ __global__ void checkIonDustBounds_101(
 				deltaY * deltaY +
 				deltaZ * deltaZ;
 
+			//The collection radius is defined by b_c^2 = a(1-2Phi/(m v_s^2)
+			dustPotential = COULOMB_CONST * chargeDust[i]/ RAD_DUST;
+			coll_radius_sqrd = d_RAD_DUST - dustPotential*charEnergy;
+
 			// check if the dust particle and ion have collided
-			if (dist <= *d_RAD_DUST_SQRD) {
+			//if (dist <= *d_RAD_DUST_SQRD) {
+			if (dist <= coll_radius_sqrd) {
 				// flag which dust particle the ion is in
 				d_boundsIon[IDion] = (i + 1);
 			}
