@@ -492,6 +492,11 @@ int main(int argc, char* argv[])
 	float radAcc = 0;
 	float vertAcc = 0;
 	float q_div_m = 0;
+	float3 deltavee;
+	deltavee.x = 0;
+	deltavee.y = 0;
+	deltavee.z = 0;
+	float mom_const = MASS_ION/MASS_DUST*dust_dt/(N_IONDT_PER_DUSTDT*ION_TIME_STEP);
 	//const float LASER_ON = 2.00;
     //const float LASER_OFF = 2.05;
 	//Adjust the dust charge for non-zero plasma potential
@@ -1945,6 +1950,7 @@ int main(int argc, char* argv[])
 			roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 			
 			d_accDustIon.devToHost();
+			d_momIonDust.devToHost();
 					
 			// copy the dust positions to the host
 			d_posDust.devToHost();
@@ -1981,6 +1987,12 @@ int main(int argc, char* argv[])
 				accDust[j].y = 0;
 				accDust[j].z = 0;
 
+				//ion-dust momentum transfer (collection term of ion drag)
+				accDust[j].x = momIonDust[j].x*MASS_ION/MASS_DUST;
+				accDust[j].y = momIonDust[j].y*MASS_ION/MASS_DUST;
+				accDust[j].z = momIonDust[j].z*MASS_ION/MASS_DUST;
+
+				// orbit term of ion drag (force of ions on dust)
 				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
 				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
 				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
@@ -1989,7 +2001,7 @@ int main(int argc, char* argv[])
 				//debugSpecificFile << "ion acceleration  ";
 				debugSpecificFile << accDust[j].x;
 				debugSpecificFile << ", " << accDust[j].y;
-				debugSpecificFile << ", " << accDust[j].z << "\n";
+				debugSpecificFile << ", " << accDust[j].z;
 
 				// Calculate dust-dust acceleration 
 				if(j == 0) {
@@ -2138,6 +2150,15 @@ int main(int argc, char* argv[])
 				velDust[j].y += accDust[j].y * half_dust_dt;
 				velDust[j].z += accDust[j].z * half_dust_dt;
 
+				//ion-dust momentum transfer (collection term of ion drag)
+				deltavee.x = momIonDust[j].x*mom_const;
+				deltavee.y = momIonDust[j].y*mom_const;
+				deltavee.z = momIonDust[j].z*mom_const;
+
+				debugSpecificFile << ", " << deltavee.x;
+				debugSpecificFile << ", " << deltavee.y;
+				debugSpecificFile << ", " << deltavee.z << "\n";
+
 				// print the dust position to the dustPosTrace file
 				//dustTraceFile << "After the dust timestep" << std::endl;
 				dustTraceFile << posDust[j].x;
@@ -2150,12 +2171,18 @@ int main(int argc, char* argv[])
 				dustTraceFile << ", " << accDust[j].y;
 				dustTraceFile << ", " << accDust[j].z << std::endl;
 	
+			//zero momIonDust
+			momIonDust[j].x = 0;
+			momIonDust[j].y = 0;
+			momIonDust[j].z = 0;
+
 			} // End of dust timestep
- 
+
 			// copy the dust position to the GPU
 			d_posDust.hostToDev();
 			d_accIonDust.hostToDev();
-				
+			d_momIonDust.hostToDev();
+
 			// zero the ionDustAcc
 			zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
 				(d_accDustIon.getDevPtr(),
