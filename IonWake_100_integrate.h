@@ -179,6 +179,7 @@ __global__ void select_100
 *	d_RAD_DUST_SQRD
 *	d_NUM_DUST
 *   d_posDust
+*   d_momIonDust
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
@@ -188,6 +189,7 @@ __global__ void select_100
 *   pos: updated positions of ions
 *	vel: updated velocities of ions
 *	boundsIon: updated boundary crossings
+*   momIonDust: momentum transfer from ions to dust
 *
 * Assumptions:
 *	All inputs are real values
@@ -210,6 +212,7 @@ __global__ void KDK_100
 	 const float*,
 	 const float*,
 	 const int*,
+	 float3*,
 	 float3*,
 	 const int*,
 	 const float*,
@@ -357,8 +360,9 @@ __device__ void checkIonCylinderBounds_101_dev(
 		const float*);
 			
 /*
-* Name: checkIonDustBounds_101_dev
+* Name: checkIonDustBounds_100_dev
 * Created: 3/17/2018
+* Edited: 4/30/2019 to add ion momentum transfer to dust
 *
 * Editors
 *	Name: Lorin_Matthews
@@ -368,6 +372,7 @@ __device__ void checkIonCylinderBounds_101_dev(
 *
 * Input:
 *	d_posIon: the ion positions
+*	d_velIon: the ion vels
 *	d_boundsIon: a flag for if an ion position is out of bounds
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
@@ -376,6 +381,7 @@ __device__ void checkIonCylinderBounds_101_dev(
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
 *		in if the ion is in a dust particle.
+*	d_momIonDust: momentum (velocity) transferred to dust
 *
 * Assumptions:
 *	All dust particles have the same radius 
@@ -383,12 +389,14 @@ __device__ void checkIonCylinderBounds_101_dev(
 *   The number of ions is a multiple of the block size
 *
 */
-__device__ void checkIonDustBounds_101_dev(
+__device__ void checkIonDustBounds_100_dev(
+		float3* const, 
 		float3* const, 
 		int*,
 		const float*,
 		const int*,
-		float3* const);
+		float3* const,
+		float3*);
 /*
 * Name: calcIonDustAcc_102_dev
 * Created: 3/20/2018

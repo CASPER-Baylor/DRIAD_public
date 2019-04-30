@@ -687,6 +687,7 @@ int main(int argc, char* argv[])
 	float3* posDust = NULL;
 	float3* velDust = NULL;
 	float3* accDust = NULL;
+	float3* momIonDust = NULL;
 	float3* accDust2 = NULL;
 
 	// pointer for dust charges;
@@ -730,6 +731,7 @@ int main(int argc, char* argv[])
 		simCharge = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
+		momIonDust = (float3*)malloc(memFloat3Dust);
 		accDust2 = (float3*)malloc(memFloat3Dust);
 
 		// clear the end of file error flag
@@ -1017,7 +1019,7 @@ int main(int argc, char* argv[])
 	float distSquared;
 	float linForce;
 		
-	// initialize the dust velocities and accelerations 
+	// initialize the dust velocities, accelerations and momentum transfer 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
 		velDust[i].x = 0;
@@ -1030,6 +1032,9 @@ int main(int argc, char* argv[])
 		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
 		//gravity
 		accDust[i].z -= 9.81;
+		momIonDust[i].x = 0;
+		momIonDust[i].y = 0;
+		momIonDust[i].z = 0;
 	}
 
 	// loop over all the ions and initialize their velocity, acceleration,
@@ -1241,6 +1246,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
 	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
 	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
+	CUDAvar<float3> d_momIonDust(momIonDust, NUM_DUST);
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
@@ -1267,6 +1273,7 @@ int main(int argc, char* argv[])
 	d_minDistDust.hostToDev();
 	d_accDustIon.hostToDev();
 	d_accDust.hostToDev();
+	d_momIonDust.hostToDev();
 	d_gridPos.hostToDev();
 	d_ionPotential.hostToDev();
 	d_ionDensity.hostToDev();
@@ -1546,6 +1553,7 @@ int main(int argc, char* argv[])
 					d_RAD_DUST_SQRD.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
+					d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
@@ -1567,6 +1575,7 @@ int main(int argc, char* argv[])
 					d_RAD_DUST_SQRD.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
+					d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
