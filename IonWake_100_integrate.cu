@@ -295,13 +295,14 @@ __global__ void select_100
 *   d_RAD_SIM_SQRD -or- d_RAD_CYL_SQRT: simulation bounds	
 *   (empty) -or- d_HT_CYL: simulation bounds
 *	d_GEOMETRY (0=spherical or 1=cylindrical)
-*	d_RAD_DUST_SQRD
+*	d_RAD_DUST
 *	d_NUM_DUST
 *   d_posDust
 *   d_momIonDust
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
+*	d_RAD_COLL_MULT 
 *	d_chargeDust
 *
 * Output (void):
@@ -329,13 +330,14 @@ __global__ void KDK_100
 	 const int GEOMETRY,
 	 const float* d_bndry_sqrd,
 	 const float* d_HT_CYL,
-	 const float* d_RAD_DUST_SQRD,
+	 const float* d_RAD_DUST,
 	 const int* d_NUM_DUST,
 	 float3* d_posDust,
 	 float3* d_momIonDust,
 	 const int* d_NUM_ION,
 	 const float* d_SOFT_RAD_SQRD,
 	 const float* d_ION_DUST_ACC_MULT,
+	 const float* d_RAD_COLL_MULT,
 	 const float* d_chargeDust) {
 
 	// thread ID
@@ -375,7 +377,7 @@ __global__ void KDK_100
         	(posIon + threadID, 
 			velIon + threadID,
 			d_boundsIon + threadID,
-            d_RAD_DUST_SQRD, 
+            d_RAD_DUST, 
 			d_NUM_DUST, 
 			d_posDust,
 			d_momIonDust);
@@ -627,9 +629,11 @@ __device__ void checkIonCylinderBounds_101_dev
 *	d_posIon: the ion positions
 * 	d_velIon: ion velocities
 *	d_boundsIon: a flag for if an ion position is out of bounds
-*	d_RAD_DUST_SQRD: the radius of the dust particles squared
+*	d_RAD_DUST: the radius of the dust particles 
 *	d_NUM_DUST: the number of dust particles 
 *	d_posDust: the dust particle positions
+*	d_chargeDust: the dust charges
+*	d_RAD_COLL_MULT: constant multiplier used for collection radius
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
@@ -646,13 +650,13 @@ __device__ void checkIonDustBounds_100_dev(
 		float3* d_posIon, 
 		float3* d_velIon, 
 		int* d_boundsIon,
-		const float* d_RAD_DUST_SQRD,
+		const float* d_RAD_DUST,
 		const int* d_NUM_DUST,
 		float3* const d_posDust,
 		float3* d_momIonDust){
 	
 	// distance
-	float dist;
+	float dist, b_c;
 
 	// Only check ions which are in bounds
 	if (*d_boundsIon == 0){
@@ -676,7 +680,11 @@ __device__ void checkIonDustBounds_100_dev(
 				deltaZ * deltaZ;
 
 			// check if the dust particle and ion have collided
-			if (dist < *d_RAD_DUST_SQRD)
+		if (dist < *d_RAD_DUST * *d_RAD_DUST)
+			// calculate the collection radius 
+			// RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
+		//	b_c = *d_RAD_DUST *(1 - *d_RAD_COLL_MULT * *d_chargeDust); 
+		//	if (dist < b_c*b_c)
 			{
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);

@@ -183,6 +183,7 @@ __global__ void select_100
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
+*	d_RAD_COLL_MULT 
 *	d_chargeDust
 *
 * Output (void):
@@ -215,6 +216,7 @@ __global__ void KDK_100
 	 float3*,
 	 float3*,
 	 const int*,
+	 const float*,
 	 const float*,
 	 const float*,
 	 const float*);
@@ -377,6 +379,8 @@ __device__ void checkIonCylinderBounds_101_dev(
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
 *	d_posDust: the dust particle positions
+*	d_chargeDust: the dust charge
+*	d_RAD_COLL_MULT: constant multiplier used for collection radius
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is

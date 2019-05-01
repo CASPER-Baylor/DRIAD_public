@@ -427,6 +427,12 @@ int main(int argc, char* argv[])
 	// the drift velocity of the ions
 	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;
 
+	// a constant multiplier for ion collection radius
+	const float vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
+			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
+	const float RAD_COLL_MULT = 
+		2 * CHARGE_ION / MASS_ION *(8.9877e9) / RAD_DUST / vs_sq;
+	
 	// the electron current to an uncharged dust grain
 	const float ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
 		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
@@ -596,6 +602,7 @@ int main(int argc, char* argv[])
 		<< "DUST_ION_ACC_MULT " << DUST_ION_ACC_MULT << '\n'
 		<< "DUST_DUST_ACC_MULT " << DUST_DUST_ACC_MULT << '\n'
 		<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
+		<< "RAD_COLL_MULT     " << RAD_COLL_MULT	 << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
 		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
@@ -679,6 +686,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
 	<< std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
 	<< std::setw(14) << ION_POTENTIAL_MULT << " % ION_POTENTIAL_MULT" << '\n'
+	<< std::setw(14) << RAD_COLL_MULT 	  << " % RAD_COLL_MULT" 	<< '\n'
 	<< std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
 	<< std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
 	<< std::setw(14) << Q_DIV_M	      	  << " % Q_DIV_M"    		<< '\n';
@@ -1221,6 +1229,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_ION_DUST_ACC_MULT(&ION_DUST_ACC_MULT, 1);
 	constCUDAvar<float> d_DUST_ION_ACC_MULT(&DUST_ION_ACC_MULT, 1);
 	constCUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
+	constCUDAvar<float> d_RAD_COLL_MULT(&RAD_COLL_MULT, 1);
 	constCUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
 	constCUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
@@ -1555,13 +1564,14 @@ int main(int argc, char* argv[])
 					GEOMETRY,
 					d_RAD_SIM_SQRD.getDevPtr(),
 					NULL,
-					d_RAD_DUST_SQRD.getDevPtr(),
+					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
 					d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
+					d_RAD_COLL_MULT.getDevPtr(),
 					d_chargeDust.getDevPtr()); // <--
 
 				roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
@@ -1577,13 +1587,14 @@ int main(int argc, char* argv[])
 					GEOMETRY,
 					d_RAD_CYL_SQRD.getDevPtr(),
 					d_HT_CYL.getDevPtr(),
-					d_RAD_DUST_SQRD.getDevPtr(),
+					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
 					d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
+					d_RAD_COLL_MULT.getDevPtr(),
 					d_chargeDust.getDevPtr()); // <--
 
 				roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
@@ -2375,6 +2386,7 @@ int main(int argc, char* argv[])
 	d_ION_ION_ACC_MULT.compare();
 	d_ION_DUST_ACC_MULT.compare();
 	d_ION_POTENTIAL_MULT.compare();
+	d_RAD_COLL_MULT.compare();
 	d_EXTERN_ELC_MULT.compare();
 	d_TEMP_ION.compare();
 	d_DRIFT_VEL_ION.compare();
