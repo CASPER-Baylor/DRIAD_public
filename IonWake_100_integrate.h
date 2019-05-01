@@ -400,6 +400,8 @@ __device__ void checkIonDustBounds_100_dev(
 		const float*,
 		const int*,
 		float3* const,
+		const float*,
+		const float*,
 		float3*);
 /*
 * Name: calcIonDustAcc_102_dev

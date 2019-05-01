@@ -380,6 +380,8 @@ __global__ void KDK_100
             d_RAD_DUST, 
 			d_NUM_DUST, 
 			d_posDust,
+			d_chargeDust,
+			d_RAD_COLL_MULT,
 			d_momIonDust);
 						
 		if(d_boundsIon[threadID] == 0){
@@ -653,6 +655,8 @@ __device__ void checkIonDustBounds_100_dev(
 		const float* d_RAD_DUST,
 		const int* d_NUM_DUST,
 		float3* const d_posDust,
+		const float* d_chargeDust,
+		const float* d_RAD_COLL_MULT,
 		float3* d_momIonDust){
 	
 	// distance
@@ -680,11 +684,11 @@ __device__ void checkIonDustBounds_100_dev(
 				deltaZ * deltaZ;
 
 			// check if the dust particle and ion have collided
-		if (dist < *d_RAD_DUST * *d_RAD_DUST)
+			//if (dist < *d_RAD_DUST * *d_RAD_DUST)
 			// calculate the collection radius 
 			// RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
-		//	b_c = *d_RAD_DUST *(1 - *d_RAD_COLL_MULT * *d_chargeDust); 
-		//	if (dist < b_c*b_c)
+			b_c = *d_RAD_DUST *(1 - *d_RAD_COLL_MULT * *d_chargeDust); 
+			if (dist < b_c*b_c)
 			{
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);
