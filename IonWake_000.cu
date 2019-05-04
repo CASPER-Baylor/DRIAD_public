@@ -1915,7 +1915,7 @@ int main(int argc, char* argv[])
 			// copy the dust charge to the GPU
 			d_chargeDust.hostToDev();
 			// copy the ion momentum to the host 
-			//d_momIonDust.devToHost();
+			d_momIonDust.devToHost();
 
 			// print all the dust charges to the trace file
 			
@@ -1940,22 +1940,22 @@ int main(int argc, char* argv[])
 				dustChargeFile << ", ";
 
 				//ion-dust momentum transfer (collection term of ion drag)
-				//deltavee.x = momIonDust[k].x ;
-				//deltavee.y = momIonDust[k].y ;
-				//deltavee.z = momIonDust[k].z ;
+				deltavee.x = momIonDust[k].x ;
+				deltavee.y = momIonDust[k].y ;
+				deltavee.z = momIonDust[k].z ;
 
-				//dustTraceFile << deltavee.x;
-				//dustTraceFile << ", " << deltavee.y;
-				//dustTraceFile << ", " << deltavee.z << "\n";
+				dustTraceFile << deltavee.x;
+				dustTraceFile << ", " << deltavee.y;
+				dustTraceFile << ", " << deltavee.z << "\n";
 
 				//zero momIonDust
-				//momIonDust[k].x = 0;
-				//momIonDust[k].y = 0;
-				//momIonDust[k].z = 0;
+				momIonDust[k].x = 0;
+				momIonDust[k].y = 0;
+				momIonDust[k].z = 0;
 			}
 			
 			// copy the ion momentum to the GPU
-			//d_momIonDust.hostToDev();
+			d_momIonDust.hostToDev();
 
 			dustChargeFile << std::endl;
 
