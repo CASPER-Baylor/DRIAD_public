@@ -687,7 +687,7 @@ __device__ void checkIonDustBounds_100_dev(
 			//if (dist < *d_RAD_DUST * *d_RAD_DUST)
 			// calculate the collection radius 
 			// RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
-			b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * *d_chargeDust); 
+			b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_chargeDust[i]); 
 			if (dist < b_c)
 			{
 				// flag which dust particle the ion is in
