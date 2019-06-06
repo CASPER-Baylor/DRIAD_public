@@ -502,7 +502,7 @@ int main(int argc, char* argv[])
 	deltavee.x = 0;
 	deltavee.y = 0;
 	deltavee.z = 0;
-	float mom_const = MASS_ION/MASS_DUST*dust_dt/(N_IONDT_PER_DUSTDT*ION_TIME_STEP);
+	float mom_const = MASS_ION/MASS_DUST*dust_dt/(2*N_IONDT_PER_DUSTDT*ION_TIME_STEP);
 	//const float LASER_ON = 2.00;
     //const float LASER_OFF = 2.05;
 	//Adjust the dust charge for non-zero plasma potential
@@ -1989,6 +1989,16 @@ int main(int argc, char* argv[])
 				velDust[j].x += accDust[j].x * half_dust_dt;
 				velDust[j].y += accDust[j].y * half_dust_dt;
 				velDust[j].z += accDust[j].z * half_dust_dt;
+				
+				//Half of ion-dust momentum transfer (coll. ion drag)
+				deltavee.x = momIonDust[j].x*mom_const;
+				deltavee.y = momIonDust[j].y*mom_const;
+				deltavee.z = momIonDust[j].z*mom_const;
+
+				// Add deltavee due to ion collection drag force
+				velDust[j].x += deltavee.x;
+				velDust[j].y += deltavee.y;
+				velDust[j].z += deltavee.z;
 
 				// drift a whole step
 				posDust[j].x += velDust[j].x * dust_dt;
@@ -2010,12 +2020,7 @@ int main(int argc, char* argv[])
 				accDust[j].y = 0;
 				accDust[j].z = 0;
 
-				//ion-dust momentum transfer (collection term of ion drag)
-				accDust[j].x = momIonDust[j].x*MASS_ION/MASS_DUST;
-				accDust[j].y = momIonDust[j].y*MASS_ION/MASS_DUST;
-				accDust[j].z = momIonDust[j].z*MASS_ION/MASS_DUST;
-
-				// orbit term of ion drag (force of ions on dust)
+				// force of ions on dust
 				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
 				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
 				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
@@ -2025,6 +2030,10 @@ int main(int argc, char* argv[])
 				debugSpecificFile << accDust[j].x;
 				debugSpecificFile << ", " << accDust[j].y;
 				debugSpecificFile << ", " << accDust[j].z;
+				debugSpecificFile << ", " << deltavee.x;
+				debugSpecificFile << ", " << deltavee.y;
+				debugSpecificFile << ", " << deltavee.z << "\n";
+
 
 				// Calculate dust-dust acceleration 
 				if(j == 0) {
@@ -2173,14 +2182,10 @@ int main(int argc, char* argv[])
 				velDust[j].y += accDust[j].y * half_dust_dt;
 				velDust[j].z += accDust[j].z * half_dust_dt;
 
-				//ion-dust momentum transfer (collection term of ion drag)
-				deltavee.x = momIonDust[j].x*mom_const;
-				deltavee.y = momIonDust[j].y*mom_const;
-				deltavee.z = momIonDust[j].z*mom_const;
-
-				debugSpecificFile << ", " << deltavee.x;
-				debugSpecificFile << ", " << deltavee.y;
-				debugSpecificFile << ", " << deltavee.z << "\n";
+				// Add deltavee due to ion collection drag force
+				velDust[j].x += deltavee.x;
+				velDust[j].y += deltavee.y;
+				velDust[j].z += deltavee.z;
 
 				// print the dust position to the dustPosTrace file
 				//dustTraceFile << "After the dust timestep" << std::endl;
