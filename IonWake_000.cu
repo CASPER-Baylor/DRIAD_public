@@ -2050,11 +2050,11 @@ int main(int argc, char* argv[])
 					dist = sqrt(distSquared);
         
 					//calculate a scalar intermediate
-					linForce=DUST_DUST_ACC_MULT*(dynCharge[j]) 
-						* (dynCharge[g]) / (dist*dist*dist)
-						* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
-					//linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
-					//	* (chargeDust[g]) / (dist*dist*dist);
+					//linForce=DUST_DUST_ACC_MULT*(dynCharge[j]) 
+					//	* (dynCharge[g]) / (dist*dist*dist)
+					//	* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
+					linForce=DUST_DUST_ACC_MULT*(chargeDust[j]) 
+						* (chargeDust[g]) / (dist*dist*dist);
         
 					// add the acceleration to the current dust grain
 					accDust[j].x += linForce * distdd.x;
