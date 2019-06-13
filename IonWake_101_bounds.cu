@@ -17,7 +17,6 @@
 *	checkIonDustBounds_101()
 *	checkIonSphereBounds_101_dev()
 *	checkIonCylinderBounds_101_dev()
-*	checkIonDustBounds_101_dev()
 *	injectIonSphere_101()
 *	injectIonCylinder_101
 *	resetIonBounds_101()

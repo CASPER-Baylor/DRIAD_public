@@ -342,6 +342,7 @@ __global__ void KDK_100
 	int timeStepFactor = d_tsFactor[threadID];
 	float timeStep = *d_TIME_STEP / timeStepFactor;
 	float halfTimeStep = timeStep * 0.5;
+ 	float3 oldIonPos;
 	//bool stopflag = false;
 	 	 
 	// Kick for 1/2 a timestep to get started
@@ -352,6 +353,10 @@ __global__ void KDK_100
 	while(d_boundsIon[threadID] == 0 && depth <= timeStepFactor){
 			
 		depth++;
+		oldIonPos.x = posIon[threadID].x;
+		oldIonPos.y = posIon[threadID].y;
+		oldIonPos.z = posIon[threadID].z;
+
 		drift_dev(posIon+threadID, velIon+threadID, timeStep);
 	
 		//Check outside bounds
@@ -373,7 +378,8 @@ __global__ void KDK_100
 			d_boundsIon + threadID,
             d_RAD_DUST_SQRD, 
 			d_NUM_DUST, 
-			d_posDust);
+			d_posDust,
+			oldIonPos);
 						
 		if(d_boundsIon[threadID] == 0){
 			// calculate the acceleration due to ion-dust interactions
@@ -458,7 +464,7 @@ __device__ void kick_dev
 *
 * Input:
 *	pos: position
-*	vel: velocitie
+*	vel: velocity
 *	timestep: time step
 *
 * Output (void):
@@ -610,15 +616,19 @@ __device__ void checkIonCylinderBounds_101_dev
 /*
 * Name: checkIonDustBounds_101_dev
 * Created: 3/17/2018
+* Update: 2/9/2019
 *
 * Editors
 *	Name: Lorin_Matthews
 *
 * Description:
 *	checks if an ion is within  a dust particle 
+*	or if path connecting current and past ion position intersect
+*	the dust particle
 *
 * Input:
 *	d_posIon: the ion positions
+*	posIon2: past ion position
 *	d_boundsIon: a flag for if an ion position is out of bounds
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
@@ -626,7 +636,7 @@ __device__ void checkIonCylinderBounds_101_dev
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
-*		in if the ion is in a dust particle.
+*		in if the ion is in or has crossed a dust particle.
 *
 * Assumptions:
 *	All dust particles have the same radius 
@@ -639,25 +649,27 @@ __device__ void checkIonDustBounds_101_dev(
 		int* d_boundsIon,
 		const float* d_RAD_DUST_SQRD,
 		const int* d_NUM_DUST,
-		float3* const d_posDust){
+		float3* const d_posDust,
+		float3 posIon2){
 	
 	// distance
 	float dist;
+	float tiny_num = 1e-12;
 
 	// Only check ions which are in bounds
 	if (*d_boundsIon == 0){
 
 		// temporary distance holders
-		float deltaX, deltaY, deltaZ;
+		float deltaX, deltaY, deltaZ, u, dpX, dpY, dpZ, Px, Py, Pz, P_sq;
 		
 		// loop over all of the dust particles
 		for (int i = 0; i < *d_NUM_DUST; i++)
 		{
 			// x, y, and z distances between the current
 			// ion and dust particle
-			deltaX = d_posIon->x - d_posDust[i].x;
-			deltaY = d_posIon->y - d_posDust[i].y;
-			deltaZ = d_posIon->z - d_posDust[i].z;
+			deltaX = d_posDust[i].x - d_posIon->x;
+			deltaY = d_posDust[i].y - d_posIon->y;
+			deltaZ = d_posDust[i].z - d_posIon->z;
 
 			// the squared distance between the current ion
 			// and dust particle
@@ -665,15 +677,45 @@ __device__ void checkIonDustBounds_101_dev(
 				deltaY * deltaY +
 				deltaZ * deltaZ;
 
-			// check if the dust particle and ion have collided
-			if (dist < *d_RAD_DUST_SQRD)
-			{
+			// check if ion is inside the dust particle 
+			if (dist < *d_RAD_DUST_SQRD) {
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);
 			}
-		}
-	}
-}
+			else {
+				// Line segment of ion's trajectory
+				// The equation of point P on line is P = P1 + u*(P2-P1)
+				dpX = posIon2.x - d_posIon->x;
+				dpY = posIon2.y - d_posIon->y;
+				dpZ = posIon2.z - d_posIon->z;
+
+				// Determine if line segment intesects dust.
+				// Find point P on line closest to dust center
+				// by using fact that this is perpendicular
+				// distance and the dot product is zero.  
+				// (posDust - P) dot (P2 - P1) = 0
+				// (posDust - P1 - u(P2-P1)) dot (P2-P1) = 0
+				//  If 0<= u <=1, and |P| <= radDust, then
+				//  line segment intersects sphere.
+
+				u = (deltaX*dpX + deltaY*dpY + deltaZ*dpZ) /
+					(dpX*dpX + dpY*dpY + dpZ*dpZ);
+
+				if (u > tiny_num & u < 1) {
+					// Closest point on line segment; check if |P| < dustRad
+					Px = d_posIon->x + u * dpX;
+					Py = d_posIon->y + u * dpY;
+					Pz = d_posIon->z + u * dpZ;
+					P_sq = Px*Px + Py*Py + Pz*Pz;
+
+					if (P_sq <= *d_RAD_DUST_SQRD) {
+						*d_boundsIon = (i+1);
+					}
+				}
+			} //close else
+		} // forloop over dust
+	} // if for checking if ions in bounds
+} //close function
 
 
 /*
