@@ -2,3 +2,4 @@ in
 build
 *.swp
 *.o
+/test/*
