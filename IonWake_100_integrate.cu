@@ -698,8 +698,9 @@ __device__ void checkIonDustBounds_100_dev(
 			//if (dist < *d_RAD_DUST * *d_RAD_DUST)
 			// calculate the collection radius 
 			// RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
-			b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_chargeDust[i]); 
-			if (dist < b_c)
+			//b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_chargeDust[i]); 
+			//if (dist < b_c)
+			if (dist < *d_RAD_DUST * *d_RAD_DUST)
 			{
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);
@@ -734,7 +735,8 @@ __device__ void checkIonDustBounds_100_dev(
 					Pz = d_posIon->z + u * dpZ;
 					P_sq = Px*Px + Py*Py + Pz*Pz;
 
-					if (P_sq <= b_c) {
+					//if (P_sq <= b_c) {
+					if (P_sq <= *d_RAD_DUST * *d_RAD_DUST) {
 						*d_boundsIon = (i+1);
 						// sum the momentum (velocity) transferred to dust
 						d_momIonDust[i].x += d_velIon->x;
