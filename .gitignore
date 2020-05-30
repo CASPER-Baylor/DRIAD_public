@@ -1,5 +1,5 @@
-in
-build
+./build
+./doc
+./bin
 *.swp
 *.o
-/test/*
