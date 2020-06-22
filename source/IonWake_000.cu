@@ -1,5 +1,7 @@
 // header file
 #include "IonWake_000.h"
+#include <iostream>
+
 
 int main(int argc, char* argv[])
 {
@@ -374,18 +376,18 @@ int main(int argc, char* argv[])
 	float totIonCollFreq = 0;
 	//float TEMP_GAS = 300;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
-	
+
 	// allocate memory for the collision cross sections
-	typedef float i_cross_section [I_CS_RANGES+1];
-	i_cross_section sigma_i1;
-	i_cross_section sigma_i2;
-	i_cross_section sigma_i_tot;
+	float* sigma_i1 = new float[I_CS_RANGES+1];
+	float* sigma_i2 = new float[I_CS_RANGES+1];
+	float* sigma_i_tot = new float[I_CS_RANGES+1];
 
 	//determines a constant total collision frequency
 	setIonCrossSection_105( gasType, I_CS_RANGES, NUM_DEN_GAS,
 		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
 		&totIonCollFreq, debugMode, debugSpecificFile);
-	
+
+
 	//Number of ions to collide each time step.  Adjust for non-integer value.
 	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * ION_TIME_STEP));
 	const int N_COLL = (int)(N1);

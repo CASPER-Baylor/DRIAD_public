@@ -59,7 +59,6 @@ void setIonCrossSection_105
         float* tot_ion_coll_freq,
 		const bool debugMode,
 		std::ostream& fileName) {
-		 
 	const float depsilon_i 	= 0.001;
 	const float ev_to_j = 1.602e-19;
 	int j;
@@ -81,7 +80,7 @@ void setIonCrossSection_105
 		19.5, 16.2, 13.5, 11.5, 9.77, 5.34, 2.25, 0.949};
 	  float cs2_vNe[] = {18.0, 19.0, 20.0, 21.4, 22.9, 25.7, 28.2, 29.5, 29.8,
 		29.5, 28.8, 28.2, 27.5, 26.9, 27.5, 28.0, 28.5, 29.0};
-	  for (int i=0;i<=n;i++){
+	  for (int i=0;i<n;i++){
 			en_v[i] = en_vNe[i];
 			cs1_v[i] = 1e-20 * cs1_vNe[i];
 			cs2_v[i] = 1e-20 * cs2_vNe[i];
@@ -108,7 +107,7 @@ void setIonCrossSection_105
         4.912610e-19, 4.731020e-19, 4.096010e-19, 4.027170e-19, 3.920120e-19,
         3.461140e-19, 3.018560e-19, 2.163240e-19, 2.135770e-19};
 
-        for (int i=0;i<=n;i++){
+        for (int i=0;i<n;i++){
             en_v[i] = en_vAr[i];
             cs1_v[i] = cs1_vAr[i];
             cs2_v[i] = cs2_vAr[i];
@@ -118,12 +117,14 @@ void setIonCrossSection_105
 			fileName << "Unknown gas type \n";
   	}
 
+
+
 	//fileName << "----- Collision Cross Sections -----" << std::endl;
 	for (int i = 0; i < n; i++) {
 		fileName << en_v[i] << ", " << cs1_v[i] << ", "
 			<< cs2_v[i] << std::endl;
 	}
-	
+		
 	// Interpolate for fine divisions in energy scale
     for (int i=0;i<=i_cs_ranges;i++){
          if (i>0) en = depsilon_i*i; else en = depsilon_i;
