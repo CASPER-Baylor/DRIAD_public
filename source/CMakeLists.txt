@@ -27,6 +27,7 @@ add_executable( IonWake.exe
 	IonWake_101_bounds.cu
 	IonWake_102_ionAcc.cu
 	IonWake_103_dustAcc.cu
+	IonWake_104_roadBlock.cu
 	IonWake_105_ionColl.cu
 	IonWake_106_Utilities.cpp
  )

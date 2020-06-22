@@ -10,6 +10,8 @@
 #ifndef IONWAKE_000
 #define IONWAKE_000
 
+	#define EXIT_WITH_FATAL_ERROR exit(-1)
+
 	// included for sqrt()
 	#include <cmath>
 	// includes malloc()
@@ -38,6 +40,8 @@
 	#include "IonWake_103_dustAcc.h"
 	// includes functions for calculation ion-gas collisions 
 	#include "IonWake_105_ionColl.h"
+	// includes the roadBlock function
+	#include "IonWake_104_roadBlock.h"
 	// includes utility functions
 	#include "IonWake_106_Utilities.h"
 
