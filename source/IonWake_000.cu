@@ -98,6 +98,14 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_ion-den.txt";
 	std::ofstream ionDensOutFile(fileName.c_str());
 
+	// open an output file for saving final dust data  
+	fileName = dataDirName + runName + "_dust-final.txt";
+	std::ofstream dustFinalFile(fileName.c_str());
+
+	// open an output file for final ion data
+	fileName = dataDirName + runName + "_ion-final.txt";
+	std::ofstream ionFinalFile(fileName.c_str());
+
 	// }}}
 
 	/****** Debugging Parameters ******/
@@ -371,8 +379,7 @@ int main(int argc, char* argv[])
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
-	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
-	const int I_CS_RANGES = 1000000;
+	const int I_CS_RANGES = 10000000;
 	float totIonCollFreq = 0;
 	//float TEMP_GAS = 300;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
@@ -383,9 +390,9 @@ int main(int argc, char* argv[])
 	float* sigma_i_tot = new float[I_CS_RANGES+1];
 
 	//determines a constant total collision frequency
-	setIonCrossSection_105( gasType, I_CS_RANGES, NUM_DEN_GAS,
+	setIonCrossSection_105( GAS_TYPE, I_CS_RANGES, NUM_DEN_GAS,
 		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
-		&totIonCollFreq, debugMode, debugSpecificFile);
+		totIonCollFreq, debugMode, debugSpecificFile);
 
 
 	//Number of ions to collide each time step.  Adjust for non-integer value.
@@ -486,6 +493,7 @@ int main(int argc, char* argv[])
 		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
      	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
+		<< "TEMP_GAS   		  " << TEMP_GAS			 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -529,6 +537,16 @@ int main(int argc, char* argv[])
 		<< "RESZ			  " << RESZ				 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'		
 		<< '\n';
+
+		debugFile << "-- Sigma Values --" << '\n';
+		debugFile << "First 10 sigma_i_tot" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i_tot[i] << " ";
+		debugFile << "\nFirst 10 sigma_i1" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i1[i] << " ";
+		debugFile << "\nFirst 10 sigma_i2" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i2[i] << " ";
+		debugFile << '\n';
+
 		debugFile.flush();
 	}
 
@@ -678,6 +696,10 @@ int main(int argc, char* argv[])
 			dustParamFile >> posDust[i].x;
 			dustParamFile >> posDust[i].y;
 			dustParamFile >> posDust[i].z;
+
+			dustParamFile >> velDust[i].x;
+			dustParamFile >> velDust[i].y;
+			dustParamFile >> velDust[i].z;
 
 			// save the dust charge
 			dustParamFile >> chargeDust[i];
@@ -954,84 +976,109 @@ int main(int argc, char* argv[])
 	// initialize the dust velocities and accelerations 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		velDust[i].x = 0;
-		velDust[i].y = 0;
-		velDust[i].z = 0;
 		accDust[i].x = OMEGA_DIV_M * chargeDust[i] * posDust[i].x;
 		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
-		accDust[i].z = OMEGA_DIV_M /250.0 * chargeDust[i] * posDust[i].z;				
+		accDust[i].z = OMEGA_DIV_M /250.0 * chargeDust[i] * posDust[i].z;	
 		//polarity switching
 		accDust[i].z += chargeDust[i] / MASS_DUST * E_FIELD;
 	}
 
-	// loop over all the ions and initialize their velocity, acceleration,
-	// and position
-	for (int i = 0; i < NUM_ION; i++) {
-		if(GEOMETRY == 0) {
-			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].x = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].y = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].z = randNum * RAD_SIM;
+	// attempt to open input file for initial ion positions and velocities
+	fileName = inputDirName + "init-ions.txt";
+	std::ifstream ionInitFile(fileName.c_str());
+	// check if the file opened
+	bool init_ions_from_file = static_cast<bool>(paramFile);
 
-			// calculate the distance from the ion to the center of the
-			// simulation sphere
-			dist = posIon[i].x * posIon[i].x +
-			posIon[i].y * posIon[i].y +
-			posIon[i].z * posIon[i].z;
+	if( init_ions_from_file ) { // initialize ion data from file
 
-			// while the ion is outside of the simulation sphere, give it
-			// a new random position.
-			while (dist > RAD_SIM * RAD_SIM) {
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].y = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].z = randNum * RAD_CYL;
+		for( int i=0 ; i<NUM_ION ; i++ ) {
+			ionInitFile >> 	posIon[i].x;
+			ionInitFile >> 	posIon[i].y;
+			ionInitFile >> 	posIon[i].z;
 
-				// recalculate the distance to the center of the simulation
+			ionInitFile >>  velIon[i].x;
+			ionInitFile >>  velIon[i].y;
+			ionInitFile >>  velIon[i].z;
+		}
+
+		ionInitFile.close();
+
+	} else { // as no initial ion data was given, initialize ion data with 
+			 //zeros or random values
+
+		// loop over all the ions and initialize their velocity, acceleration,
+		// and position
+		for (int i = 0; i < NUM_ION; i++) {
+			if(GEOMETRY == 0) {
+				// give the ion a random position
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].x = randNum * RAD_SIM;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].y = randNum * RAD_SIM;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].z = randNum * RAD_SIM;
+
+				// calculate the distance from the ion to the center of the
+				// simulation sphere
 				dist = posIon[i].x * posIon[i].x +
 				posIon[i].y * posIon[i].y +
 				posIon[i].z * posIon[i].z;
-			}
-		} else if(GEOMETRY == 1) {
-			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].x = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].y = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].z = randNum * HT_CYL;
 
-			// calculate the distance from the ion to the center of the
-			// simulation cylinder
-			dist = posIon[i].x * posIon[i].x + posIon[i].y * posIon[i].y;
+				// while the ion is outside of the simulation sphere, give it
+				// a new random position.
+				while (dist > RAD_SIM * RAD_SIM) {
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].x = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].y = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].z = randNum * RAD_CYL;
 
-			// while the ion is outside of the simulation cylinder, give it
-			// a new random position.
-			while (dist > RAD_CYL * RAD_CYL){
+					// recalculate the distance to the center of the simulation
+					dist = posIon[i].x * posIon[i].x +
+					posIon[i].y * posIon[i].y +
+					posIon[i].z * posIon[i].z;
+				}
+			} else if(GEOMETRY == 1) {
+				// give the ion a random position
 				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
 				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].z = randNum * HT_CYL;
 
-				// recalculate the distance to the center of the simulation
-				dist = posIon[i].x * posIon[i].x +
-				posIon[i].y * posIon[i].y;
+				// calculate the distance from the ion to the center of the
+				// simulation cylinder
+				dist = posIon[i].x * posIon[i].x + posIon[i].y * posIon[i].y;
+
+				// while the ion is outside of the simulation cylinder, give it
+				// a new random position.
+				while (dist > RAD_CYL * RAD_CYL){
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].x = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].y = randNum * RAD_CYL;
+
+					// recalculate the distance to the center of the simulation
+					dist = posIon[i].x * posIon[i].x +
+					posIon[i].y * posIon[i].y;
+				}
 			}
+
+			// give the ion an initial random velocity
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			velIon[i].x = ION_SPEED * randNum;
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			velIon[i].y = ION_SPEED * randNum;
+			randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
+			velIon[i].z = - ION_SPEED * randNum;
+
 		}
 
-		// give the ion an initial random velocity
-		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].x = ION_SPEED * randNum;
-		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].y = ION_SPEED * randNum;
-		randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
-		velIon[i].z = - ION_SPEED * randNum;
+	} 
 
+	for( int i=0 ; i<NUM_ION ; i++) {
 		// set the initial acceleration to 0
 		accIon[i].x = 0;
 		accIon[i].y = 0;
@@ -1044,13 +1091,17 @@ int main(int argc, char* argv[])
 
 		// set the initial DustIon acceleration to 0
 		//for(int d = 0; d < NUM_DUST; d++) {
-		//accDustIon[d * NUM_ION + i].x = 0;
-		//accDustIon[d * NUM_ION + i].y = 0;
-		//accDustIon[d * NUM_ION + i].z = 0;
+			//accDustIon[d * NUM_ION + i].x = 0;
+			//accDustIon[d * NUM_ION + i].y = 0;
+			//accDustIon[d * NUM_ION + i].z = 0;
 		//}
 	}
 
 	if (debugMode) {
+
+		debugFile << "-- Initialized From File --" << '\n'
+		<< "Ions From File: " << init_ions_from_file << '\n' << '\n';
+
 		debugFile << "-- Basic Memory Sizes --" << '\n'
 		<< "float  " << sizeof(float) << '\n'
 		<< "int    " << sizeof(int) << '\n'
@@ -1678,6 +1729,7 @@ int main(int argc, char* argv[])
 					// {{{
 					// print the command number to the status file
 					statusFile << "1 ";
+					statusFile.flush();
 			
 					// copy ion positions to host
 					d_posIon.devToHost();
@@ -1801,7 +1853,7 @@ int main(int argc, char* argv[])
 			d_collList.getDevPtr(), // {{{
 			set_value);
 
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", false);
 		// }}}
 
 		//copy collision list to host 
@@ -1823,6 +1875,7 @@ int main(int argc, char* argv[])
 
 		//copy collision list to device
 		d_collList.hostToDev();
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", false);
 		
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
 			d_collList.getDevPtr(), // {{{
@@ -2303,6 +2356,32 @@ int main(int argc, char* argv[])
 
 	// }}}
 
+	/****** Continue Files ******/
+
+	// print out final dust data
+	dustFinalFile << "    rX      rY      rZ      vX      vY      vZ      Q\n";
+
+	for( int i=0 ; i<NUM_DUST ; i++ ){
+		dustFinalFile << "[" << i << "]   ";
+		dustFinalFile << posDust[i].x << " ";
+		dustFinalFile << posDust[i].y << " ";
+		dustFinalFile << posDust[i].z << " ";
+		dustFinalFile << velDust[i].x << " ";
+		dustFinalFile << velDust[i].y << " ";
+		dustFinalFile << velDust[i].z << " ";
+		dustFinalFile << simCharge[i] << std::endl;
+	}
+
+	// print out final ion data
+	for( int i=0 ; i<NUM_ION ; i++ ) {
+		ionFinalFile << posIon[i].x << " ";
+		ionFinalFile << posIon[i].y << " ";
+		ionFinalFile << posIon[i].z << " ";
+		ionFinalFile << velIon[i].x << " ";
+		ionFinalFile << velIon[i].y << " ";
+		ionFinalFile << velIon[i].z << std::endl;
+	}
+
 	/****** Check Device "Constants" ******/
 	// {{{
 	
@@ -2392,7 +2471,8 @@ int main(int argc, char* argv[])
 	dustChargeFile.close();
 	paramOutFile.close();
 	ionDensOutFile.close();
-
+	dustFinalFile.close();
+	ionFinalFile.close();
 	// }}}
 
 	// }}}

@@ -38,7 +38,7 @@
 *	total cross section and total ion collision frequency.
 *
 * Input:
-*	gasType: type of gas (Argon or Neon)
+*	GAS_TYPE: type of gas (Argon or Neon)
 *	i_cs_ranges: number of entries in range of ion cross sections
 *
 * Output (void):
@@ -49,26 +49,29 @@
 *
 */
 void setIonCrossSection_105
-       (int gasType, 
-		int i_cs_ranges,
-		float NUM_DEN_GAS,
-		float MASS_SINGLE_ION,
+       (const int GAS_TYPE, 
+		const int I_CS_RANGES,
+		const float NUM_DEN_GAS,
+		const float MASS_SINGLE_ION,
         float* sigma_i1, 
         float* sigma_i2, 
         float* sigma_i_tot, 
-        float* tot_ion_coll_freq,
+        float& tot_ion_coll_freq,
 		const bool debugMode,
 		std::ostream& fileName) {
+
 	const float depsilon_i 	= 0.001;
 	const float ev_to_j = 1.602e-19;
+
 	int j;
 	float en;
+
 	int n = 18;
 	float en_v[n]; 
 	float cs1_v[n]; 
 	float cs2_v[n];
   
-  	if (gasType == 1) {
+  	if (GAS_TYPE == 1) {
 	  //Ne cross sections for isotropic scatt. (cs1) and charge transfer (cs2)
 	  //Ref: Jovanovic, Vrhovac, Petrovic, Eur. Phys. J. D 21, 335-342 (2002) 
 	  //energy in eV
@@ -85,7 +88,7 @@ void setIonCrossSection_105
 			cs1_v[i] = 1e-20 * cs1_vNe[i];
 			cs2_v[i] = 1e-20 * cs2_vNe[i];
   	  } 
-  	} else if (gasType == 2) {
+  	} else if (GAS_TYPE == 2) {
         //Ar cross sections for isotropic scatt. (cs1) and backscattering (cs2)
         //Ref:  Phelps, J. Appl. Phys. 76, 747 (1994)
         //energy in eV
@@ -117,8 +120,6 @@ void setIonCrossSection_105
 			fileName << "Unknown gas type \n";
   	}
 
-
-
 	//fileName << "----- Collision Cross Sections -----" << std::endl;
 	for (int i = 0; i < n; i++) {
 		fileName << en_v[i] << ", " << cs1_v[i] << ", "
@@ -126,7 +127,7 @@ void setIonCrossSection_105
 	}
 		
 	// Interpolate for fine divisions in energy scale
-    for (int i=0;i<=i_cs_ranges;i++){
+    for (int i=0;i<=I_CS_RANGES;i++){
          if (i>0) en = depsilon_i*i; else en = depsilon_i;
          if (en<en_v[0]) {
 			sigma_i1[i] = 0; 
@@ -153,22 +154,22 @@ void setIonCrossSection_105
  
 	//  Sum the backscattering and isotropic scattering to get total  
 	// ion impact cross section: 
-  	for(int i=0;i<=i_cs_ranges;i++){
+  	for(int i=0;i<=I_CS_RANGES;i++){
     	sigma_i_tot[i] = sigma_i1[i] + sigma_i2[i];
-    	sigma_i_tot[i] *= NUM_DEN_GAS;
+    //	sigma_i_tot[i] *= NUM_DEN_GAS;
   	}  
  
 	//Upper limit for collision frequency  
   	double   e,v,nu,nu_max;
   	nu_max = 0;
-  	for(int i=1;i<=i_cs_ranges;i++){
+  	for(int i=1;i<=I_CS_RANGES;i++){
     	e  = i*depsilon_i*ev_to_j;
     	v  = sqrt(e/MASS_SINGLE_ION);     
     	nu = v*sigma_i_tot[i];
     	if (nu > nu_max) {nu_max = nu;}
   	}
 
-  	*tot_ion_coll_freq = nu_max; 
+  	tot_ion_coll_freq = nu_max; 
 
 	if (debugMode) {
 		fileName << "--- 1st 20 Interpolated Cross Sections ---" << std::endl;
@@ -177,7 +178,7 @@ void setIonCrossSection_105
 				<< sigma_i_tot[i] << std::endl;
 		}
 		fileName << "--- Last 20 Interpolated Cross Sections ---" << std::endl;
-		for (int i = (i_cs_ranges - 20); i < i_cs_ranges; i++) {
+		for (int i = (I_CS_RANGES - 20); i < I_CS_RANGES; i++) {
 			fileName << sigma_i1[i] << ", " << sigma_i2[i] << ", "
 				<< sigma_i_tot[i] << std::endl;
 		}
@@ -230,7 +231,7 @@ __global__ void ionCollisions_105
 			
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;		
-			
+	
     // local variables
 	const float ev_to_j 	= 1.602e-19;
 	const float depsilon_i 	= 0.001; //cross section energy increment

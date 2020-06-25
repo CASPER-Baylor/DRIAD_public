@@ -83,14 +83,14 @@
 *
 */
 void setIonCrossSection_105
-       (int, 
-		int,
-		float,
-		float,
+       (const int, 
+		const int,
+		const float,
+		const float,
         float*, 
         float*, 
         float*, 
-        float*,
+        float&,
 		const bool, 
 		std::ostream&) ;
 		 
