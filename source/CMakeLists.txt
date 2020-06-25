@@ -21,6 +21,9 @@ set( CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../bin" )
 # increase the output level of the created makefile 
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
+set(CMAKE_CUDA_FLAGS_DEBUG "${CMAKE_CUDA_FLAGS} --generate-line-info")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
+
 add_executable( IonWake.exe
 	IonWake_000.cu
 	IonWake_100_integrate.cu
