@@ -16,7 +16,8 @@
 */
 
 // header file
-#include "IonWake_106_Utilities.h"
+#include "IonWake_106_Utilities.hpp"
+
 
 /*
 * Name: findMax_106

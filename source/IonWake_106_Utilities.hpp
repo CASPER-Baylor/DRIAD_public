@@ -21,6 +21,11 @@
 #ifndef IONWAKE_106_UTILITIES
 #define IONWAKE_106_UTILITIES
 
+#include <string>
+#include <sstream>
+#include <fstream>
+
+
 	/*
 	* Name: findMax_106
 	*
@@ -47,6 +52,35 @@
 
 	float findMax_106(float val[], int numVals);
 	int   findMax_106(  int val[], int numVals);
+
+	template< typename T >
+	T getParam_106( std::ifstream& file, std::string param_name )
+	{
+		// holds lines from the file
+		std::string string_line;
+		std::stringstream stream_line;
+
+		// clear any end of file error flag
+		file.clear();
+		// jump to the beginning of the file
+		file.seekg(0, std::ios::beg);
+
+		// Loop until the parameter is found or the end of the file is reached
+		while( std::getline(file, string_line) ) {
+			stream_line.str( string_line );
+			stream_line >> string_line;
+			if( string_line == param_name ) {
+				T param;
+			 	stream_line >> param;
+				return param;	
+			}
+		}	
+		
+		fprintf( stderr, "ERROR: the parameter %s was not found in"
+			"parameter file.\n", param_name.c_str() );
+
+		exit(-1);
+	}
 
 	/* 
 	* Name: findMin_106

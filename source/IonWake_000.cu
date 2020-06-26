@@ -211,69 +211,58 @@ int main(int argc, char* argv[])
 	/****** Parameters ******/
 	// {{{
 
-	// number of user defined parameters
-	const int NUM_USER_PARAMS = 39;
-
-	// allocate memory for user parameters
-	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
-
-	// string to dump unwanted text from the parameter file
-	std::string dump;
-
-	// loop over the contents of the file
-	for (int i = 0; i < NUM_USER_PARAMS; i++)
-	{
-		// skip two columns
-		paramFile >> dump >> dump;
-		// save the parameter
-		paramFile >> params[i];
-	}
-
 	// assign user defined parameters
 	// GEOMETRY: 0 = Sphere, 1 = Cylinder
-	const int   NUM_ION = static_cast<int>(params[0] / (2*DIM_BLOCK)) 
-							* (2 * DIM_BLOCK);
-	const float DEN_FAR_PLASMA = params[1];
-	const float TEMP_ELC = params[2];
-	const float TEMP_ION = params[3];
-	const short DEN_DUST = params[4];
-	const float MASS_SINGLE_ION = params[5];
-	const float MACH = params[6];
-	const float SOFT_RAD = params[7];
-	const float RAD_DUST = params[8];
-	const float M_FACTOR = params[9];
-	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
-	const float ION_TIME_STEP = params[11];
-	const int   NUM_TIME_STEP = params[12];
-	const int  GEOMETRY = params[13]; 
-	const float RAD_SIM_DEBYE = params[14];
-	const int   NUM_DIV_VEL = params[15];
-	const int   NUM_DIV_QTH = params[16];
-  	const float RAD_CYL_DEBYE = params[17];
-	const float HT_CYL_DEBYE = params[18];
-	const float P10X = params[19];
-	const float P12X = params[20];
-	const float P14X = params[21];
-	const float P01Z = params[22];
-	const float P21Z = params[23];
-	const float P03Z = params[24];
-	const float P23Z = params[25];
-	const float P05Z = params[26];
-	const float PRESSURE = params[27];
-	const float FREQ = params[28];
-	const float E_FIELD = params[29];
-	const float OMEGA1 = params[30];
-	const float OMEGA2 = params[31];
-	const float RADIAL_CONF = params[32];
-	const float AXIAL_CONF = params[33];
-	const int	N_IONDT_PER_DUSTDT = params[34];
-	const float GRID_FACTOR = params[35];
-	const float GAS_TYPE = params[36];
-    const float BOX_CENTER = params[37];
-    const float TEMP_GAS = params[38];
-
-	// free memory allocated for user parameters
-	free(params);
+	const int   NUM_ION 
+		= static_cast<int>(
+			 getParam_106<float>( paramFile, "NUM_ION" ) / (2*DIM_BLOCK)
+		  )	* (2 * DIM_BLOCK);
+	const float DEN_FAR_PLASMA 
+		= getParam_106<float>( paramFile, "DEN_FAR_PLASMA" );
+	const float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
+	const float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
+	const short DEN_DUST = getParam_106<float>( paramFile, "DEN_DUST" );
+	const float MASS_SINGLE_ION 
+		= getParam_106<float>( paramFile, "MASS_SINGLE_ION" );
+	const float MACH = getParam_106<float>( paramFile, "MACH" ); 
+	const float SOFT_RAD = getParam_106<float>( paramFile, "SOFT_RAD" );
+	const float RAD_DUST = getParam_106<float>( paramFile, "RAD_DUST" );
+	const float M_FACTOR = getParam_106<float>( paramFile, "M_FACTOR" );
+	const float CHARGE_SINGLE_ION 
+		= CHARGE_ELC * getParam_106<float>( paramFile, "CHARGE_SINGLE_ION" );
+	const float ION_TIME_STEP 
+		= getParam_106<float>( paramFile, "ION_TIME_STEP" );
+	const int NUM_TIME_STEP 
+		= getParam_106<float>( paramFile, "NUM_TIME_STEP" );
+	const int  GEOMETRY = getParam_106<float>( paramFile, "GEOMETRY" );
+	const float RAD_SIM_DEBYE 
+		= getParam_106<float>( paramFile, "RAD_SIM_DEBYE" );
+	const int   NUM_DIV_VEL = getParam_106<float>( paramFile, "NUM_DIV_VEL" );
+	const int   NUM_DIV_QTH = getParam_106<float>( paramFile, "NUM_DIV_QTH" );
+  	const float RAD_CYL_DEBYE 
+		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
+	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
+	const float P10X = getParam_106<float>( paramFile, "P10X" );
+	const float P12X = getParam_106<float>( paramFile, "P12X" );
+	const float P14X = getParam_106<float>( paramFile, "P14X" );
+	const float P01Z = getParam_106<float>( paramFile, "P01Z" );
+	const float P21Z = getParam_106<float>( paramFile, "P21Z" );
+	const float P03Z = getParam_106<float>( paramFile, "P03Z" );
+	const float P23Z = getParam_106<float>( paramFile, "P23Z" );
+	const float P05Z = getParam_106<float>( paramFile, "P05Z" );
+	const float PRESSURE = getParam_106<float>( paramFile, "PRESSURE" );
+	const float FREQ = getParam_106<float>( paramFile, "FREQ" );
+	const float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
+	const float OMEGA1 = getParam_106<float>( paramFile, "OMEGA1" );
+	const float OMEGA2 = getParam_106<float>( paramFile, "OMEGA2" );
+	const float RADIAL_CONF = getParam_106<float>( paramFile, "RADIAL_CONF" );
+	const float AXIAL_CONF = getParam_106<float>( paramFile, "AXIAL_CONF" );
+	const int	N_IONDT_PER_DUSTDT 
+		= getParam_106<float>( paramFile, "N_IONDT_PER_DUSTDT" );
+	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
+	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
+    const float BOX_CENTER = getParam_106<float>( paramFile, "BOX_CENTER" );
+    const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
 
 	// debye length (m)
 	const float DEBYE =
