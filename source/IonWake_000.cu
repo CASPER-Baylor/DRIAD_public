@@ -215,13 +215,13 @@ int main(int argc, char* argv[])
 	// GEOMETRY: 0 = Sphere, 1 = Cylinder
 	const int   NUM_ION 
 		= static_cast<int>(
-			 getParam_106<float>( paramFile, "NUM_ION" ) / (2*DIM_BLOCK)
+			 getParam_106<int>( paramFile, "NUM_ION" ) / (2*DIM_BLOCK)
 		  )	* (2 * DIM_BLOCK);
 	const float DEN_FAR_PLASMA 
 		= getParam_106<float>( paramFile, "DEN_FAR_PLASMA" );
 	const float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
 	const float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
-	const short DEN_DUST = getParam_106<float>( paramFile, "DEN_DUST" );
+	const short DEN_DUST = getParam_106<short>( paramFile, "DEN_DUST" );
 	const float MASS_SINGLE_ION 
 		= getParam_106<float>( paramFile, "MASS_SINGLE_ION" );
 	const float MACH = getParam_106<float>( paramFile, "MACH" ); 
@@ -233,12 +233,12 @@ int main(int argc, char* argv[])
 	const float ION_TIME_STEP 
 		= getParam_106<float>( paramFile, "ION_TIME_STEP" );
 	const int NUM_TIME_STEP 
-		= getParam_106<float>( paramFile, "NUM_TIME_STEP" );
-	const int  GEOMETRY = getParam_106<float>( paramFile, "GEOMETRY" );
+		= getParam_106<int>( paramFile, "NUM_TIME_STEP" );
+	const int  GEOMETRY = getParam_106<int>( paramFile, "GEOMETRY" );
 	const float RAD_SIM_DEBYE 
 		= getParam_106<float>( paramFile, "RAD_SIM_DEBYE" );
-	const int   NUM_DIV_VEL = getParam_106<float>( paramFile, "NUM_DIV_VEL" );
-	const int   NUM_DIV_QTH = getParam_106<float>( paramFile, "NUM_DIV_QTH" );
+	const int   NUM_DIV_VEL = getParam_106<int>( paramFile, "NUM_DIV_VEL" );
+	const int   NUM_DIV_QTH = getParam_106<int>( paramFile, "NUM_DIV_QTH" );
   	const float RAD_CYL_DEBYE 
 		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
 	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
@@ -258,7 +258,7 @@ int main(int argc, char* argv[])
 	const float RADIAL_CONF = getParam_106<float>( paramFile, "RADIAL_CONF" );
 	const float AXIAL_CONF = getParam_106<float>( paramFile, "AXIAL_CONF" );
 	const int	N_IONDT_PER_DUSTDT 
-		= getParam_106<float>( paramFile, "N_IONDT_PER_DUSTDT" );
+		= getParam_106<int>( paramFile, "N_IONDT_PER_DUSTDT" );
 	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
 	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
     const float BOX_CENTER = getParam_106<float>( paramFile, "BOX_CENTER" );
