@@ -1,0 +1,8 @@
+*
+!base_input/
+!compile.sh
+!disp.sh
+!qsub_run_script.sh
+!run.sh
+!setup_run.sh
+!.gitignore
