@@ -1,4 +1,6 @@
 *
+!check.sh
+!follow.sh
 !base_input/
 !compile.sh
 !disp.sh
