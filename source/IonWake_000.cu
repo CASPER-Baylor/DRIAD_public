@@ -54,6 +54,10 @@ int main(int argc, char* argv[])
 		EXIT_WITH_FATAL_ERROR;
 	}
 
+	// open an output file for dust acc due to ion forces 
+	fileName = dataDirName + runName + "_ion_on_dust_acc.txt";
+	std::ofstream ionOnDustAccFile(fileName.c_str());
+
 	// open an output file for general debugging output
 	fileName = dataDirName + runName + "_debug.txt";
 	std::ofstream debugFile(fileName.c_str());
@@ -750,6 +754,10 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
+	// Output the number of dust to the parameter file
+	paramOutFile << std::setw(14) << NUM_DUST << " % NUM_DUST\n";
+	paramOutFile.flush();
+
 	// }}}
 
 	/****** Calculations on the Grid ******/
@@ -785,6 +793,12 @@ int main(int argc, char* argv[])
 		ionDensOutFile << ", " << gridPos[j].z << std::endl;
 	}
 	ionDensOutFile << "" << std::endl;
+
+	paramOutFile << std::setw(14) << NUM_GRID_PTS << " % NUM_GRID_PTS\n";
+	paramOutFile << std::setw(14) << RESX << " % RESX\n";
+	paramOutFile << std::setw(14) << RESZ << " % RESZ\n";
+	paramOutFile.flush();
+	
 
 	// number of blocks per grid for grid points
 	int blocksPerGridGrid = (NUM_GRID_PTS +1) / DIM_BLOCK;	
@@ -969,7 +983,7 @@ int main(int argc, char* argv[])
 	fileName = inputDirName + "init-ions.txt";
 	std::ifstream ionInitFile(fileName.c_str());
 	// check if the file opened
-	bool init_ions_from_file = static_cast<bool>(paramFile);
+	bool init_ions_from_file = ionInitFile.is_open();
 
 	if( init_ions_from_file ) { // initialize ion data from file
 
@@ -2166,28 +2180,54 @@ int main(int argc, char* argv[])
 
 
 		// Print and Zero ionDensity
-		if (i % 10  == 0) { // {{{
-			//N will need to be related to frequency 
-
+		if (i % 1  == 0) { // {{{
 			// copy ion density and potential to host
 			d_ionDensity.devToHost();
 			d_ionPotential.devToHost();
 
+			roadBlock_104(  statusFile, __LINE__, __FILE__, 
+				"Copy d_ionDensity and d_ionPotential to Host", false);
+
 			// print the data to the ionDensOutFile
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
-				ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT << std::endl;
+				ionDensOutFile << ionDensity[j]/1/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << ", " << ionPotential[j]/1/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << std::endl;
 			}
-			ionDensOutFile << "" << std::endl;
+			ionDensOutFile << std::endl;
 
 			//reset the potential and density to zero
-			zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
-				(d_ionPotential.getDevPtr(),
-					 d_ionDensity.getDevPtr());
+			zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>> (
+					d_ionPotential.getDevPtr(), // {{{
+					d_ionDensity.getDevPtr()
+			);
 
 			roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", false);
-
+			// }}}
 		 }
+		// }}}
+
+		// ****** Print the Ion Forces on the Dust ****** //
+		// {{{
+
+		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
+			d_accDustIon.getDevPtr(), // {{{
+			d_NUM_DUST.getDevPtr(),
+			d_NUM_ION.getDevPtr()); 
+				
+		roadBlock_104(statusFile, __LINE__, __FILE__,"sumDustIonAcc_103", false);
+		// }}}
+
+		d_accDustIon.devToHost();
+		roadBlock_104(statusFile, __LINE__, __FILE__,
+			"Copy d_accDustIon to host", false);
+
+		for( int i=0 ; i<NUM_DUST ; i++ ) {		
+			ionOnDustAccFile << accDustIon[i].x << ", "
+								<< accDustIon[i].y << ", "
+								<< accDustIon[i].z << std::endl;
+		}
+
 		// }}}
 
 		statusFile << "|" << std::endl;
