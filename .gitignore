@@ -1,7 +1,9 @@
 *
+
 !check.sh
 !follow.sh
 !base_input/
+!analysis/
 !compile.sh
 !disp.sh
 !qsub_run_script.sh
