@@ -65,20 +65,20 @@
 
 // header file
 #include "IonWake_000.h"
+#include <iostream>
 
-void fatalError() {
-	exit(-1);
-}
-
-// Declaration of the roadBlock_000 function defined at the botom of
-// this file. Needs to be moved to another file at a later date.
-void roadBlock_000(ofstream&, int, string, string, bool);
 
 int main(int argc, char* argv[])
 {
-	/*************************
-	open files
-	*************************/
+
+	/************************
+		Pre-Processes 
+	************************/
+
+	// {{{
+	
+	/****** Open Files ******/
+	// {{{
 
 	// directory name where program inputs are read from
 	std::string inputDirName = argv[1];
@@ -96,7 +96,7 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "ERROR on line number %d in file %s\n",
 			__LINE__, __FILE__);
 		fprintf(stderr, "ERROR: paramFile not open\n");
-		fatalError();
+		EXIT_WITH_FATAL_ERROR;
 	}
 
 	// open input file for dust parameters
@@ -106,7 +106,7 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "ERROR on line number %d in file %s\n",
 			__LINE__, __FILE__);
 		fprintf(stderr, "ERROR: dustParamFile not open\n");
-		fatalError();
+		EXIT_WITH_FATAL_ERROR;
 	}
 
 	// open an input file for time step parameters
@@ -116,9 +116,13 @@ int main(int argc, char* argv[])
 		fprintf(stderr, "ERROR on line number %d in file %s\n",
 			__LINE__, __FILE__);
 		fprintf(stderr, "ERROR: timestepFile not open\n");
-		fatalError();
+		EXIT_WITH_FATAL_ERROR;
 	}
 
+	// open an output file for dust acc due to ion forces 
+	fileName = dataDirName + runName + "_ion_on_dust_acc.txt";
+	std::ofstream ionOnDustAccFile(fileName.c_str());
+	
 	// open an output file for general debugging output
 	fileName = dataDirName + runName + "_debug.txt";
 	std::ofstream debugFile(fileName.c_str());
@@ -163,9 +167,8 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_ion-den.txt";
 	std::ofstream ionDensOutFile(fileName.c_str());
 
-	/*************************
-	debugging parameters
-	*************************/
+
+	/****** Debugging Parameters ******/
 
 	// turns on or off debugging output
 	bool debugMode = true;
@@ -177,10 +180,7 @@ int main(int argc, char* argv[])
 	debugFile.precision(5);
 	debugFile << std::showpoint;
 
-	/**************************
-	print device properties
-	**************************/
-
+	/****** Print Device Properties ******/
 	
 	if (debugMode) {
 		// holds GPU device properties
@@ -216,10 +216,7 @@ int main(int argc, char* argv[])
 	}
 
 
-
-	/*************************
-	constants
-	*************************/
+	/****** Constants ******/
 
 	// electron charge (Q)
 	const float CHARGE_ELC = -1.602177e-19;
@@ -263,73 +260,60 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
-	/*************************
-	parameters
-	*************************/
-
-	// number of user defined parameters
-	const int NUM_USER_PARAMS = 39;
-
-	// allocate memory for user parameters
-	float* params = (float*)malloc(NUM_USER_PARAMS * sizeof(float));
-
-	// string to dump unwanted text from the parameter file
-	std::string dump;
-
-	// loop over the contents of the file
-	for (int i = 0; i < NUM_USER_PARAMS; i++)
-	{
-		// skip two columns
-		paramFile >> dump >> dump;
-		// save the parameter
-		paramFile >> params[i];
-	}
+	/****** Parameters ******/
 
 	// assign user defined parameters
-	// GEOMETRY: use 0 = Sphere, 1 = Cylinder
-	const int   NUM_ION = static_cast<int>(params[0] / (2*DIM_BLOCK)) 
-							* (2 * DIM_BLOCK);
-	const float DEN_FAR_PLASMA = params[1];
-	const float TEMP_ELC = params[2];
-	const float TEMP_ION = params[3];
-	const short DEN_DUST = params[4];
-	const float MASS_SINGLE_ION = params[5];
-	const float MACH = params[6];
-	const float SOFT_RAD = params[7];
-	const float RAD_DUST = params[8];
-	const float M_FACTOR = params[9];
-	const float CHARGE_SINGLE_ION = params[10] * CHARGE_ELC;
-	const float ION_TIME_STEP = params[11];
-	const int   NUM_TIME_STEP = params[12];
-	const int  GEOMETRY = params[13]; 
-	const float RAD_SIM_DEBYE = params[14];
-	const int   NUM_DIV_VEL = params[15];
-	const int   NUM_DIV_QTH = params[16];
-  	const float RAD_CYL_DEBYE = params[17];
-	const float HT_CYL_DEBYE = params[18];
-	const float P10X = params[19];
-	const float P12X = params[20];
-	const float P14X = params[21];
-	const float P01Z = params[22];
-	const float P21Z = params[23];
-	const float P03Z = params[24];
-	const float P23Z = params[25];
-	const float P05Z = params[26];
-	const float PRESSURE = params[27];
-	const float FREQ = params[28];
-	const float E_FIELD = params[29];
-	const float OMEGA1 = params[30];
-	const float OMEGA2 = params[31];
-	const float RADIAL_CONF = params[32];
-	const float AXIAL_CONF = params[33];
-	const int	N_IONDT_PER_DUSTDT = params[34];
-	const float GRID_FACTOR = params[35];
-	const float GAS_TYPE = params[36];
-    const float BOX_CENTER = params[37];
-    const float TEMP_GAS = params[38];
-
-	// free memory allocated for user parameters
-	free(params);
+	// GEOMETRY: 0 = Sphere, 1 = Cylinder
+	const int   NUM_ION 
+		= static_cast<int>(
+			 getParam_106<int>( paramFile, "NUM_ION" ) / (2*DIM_BLOCK)
+		  )	* (2 * DIM_BLOCK);
+	const float DEN_FAR_PLASMA 
+		= getParam_106<float>( paramFile, "DEN_FAR_PLASMA" );
+	const float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
+	const float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
+	const short DEN_DUST = getParam_106<short>( paramFile, "DEN_DUST" );
+	const float MASS_SINGLE_ION 
+		= getParam_106<float>( paramFile, "MASS_SINGLE_ION" );
+	const float MACH = getParam_106<float>( paramFile, "MACH" ); 
+	const float SOFT_RAD = getParam_106<float>( paramFile, "SOFT_RAD" );
+	const float RAD_DUST = getParam_106<float>( paramFile, "RAD_DUST" );
+	const float M_FACTOR = getParam_106<float>( paramFile, "M_FACTOR" );
+	const float CHARGE_SINGLE_ION 
+		= CHARGE_ELC * getParam_106<float>( paramFile, "CHARGE_SINGLE_ION" );
+	const float ION_TIME_STEP 
+		= getParam_106<float>( paramFile, "ION_TIME_STEP" );
+	const int NUM_TIME_STEP 
+		= getParam_106<int>( paramFile, "NUM_TIME_STEP" );
+	const int  GEOMETRY = getParam_106<int>( paramFile, "GEOMETRY" );
+	const float RAD_SIM_DEBYE 
+		= getParam_106<float>( paramFile, "RAD_SIM_DEBYE" );
+	const int   NUM_DIV_VEL = getParam_106<int>( paramFile, "NUM_DIV_VEL" );
+	const int   NUM_DIV_QTH = getParam_106<int>( paramFile, "NUM_DIV_QTH" );
+  	const float RAD_CYL_DEBYE 
+		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
+	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
+	const float P10X = getParam_106<float>( paramFile, "P10X" );
+	const float P12X = getParam_106<float>( paramFile, "P12X" );
+	const float P14X = getParam_106<float>( paramFile, "P14X" );
+	const float P01Z = getParam_106<float>( paramFile, "P01Z" );
+	const float P21Z = getParam_106<float>( paramFile, "P21Z" );
+	const float P03Z = getParam_106<float>( paramFile, "P03Z" );
+	const float P23Z = getParam_106<float>( paramFile, "P23Z" );
+	const float P05Z = getParam_106<float>( paramFile, "P05Z" );
+	const float PRESSURE = getParam_106<float>( paramFile, "PRESSURE" );
+	const float FREQ = getParam_106<float>( paramFile, "FREQ" );
+	const float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
+	const float OMEGA1 = getParam_106<float>( paramFile, "OMEGA1" );
+	const float OMEGA2 = getParam_106<float>( paramFile, "OMEGA2" );
+	const float RADIAL_CONF = getParam_106<float>( paramFile, "RADIAL_CONF" );
+	const float AXIAL_CONF = getParam_106<float>( paramFile, "AXIAL_CONF" );
+	const int	N_IONDT_PER_DUSTDT 
+		= getParam_106<int>( paramFile, "N_IONDT_PER_DUSTDT" );
+	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
+	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
+    const float BOX_CENTER = getParam_106<float>( paramFile, "BOX_CENTER" );
+    const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
 
 	// debye length (m)
 	const float DEBYE =
@@ -441,24 +425,21 @@ int main(int argc, char* argv[])
 	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
-	int gasType = GAS_TYPE; // 1 = Neon, 2 = Argon
 	const int I_CS_RANGES = 1000000;
 	float totIonCollFreq = 0;
 	//float TEMP_GAS = 300;
 	const float NUM_DEN_GAS = PRESSURE/BOLTZMANN/TEMP_GAS;
 	
-  
 	debugSpecificFile << "I_CS_RANGES " << I_CS_RANGES << '\n';
 	// allocate memory for the collision cross sections
-	typedef float i_cross_section [I_CS_RANGES+1];
-	i_cross_section sigma_i1;
-	i_cross_section sigma_i2;
-	i_cross_section sigma_i_tot;
+	float* sigma_i1 = new float[I_CS_RANGES+1];
+	float* sigma_i2 = new float[I_CS_RANGES+1];
+	float* sigma_i_tot = new float[I_CS_RANGES+1];
 
 	//determines a constant total collision frequency
-	setIonCrossSection_105( gasType, I_CS_RANGES, NUM_DEN_GAS,
+	setIonCrossSection_105( GAS_TYPE, I_CS_RANGES, NUM_DEN_GAS,
 		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
-		&totIonCollFreq, debugMode, debugSpecificFile);
+		totIonCollFreq, debugMode, debugSpecificFile);
 	
 	//Number of ions to collide each time step.  Adjust for non-integer value.
 	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * ION_TIME_STEP));
@@ -613,12 +594,20 @@ int main(int argc, char* argv[])
 		<< "RESZ			  " << RESZ				 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'		
 		<< '\n';
+
+		debugFile << "-- Sigma Values --" << '\n';
+		debugFile << "First 10 sigma_i_tot" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i_tot[i] << " ";
+		debugFile << "\nFirst 10 sigma_i1" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i1[i] << " ";
+		debugFile << "\nFirst 10 sigma_i2" << '\n';
+		for(int i=0 ; i<10 ; i++) debugFile << sigma_i2[i] << " ";
+		debugFile << '\n';
+		
 		debugFile.flush();
 	}
 
-	/*************************
-	print parameters
-	*************************/
+	/****** Print Parameters ******/
 
 	// set the output file to display 7 digits the right of the decimal
 	paramOutFile.precision(7);
@@ -690,9 +679,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << Q_DIV_M	      	  << " % Q_DIV_M"    		<< '\n';
 	paramOutFile.flush();
 
-	/*************************
-	Dust Parameters
-	*************************/
+	/****** Dust Parameters ******/
 
 	// pointer for dust positions,velocities, and accels
 	float3* posDust = NULL;
@@ -765,6 +752,10 @@ int main(int argc, char* argv[])
 			dustParamFile >> posDust[i].y;
 			dustParamFile >> posDust[i].z;
 
+			dustParamFile >> velDust[i].x;
+			dustParamFile >> velDust[i].y;
+			dustParamFile >> velDust[i].z;
+			
 			// save the dust charge
 			dustParamFile >> chargeDust[i];
 		}
@@ -797,7 +788,7 @@ int main(int argc, char* argv[])
 			// check if the grain is out of the simulation sphere
 			if ( tempDist > RAD_SIM_SQRD) {
 				fprintf(stderr, "ERROR: Dust out of simulation\n");
-				fatalError();
+				EXIT_WITH_FATAL_ERROR;
 			}
 		}
 	} if(GEOMETRY == 1) {
@@ -812,7 +803,7 @@ int main(int argc, char* argv[])
 			if (tempDist > RAD_CYL_SQRD || abs(posDust[i].z) > HT_CYL) {
 				fprintf(stderr, "ERROR: Dust out of simulation\n");
 				fprintf(stderr, "Dust grain %i pos %3.2e %3.2e %3.2e \n", i,posDust[i].x, posDust[i].y, posDust[i].z);
-				fatalError();
+				EXIT_WITH_FATAL_ERROR;
 			}
 		}
 	}
@@ -832,7 +823,12 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
-	/*********** Calculations on the Grid **************/
+	// Output the number of dust to the parameter file
+	paramOutFile << std::setw(14) << NUM_DUST << " % NUM_DUST\n";
+	paramOutFile.flush();
+	
+	/****** Calculations on the Grid ******/
+	
 	// pointer for grid positions, potentials, and ion density 
 	float3* gridPos = NULL;
 	float* ionDensity = NULL;
@@ -864,13 +860,16 @@ int main(int argc, char* argv[])
 	}
 	ionDensOutFile << "" << std::endl;
 
+	paramOutFile << std::setw(14) << NUM_GRID_PTS << " % NUM_GRID_PTS\n";
+	paramOutFile << std::setw(14) << RESX << " % RESX\n";
+	paramOutFile << std::setw(14) << RESZ << " % RESZ\n";
+	paramOutFile.flush();
+	
 	// number of blocks per grid for grid points
 	int blocksPerGridGrid = (NUM_GRID_PTS +1) / DIM_BLOCK;	
     /**********************/
 	
-	/*************************
-	time step parameters
-	*************************/
+	/****** Time Step Parameters ******/
 
 	// the number of commands in the file
 	int numCommands = 0;
@@ -912,7 +911,7 @@ int main(int argc, char* argv[])
 			} else {
 				fprintf(stderr, "ERROR: cannot 'CH-charge-dust'");
 				fprintf(stderr, " without a dust particle");
-				fatalError();
+				EXIT_WITH_FATAL_ERROR;
 			}
 		} else if (line == "CH-move-dust") {
 			if (NUM_DUST > 0){
@@ -921,7 +920,7 @@ int main(int argc, char* argv[])
 			} else {
 				fprintf(stderr, "ERROR: cannot 'CH-move-dust'");
 				fprintf(stderr, " without a dust particle");
-				fatalError();
+				EXIT_WITH_FATAL_ERROR;
 			}
 		} else {
 			// if the command does not exist give an error message
@@ -930,7 +929,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "Command \"%s\" does not exist\n\n", line.c_str());
 
 			// terminate the program
-			fatalError();
+			EXIT_WITH_FATAL_ERROR;
 		}
 	}
 
@@ -953,9 +952,7 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
-	/**************************
-	initialize host variables
-	***************************/
+	/****** Initialize Host Variables ******/
 
 	// holds electron current to a dust grain in the time step in C
 	float elcCurrent = 0;
@@ -1043,80 +1040,108 @@ int main(int argc, char* argv[])
 		//polarity switching
 		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
 		//gravity
-		accDust[i].z -= 9.81;
+		//accDust[i].z -= 9.81;
 		momIonDust[i].x = 0;
 		momIonDust[i].y = 0;
 		momIonDust[i].z = 0;
 	}
 
-	// loop over all the ions and initialize their velocity, acceleration,
-	// and position
-	for (int i = 0; i < NUM_ION; i++) {
-		if(GEOMETRY == 0) {
-			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].x = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].y = randNum * RAD_SIM;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].z = randNum * RAD_SIM;
+	// attempt to open input file for initial ion positions and velocities
+	fileName = inputDirName + "init-ions.txt";
+	std::ifstream ionInitFile(fileName.c_str());
+	// check if the file opened
+	bool init_ions_from_file = ionInitFile.is_open();
 
-			// calculate the distance from the ion to the center of the
-			// simulation sphere
-			dist = posIon[i].x * posIon[i].x +
-			posIon[i].y * posIon[i].y +
-			posIon[i].z * posIon[i].z;
+	if( init_ions_from_file ) { // initialize ion data from file
 
-			// while the ion is outside of the simulation sphere, give it
-			// a new random position.
-			while (dist > RAD_SIM * RAD_SIM) {
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].x = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].y = randNum * RAD_CYL;
-				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].z = randNum * RAD_CYL;
+		for( int i=0 ; i<NUM_ION ; i++ ) {
+			ionInitFile >> 	posIon[i].x;
+			ionInitFile >> 	posIon[i].y;
+			ionInitFile >> 	posIon[i].z;
 
-				// recalculate the distance to the center of the simulation
+			ionInitFile >>  velIon[i].x;
+			ionInitFile >>  velIon[i].y;
+			ionInitFile >>  velIon[i].z;
+		}
+
+		ionInitFile.close();
+
+	} else { // as no initial ion data was given, initialize ion data with 
+			 //zeros or random values
+			 
+		// loop over all the ions and initialize their velocity, acceleration,
+		// and position
+		for (int i = 0; i < NUM_ION; i++) {
+			if(GEOMETRY == 0) {
+				// give the ion a random position
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].x = randNum * RAD_SIM;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].y = randNum * RAD_SIM;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].z = randNum * RAD_SIM;
+
+				// calculate the distance from the ion to the center of the
+				// simulation sphere
 				dist = posIon[i].x * posIon[i].x +
 				posIon[i].y * posIon[i].y +
 				posIon[i].z * posIon[i].z;
-			}
-		} else if(GEOMETRY == 1) {
-			// give the ion a random position
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].x = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].y = randNum * RAD_CYL;
-			randNum = (((rand() % (number*2)) - number) / (float)number);
-			posIon[i].z = randNum * HT_CYL;
 
-			// calculate the distance from the ion to the center of the
-			// simulation cylinder
-			dist = posIon[i].x * posIon[i].x + posIon[i].y * posIon[i].y;
+				// while the ion is outside of the simulation sphere, give it
+				// a new random position.
+				while (dist > RAD_SIM * RAD_SIM) {
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].x = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].y = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].z = randNum * RAD_CYL;
 
-			// while the ion is outside of the simulation cylinder, give it
-			// a new random position.
-			while (dist > RAD_CYL * RAD_CYL){
+					// recalculate the distance to the center of the simulation
+					dist = posIon[i].x * posIon[i].x +
+					posIon[i].y * posIon[i].y +
+					posIon[i].z * posIon[i].z;
+				}
+			} else if(GEOMETRY == 1) {
+				// give the ion a random position
 				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].x = randNum * RAD_CYL;
 				randNum = (((rand() % (number*2)) - number) / (float)number);
 				posIon[i].y = randNum * RAD_CYL;
+				randNum = (((rand() % (number*2)) - number) / (float)number);
+				posIon[i].z = randNum * HT_CYL;
 
-				// recalculate the distance to the center of the simulation
-				dist = posIon[i].x * posIon[i].x +
-				posIon[i].y * posIon[i].y;
+				// calculate the distance from the ion to the center of the
+				// simulation cylinder
+				dist = posIon[i].x * posIon[i].x + posIon[i].y * posIon[i].y;
+
+				// while the ion is outside of the simulation cylinder, give it
+				// a new random position.
+				while (dist > RAD_CYL * RAD_CYL){
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].x = randNum * RAD_CYL;
+					randNum = (((rand() % (number*2)) - number) / (float)number);
+					posIon[i].y = randNum * RAD_CYL;
+
+					// recalculate the distance to the center of the simulation
+					dist = posIon[i].x * posIon[i].x +
+					posIon[i].y * posIon[i].y;
+				}
 			}
+
+			// give the ion an initial random velocity
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			velIon[i].x = ION_SPEED * randNum;
+			randNum = (((rand() % (number*2)) - number) / (float)number);
+			velIon[i].y = ION_SPEED * randNum;
+			randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
+			velIon[i].z = - ION_SPEED * randNum;
+			
 		}
+		
+	}
 
-		// give the ion an initial random velocity
-		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].x = ION_SPEED * randNum;
-		randNum = (((rand() % (number*2)) - number) / (float)number);
-		velIon[i].y = ION_SPEED * randNum;
-		randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
-		velIon[i].z = - ION_SPEED * randNum;
-
+	for( int i=0 ; i<NUM_ION ; i++) {
 		// set the initial acceleration to 0
 		accIon[i].x = 0;
 		accIon[i].y = 0;
@@ -1129,13 +1154,17 @@ int main(int argc, char* argv[])
 
 		// set the initial DustIon acceleration to 0
 		//for(int d = 0; d < NUM_DUST; d++) {
-		//accDustIon[d * NUM_ION + i].x = 0;
-		//accDustIon[d * NUM_ION + i].y = 0;
-		//accDustIon[d * NUM_ION + i].z = 0;
+			//accDustIon[d * NUM_ION + i].x = 0;
+			//accDustIon[d * NUM_ION + i].y = 0;
+			//accDustIon[d * NUM_ION + i].z = 0;
 		//}
 	}
 
 	if (debugMode) {
+
+		debugFile << "-- Initialized From File --" << '\n'
+		<< "Ions From File: " << init_ions_from_file << '\n' << '\n';
+		
 		debugFile << "-- Basic Memory Sizes --" << '\n'
 		<< "float  " << sizeof(float) << '\n'
 		<< "int    " << sizeof(int) << '\n'
@@ -1191,12 +1220,9 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
-	/**************************
-	initialize device variables
-	***************************/
-
+	/****** Initialize Device Variables ******/
 	
-	roadBlock_000(statusFile, __LINE__, __FILE__, "before variables", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before variables", false);
 
 	// create constant device variables
 	constCUDAvar<int> d_NUM_DIV_QTH(&NUM_DIV_QTH, 1);
@@ -1296,14 +1322,14 @@ int main(int argc, char* argv[])
 	d_SIGMA_I_TOT.hostToDev();
 	d_collision_counter.hostToDev();
 
-	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", false);
 
 	//Set the potential and density on the grid to zero
 	zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
 		(d_ionPotential.getDevPtr(),
 		 d_ionDensity.getDevPtr());
 
-	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
 
 	// zero the ionDustAcc
 	zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
@@ -1311,14 +1337,14 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_NUM_ION.getDevPtr());
 
-   	roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", false);
+   	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", false);
 
-	roadBlock_000(statusFile, __LINE__, __FILE__, "before init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", false);
 
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
 
-	roadBlock_000(statusFile, __LINE__, __FILE__, "init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "init_101", false);
 
 	// initialize variables needed for injecting ions with the Piel 2017 method
 	if(GEOMETRY == 0) {
@@ -1357,32 +1383,31 @@ int main(int argc, char* argv[])
 			debugFile);
 	}
 
+	roadBlock_104( statusFile, __LINE__, __FILE__, "Pause before timestep", false);	
+	
 	/*************************
-	time step
+		Time Step
 	*************************/
 
-	roadBlock_000( statusFile, __LINE__, __FILE__, "Pause before timestep", false);
-
-	/***********************  TIME STEP STARTS HERE ********************/
-	/**** Before TS: initialize accelerations and kick for 1/2 step ***/
+	/****** Init acc. and Kick for 1/2 Step ******/
 
 	//First make sure that no ions are inside dust
-	checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_posIon.getDevPtr(), // <--
+	checkIonDustBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		d_posIon.getDevPtr(), // {{{
 		d_boundsIon.getDevPtr(), // <-->
 		d_RAD_DUST_SQRD.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
 		d_posDust.getDevPtr()); // <--
 
-	roadBlock_000(statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
 	//polarity switching of electric field
 	int xac = 0;
 
 	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
-		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(), 
+		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_posIon.getDevPtr(), 
 			d_velIon.getDevPtr(),
 			d_accIon.getDevPtr(),
 			randStates.getDevPtr(),
@@ -1402,11 +1427,11 @@ int main(int argc, char* argv[])
 			d_BOLTZMANN.getDevPtr(),
 			xac);
 
-		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
 
 	} else if(GEOMETRY == 1) {
-		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_posIon.getDevPtr(), // -->
+		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_posIon.getDevPtr(), // -->
 			d_velIon.getDevPtr(), // -->
 			d_accIon.getDevPtr(), // -->
 			randStates.getDevPtr(),
@@ -1427,50 +1452,51 @@ int main(int argc, char* argv[])
 			d_BOLTZMANN.getDevPtr(),
 			xac); // <--
 
-		roadBlock_000( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 	}
 
 	// reset the ion bounds flag to 0
-	resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
+	resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		d_boundsIon.getDevPtr());
 
-	roadBlock_000( statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
+	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
 
 	//Calculate ion-ion forces
 	//Ions inside the simulation region
 	// calculate the acceleration due to ion-ion interactions
-	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>
-		(d_posIon.getDevPtr(), // <--
+	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>(
+		d_posIon.getDevPtr(), // <--
 		d_accIon.getDevPtr(), // <-->
 		d_NUM_ION.getDevPtr(), 
 		d_SOFT_RAD_SQRD.getDevPtr(),
 		d_ION_ION_ACC_MULT.getDevPtr(),
 		d_INV_DEBYE.getDevPtr());
 
-	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+	if (xac == 0) {
+		E_direction = -1;
+	}
+	else {
+		E_direction = 1;
+	}
 
 	// Calculate the ion accelerations due to the ions outside of
 	// the simulation cavity
 	if(GEOMETRY == 0) {
 		// calculate the forces between all ions
-		calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_accIon.getDevPtr(),
+		calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_accIon.getDevPtr(), // {{{
 			d_posIon.getDevPtr(),
 			d_EXTERN_ELC_MULT.getDevPtr(),
 			d_INV_DEBYE.getDevPtr());
 
-		roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 	} else if(GEOMETRY == 1) {
 		// calculate the forces from ions outside simulation region
 		// and external electric field 
-		if (xac == 0) {
-			E_direction = -1;
-		}
-		else
-			E_direction = 1;
-
-		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_accIon.getDevPtr(), // <-->
-			d_posIon.getDevPtr(), // <--
+		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_accIon.getDevPtr(), // {{{
+			d_posIon.getDevPtr(), 
 			d_Q_DIV_M.getDevPtr(),
 			d_P10X.getDevPtr(),
 			d_P12X.getDevPtr(),
@@ -1483,22 +1509,22 @@ int main(int argc, char* argv[])
 			d_E_FIELD.getDevPtr(),
 			E_direction);
 
-		roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 	}
 
 	//Any other external forces acting on ions would be calc'd here
 	// Kick for 1/2 a timestep -- using just ion-ion accels
-	kick_100<<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_velIon.getDevPtr(), // <-->
-		d_accIon.getDevPtr(), // <-->
+	kick_100<<< blocksPerGridIon, DIM_BLOCK >>> (
+		d_velIon.getDevPtr(), // {{{
+		d_accIon.getDevPtr(), 
 		d_HALF_TIME_STEP.getDevPtr());
 
-	roadBlock_000(  statusFile, __LINE__, __FILE__, "kick_100", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "kick_100", false);
 
 	// calculate the acceleration due to ion-dust interactions
 	// also save the distance to the closest dust particle for each ion
-	calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-		(d_posIon.getDevPtr(), // <--
+	calcIonDustAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		d_posIon.getDevPtr(), // {{{
 		d_accIonDust.getDevPtr(), // <-->
 		d_posDust.getDevPtr(), // <--
 		d_NUM_ION.getDevPtr(),
@@ -1508,26 +1534,22 @@ int main(int argc, char* argv[])
 		d_chargeDust.getDevPtr(), // <--
 		d_minDistDust.getDevPtr()); // -->
 
-	roadBlock_000(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
 	
-	// *************************************************//
-	// ***** time step loop officially begins here *****//
-	// *************************************************//
+	/****** Time Step Loop ******/
 
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
 	{
-		//statusFile << "In the timestep loop " << std::endl;
-
 		// print the time step number to the status file
 		statusFile << i << ": "<< std::endl;
 
-		//Start of ion loop
+		// Ion Time Step Loop
 		for (int j = 1; j <= N_IONDT_PER_DUSTDT; j++){
-			//statusFile << i << "--"  <<  j << ": " ; 
+
 			//Select the time step depth
-			select_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(), // <--
+			select_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+				d_posIon.getDevPtr(), // <--
 				d_posDust.getDevPtr(), // <--
 				d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
 				d_minDistDust.getDevPtr(), // <-- (TS1: good)
@@ -1539,7 +1561,7 @@ int main(int argc, char* argv[])
 				d_m.getDevPtr(), // -->
 				d_timeStepFactor.getDevPtr()); // -->
 	
-			roadBlock_000( statusFile, __LINE__, __FILE__, "select_100", false);
+			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", false);
 
 			// copy ion m_value to host
 			//d_m.devToHost();
@@ -1553,8 +1575,8 @@ int main(int argc, char* argv[])
 			//KDK using just the ion-dust acceleration for s^m iterations
  
 			if(GEOMETRY == 0) {
-				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon.getDevPtr(), // <-->
+				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_posIon.getDevPtr(), // <-->
 					d_velIon.getDevPtr(), // <-->
 					d_accIonDust.getDevPtr(), // <--
 					d_m.getDevPtr(), // <
@@ -1574,10 +1596,11 @@ int main(int argc, char* argv[])
 					d_RAD_COLL_MULT.getDevPtr(),
 					d_chargeDust.getDevPtr()); // <--
 
-				roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
+				
 			} else if(GEOMETRY == 1) {
-				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
+				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
 					d_velIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
 					d_accIonDust.getDevPtr(),//<-->TS1: from calcIonDustAcc before time step)
 					d_m.getDevPtr(), // < (TS1 = TS+: select)
@@ -1597,7 +1620,7 @@ int main(int argc, char* argv[])
 					d_RAD_COLL_MULT.getDevPtr(),
 					d_chargeDust.getDevPtr()); // <--
 
-				roadBlock_000(  statusFile, __LINE__, __FILE__, "KDK_100", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 			}
 
 			//polarity switching of electric field
@@ -1609,8 +1632,8 @@ int main(int argc, char* argv[])
 			// inject ions on the boundary of the simulation
 			if(GEOMETRY == 0) {
 				// inject ions into the simulation sphere
-				injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon.getDevPtr(),
+				injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_posIon.getDevPtr(),
 					d_velIon.getDevPtr(),
 					d_accIon.getDevPtr(),
 					randStates.getDevPtr(),
@@ -1630,11 +1653,11 @@ int main(int argc, char* argv[])
 					d_BOLTZMANN.getDevPtr(),
 					xac);
 		
-				roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
 			} if(GEOMETRY == 1) {
 				// inject ions into the simulation sphere
-				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_posIon.getDevPtr(), // -->
+				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_posIon.getDevPtr(), // -->
 					d_velIon.getDevPtr(), // -->
 					d_accIon.getDevPtr(), // -->
 					randStates.getDevPtr(), 
@@ -1655,12 +1678,12 @@ int main(int argc, char* argv[])
 					d_BOLTZMANN.getDevPtr(),
 					xac); // <--
 		
-				roadBlock_000(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
 			}
 	
 			// Calculate the ion forces on the dust
-			calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_posIon.getDevPtr(), // <--
+			calcDustIonAcc_103 <<< blocksPerGridIon, DIM_BLOCK >>> (
+				d_posIon.getDevPtr(), // {{{
 				d_posDust.getDevPtr(), // <-->
 				d_accDustIon.getDevPtr(), // <--
 				d_chargeDust.getDevPtr(), // <--
@@ -1669,53 +1692,57 @@ int main(int argc, char* argv[])
 				d_INV_DEBYE.getDevPtr(),
 				d_DUST_ION_ACC_MULT.getDevPtr()); 
 	
-			roadBlock_000(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
+			roadBlock_104(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 
 			// calc ion number density and ion potential
-			calcIonDensityPotential_102 <<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
-				(d_gridPos.getDevPtr(),
+			calcIonDensityPotential_102 
+				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>> (
+				d_gridPos.getDevPtr(), // {{{
 				 d_posIon.getDevPtr(),
 				 d_ION_POTENTIAL_MULT.getDevPtr(),
 				 d_INV_DEBYE.getDevPtr(),
 				 d_NUM_ION.getDevPtr(),
 				 d_ionPotential.getDevPtr(),
 				 d_ionDensity.getDevPtr());
-			roadBlock_000(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
+			roadBlock_104(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region
 			// calculate the acceleration due to ion-ion interactions
-			calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>>
-				(d_posIon.getDevPtr(), // <--
+			calcIonIonAcc_102 
+				<<< blocksPerGridIon, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>> (
+				d_posIon.getDevPtr(), // {{{
 				d_accIon.getDevPtr(), // <-->
 				d_NUM_ION.getDevPtr(),
 				d_SOFT_RAD_SQRD.getDevPtr(),
 				d_ION_ION_ACC_MULT.getDevPtr(),
 				d_INV_DEBYE.getDevPtr());
 	
-			roadBlock_000( statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
-	
+			roadBlock_104( statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+			// }}}	
+
+			if (xac ==0) {
+				E_direction = -1;
+			} else {
+				E_direction = 1;
+			}
+
 			// Calculate the ion accelerations due to the ions outside of
 			// the simulation cavity
 			if(GEOMETRY == 0) {
 				// calculate the forces between all ions
-				calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_accIon.getDevPtr(), // <-->
+				calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_accIon.getDevPtr(), // {{{
 					d_posIon.getDevPtr(), // <--
 					d_EXTERN_ELC_MULT.getDevPtr(),
 					d_INV_DEBYE.getDevPtr());
 	
-				roadBlock_000(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
-				if (xac ==0) {
-					E_direction = -1;
-				} else {
-					E_direction = 1;
-				}
-				calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>>
-					(d_accIon.getDevPtr(), // <-->
+				calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+					d_accIon.getDevPtr(), // {{{
 					d_posIon.getDevPtr(), // <--
 					d_Q_DIV_M.getDevPtr(),
 					d_P10X.getDevPtr(),
@@ -1729,7 +1756,7 @@ int main(int argc, char* argv[])
 					d_E_FIELD.getDevPtr(),
 					E_direction);
 
-				roadBlock_000( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
+				roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 			}
 
 		//Any other external forces acting on ions would be calc'd here
@@ -1774,6 +1801,7 @@ int main(int argc, char* argv[])
 					traceFile << ", " << accIon[ionTraceIndex].y;
 					traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 				
+				// Calculate New Dust Charge
 				} else if (commands[c] == 4){
 					// copy ion bounds to host
 					d_boundsIon.devToHost();
@@ -1797,10 +1825,9 @@ int main(int argc, char* argv[])
 					}
 
 					// Update charge on dust
-
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-					dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST);
+						dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST);
 						//- ELC_TEMP_EV; 
 
 						// calculate the electron current to the dust
@@ -1809,7 +1836,7 @@ int main(int argc, char* argv[])
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-					chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+						chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
 
 						//dustChargeFile << chargeDust[g] << ", ";
 						//save charge for averaging
@@ -1821,6 +1848,7 @@ int main(int argc, char* argv[])
 					// copy the dust charge to the GPU
 					d_chargeDust.hostToDev(); 
 	
+				// Check For Erroneous Command
 				} else if ( commands[c] != 5){
 	
 					// output an error message
@@ -1830,7 +1858,7 @@ int main(int argc, char* argv[])
 						commands[c], c);
 	
 					// terminate the program
-					fatalError();
+					EXIT_WITH_FATAL_ERROR;
 				}
 			}
 
@@ -1850,8 +1878,11 @@ int main(int argc, char* argv[])
 		}
 
 		//reset collision list
-		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_collList.getDevPtr(), set_value);
+		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_collList.getDevPtr(), 
+			set_value);
+			
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", false);
 
 		//copy collision list to host 
 		d_collList.devToHost();
@@ -1860,9 +1891,9 @@ int main(int argc, char* argv[])
 		for(int j=0; j < n_coll; j++){
 			collID[j] = 0;
 			do{
-			dum  = (int)(rand() % NUM_ION);
-			exist = false;
-			for(int q=0;q<=j-1;q++) if (collID[q]==dum) exist = true;
+				dum  = (int)(rand() % NUM_ION);
+				exist = false;
+				for(int q=0;q<=j-1;q++) if (collID[q]==dum) exist = true;
 			} while(exist);
 			collID[j] = dum;
 			collList[dum] = unset_value;
@@ -1870,9 +1901,10 @@ int main(int argc, char* argv[])
 		
 		//copy collision list to device
 		d_collList.hostToDev();
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", false);																
 		
-		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>>
-			(d_collList.getDevPtr(),
+		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_collList.getDevPtr(),
 			d_TEMP_GAS.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
@@ -1885,386 +1917,436 @@ int main(int argc, char* argv[])
 			randStates.getDevPtr(), 
 			d_collision_counter.getDevPtr());
 
-		roadBlock_000(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
 		// copy collision counter to the host 
 		//d_collision_counter.devToHost();
 		//debugFile << "Number ion collisions: " << collision_counter << "\n";
 
-			// reset the ion bounds flag to 0
-			resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>>(d_boundsIon.getDevPtr());
+		// reset the ion bounds flag to 0
+		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_boundsIon.getDevPtr());
 	
-			roadBlock_000(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
 	
-			// Kick for one timestep -- using just ion-ion accels
-			kick_100 <<< blocksPerGridIon, DIM_BLOCK >>>
-				(d_velIon.getDevPtr(), // <-->
-				d_accIon.getDevPtr(), // <-->
-				d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
+		// Kick for one timestep -- using just ion-ion accels
+		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_velIon.getDevPtr(), // {{{
+			d_accIon.getDevPtr(), // <-->
+			d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
 	
-			roadBlock_000( statusFile, __LINE__, __FILE__, "kick_100", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", false);
 	
-		} // ***** end of ion loop *****// 
+	} // ***** end of ion loop *****// 
 
-	// ***** begin dust updates *****//
+		// ***** begin dust updates *****//
+		// If dust particles have static positions 
+		if(MOVE_DUST ==0) dust_time = ionTime;
 
-	if(MOVE_DUST ==0) dust_time = ionTime;
+		for (int c = 0; c < numCommands; c++){
 
-	for (int c = 0; c < numCommands; c++){
-		if (commands[c] == 4) {
+			// Dust Charging
+			if (commands[c] == 4) {
 
-			// copy the dust charge to the GPU
-			d_chargeDust.hostToDev();
-			// copy the ion momentum to the host 
-			//d_momIonDust.devToHost();
+				// copy the dust charge to the GPU
+				d_chargeDust.hostToDev();
 
-			// print all the dust charges to the trace file
+				// print all the dust charges to the trace file
 			
-			//dustChargeFile << std::endl;
+				//dustChargeFile << std::endl;
 
-			for (int k = 0; k < NUM_DUST; k++){
-				//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
-				//dustChargeFile << chargeDust[k] << ",";
+				for (int k = 0; k < NUM_DUST; k++){
+					//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
+					//dustChargeFile << chargeDust[k] << ",";
 
-				//average the tempCharge over ion timesteps
-				//smooth the simulated dust charge over past timesteps 
-				simCharge[k] = 0.95 * simCharge[k] 
-					+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
-				//Adjust the charge on dust for dust dynamics
-				//dynCharge[k] = simCharge[k] + adj_q;
-				//dynCharge[k] = simCharge[k];
+					//average the tempCharge over ion timesteps
+					//smooth the simulated dust charge over past timesteps 
+					simCharge[k] = 0.95 * simCharge[k] 
+						+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
+					//Adjust the charge on dust for dust dynamics
+					//dynCharge[k] = simCharge[k] + adj_q;
+					//dynCharge[k] = simCharge[k];
 
-				//reset the tempCharge to zero
-				tempCharge[k] = 0;
+					//reset the tempCharge to zero
+					tempCharge[k] = 0;
 
-				dustChargeFile << simCharge[k] << ", ";
-				//dustChargeFile << chargeDust[k] << ", ";
+					dustChargeFile << simCharge[k] << ", ";
+					//dustChargeFile << chargeDust[k] << ", ";
 
-				//ion-dust momentum transfer (collection term of ion drag)
-				//deltavee.x = momIonDust[k].x ;
-				//deltavee.y = momIonDust[k].y ;
-				//deltavee.z = momIonDust[k].z ;
+					//ion-dust momentum transfer (collection term of ion drag)
+					//deltavee.x = momIonDust[k].x ;
+					//deltavee.y = momIonDust[k].y ;
+					//deltavee.z = momIonDust[k].z ;
 
-				//dustTraceFile << deltavee.x;
-				//dustTraceFile << ", " << deltavee.y;
-				//dustTraceFile << ", " << deltavee.z << "\n";
+					//dustTraceFile << deltavee.x;
+					//dustTraceFile << ", " << deltavee.y;
+					//dustTraceFile << ", " << deltavee.z << "\n";
 
-				//zero momIonDust
-				//momIonDust[k].x = 0;
-				//momIonDust[k].y = 0;
-				//momIonDust[k].z = 0;
-			}
-			
-			// copy the ion momentum to the GPU
-			//d_momIonDust.hostToDev();
+					//zero momIonDust
+					//momIonDust[k].x = 0;
+					//momIonDust[k].y = 0;
+					//momIonDust[k].z = 0;
+				}
 
 			dustChargeFile << std::endl;
 
-		// move the dust
-		} else if (commands[c] == 5) {
+			// Update Dust Position 
+			} else if (commands[c] == 5) {
  
-			// Print the command number to the status file 
-			statusFile << "5 ";
+				// Print the command number to the status file 
+				statusFile << "5 ";
 					
-		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>>
-				(d_accDustIon.getDevPtr(),
-				d_NUM_DUST.getDevPtr(),
-				d_NUM_ION.getDevPtr()); 
+				sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
+					d_accDustIon.getDevPtr(),
+					d_NUM_DUST.getDevPtr(),
+					d_NUM_ION.getDevPtr()); 
 					
-			roadBlock_000(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
+				roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 			
-			d_accDustIon.devToHost();
-			d_momIonDust.devToHost();
+				d_accDustIon.devToHost();
+				d_momIonDust.devToHost();
 					
-			// copy the dust positions to the host
-			d_posDust.devToHost();
+				// copy the dust positions to the host
+				d_posDust.devToHost();
 
-			dust_time += dust_dt;
-			dustTraceFile << dust_time << std::endl;
-			//debugSpecificFile << dust_time << std::endl;
+				dust_time += dust_dt;
+				dustTraceFile << dust_time << std::endl;
 
-			// loop over dust particles 
-			for (int j = 0; j < NUM_DUST; j++) {
+				// loop over dust particles 
+				for (int j = 0; j < NUM_DUST; j++) {
 
-				//kick half a  time step
-				velDust[j].x += accDust[j].x * half_dust_dt;
-				velDust[j].y += accDust[j].y * half_dust_dt;
-				velDust[j].z += accDust[j].z * half_dust_dt;
+					//kick half a  time step
+					velDust[j].x += accDust[j].x * half_dust_dt;
+					velDust[j].y += accDust[j].y * half_dust_dt;
+					velDust[j].z += accDust[j].z * half_dust_dt;
 				
-				//Half of ion-dust momentum transfer (coll. ion drag)
-				deltavee.x = momIonDust[j].x*mom_const;
-				deltavee.y = momIonDust[j].y*mom_const;
-				deltavee.z = momIonDust[j].z*mom_const;
+					//Half of ion-dust momentum transfer (coll. ion drag)
+					deltavee.x = momIonDust[j].x*mom_const;
+					deltavee.y = momIonDust[j].y*mom_const;
+					deltavee.z = momIonDust[j].z*mom_const;
 
-				// Add deltavee due to ion collection drag force
-				velDust[j].x += deltavee.x;
-				velDust[j].y += deltavee.y;
-				velDust[j].z += deltavee.z;
+					// Add deltavee due to ion collection drag force
+					velDust[j].x += deltavee.x;
+					velDust[j].y += deltavee.y;
+					velDust[j].z += deltavee.z;
 
-				// drift a whole step
-				posDust[j].x += velDust[j].x * dust_dt;
-				posDust[j].y += velDust[j].y * dust_dt;
-				posDust[j].z += velDust[j].z * dust_dt;
+					// drift a whole step
+					posDust[j].x += velDust[j].x * dust_dt;
+					posDust[j].y += velDust[j].y * dust_dt;
+					posDust[j].z += velDust[j].z * dust_dt;
 
-				// periodic BC in z-dir for dust
-				if(posDust[j].z > HT_CYL) {
-					posDust[j].z -= 2.0*HT_CYL;
-				} 
-				if(posDust[j].z < -HT_CYL) {
-					posDust[j].z += 2.0*HT_CYL;
-				}
-
-				//dustTraceFile << "j " << j << "\n";
-
-				// zero the acceleration
-				accDust[j].x = 0;
-				accDust[j].y = 0;
-				accDust[j].z = 0;
-
-				// force of ions on dust
-				accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
-				accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
-				accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
-
-				//print this acceleration to the trace file
-				//debugSpecificFile << "ion acceleration  ";
-				debugSpecificFile << accDust[j].x;
-				debugSpecificFile << ", " << accDust[j].y;
-				debugSpecificFile << ", " << accDust[j].z;
-				debugSpecificFile << ", " << deltavee.x;
-				debugSpecificFile << ", " << deltavee.y;
-				debugSpecificFile << ", " << deltavee.z << "\n";
-
-
-				// Calculate dust-dust acceleration 
-				if(j == 0) {
-					for (int g = 0;  g < NUM_DUST; g++) {
-						accDust2[g].x = 0;
-						accDust2[g].y = 0;
-						accDust2[g].z = 0;
+					// periodic BC in z-dir for dust
+					if(posDust[j].z > HT_CYL) {
+						posDust[j].z -= 2.0*HT_CYL;
+					} 
+					if(posDust[j].z < -HT_CYL) {
+						posDust[j].z += 2.0*HT_CYL;
 					}
-				}
 
-				// forces between the dust grains
-				for(int g = j+1; g < NUM_DUST; g++) {
-       			// calculate the distance between dust grain j
-					//and all other grains
-					distdd.x = posDust[j].x - posDust[g].x;
-					distdd.y = posDust[j].y - posDust[g].y;
-					distdd.z = posDust[j].z - posDust[g].z;
-        
-					distSquared = distdd.x*distdd.x+distdd.y*distdd.y 
-						+ distdd.z*distdd.z;
-        
-					// calculate the hard distance
-					dist = sqrt(distSquared);
-        
-					//calculate a scalar intermediate
-					//linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
-					//	* (simCharge[g]) / (dist*dist*dist)
-					//	* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
-					linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
-						* (simCharge[g]) / (dist*dist*dist);
-        
-					// add the acceleration to the current dust grain
-					accDust[j].x += linForce * distdd.x;
-					accDust[j].y += linForce * distdd.y;
-					accDust[j].z += linForce * distdd.z;
+					//dustTraceFile << "j " << j << "\n";
 
-					// add -acceleration to other dust grain
-					accDust2[g].x -= linForce * distdd.x;
-					accDust2[g].y -= linForce * distdd.y;
-					accDust2[g].z -= linForce * distdd.z;     
-				}
-    
-				//dustTraceFile << "dust acceleration  ";
-				//dustTraceFile << accDust[j].z << std::endl;
+					// zero the acceleration
+					accDust[j].x = 0;
+					accDust[j].y = 0;
+					accDust[j].z = 0;
 
-				accDust[j].x +=  accDust2[j].x;
-				accDust[j].y +=  accDust2[j].y;
-				accDust[j].z +=  accDust2[j].z;
+					// force of ions on dust
+					accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
+					accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
+					accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
+
+					//print this acceleration to the trace file
+					//dustTraceFile << "ion acceleration  ";											 
+					debugSpecificFile << accDust[j].x;
+					debugSpecificFile << ", " << accDust[j].y;
+					debugSpecificFile << ", " << accDust[j].z;
+					debugSpecificFile << ", " << deltavee.x;
+					debugSpecificFile << ", " << deltavee.y;
+					debugSpecificFile << ", " << deltavee.z << "\n";
+
+
+					// Calculate dust-dust acceleration 
+					if(j == 0) {
+						for (int g = 0;  g < NUM_DUST; g++) {
+							accDust2[g].x = 0;
+							accDust2[g].y = 0;
+							accDust2[g].z = 0;
+						}
+					}
+
+					// forces between the dust grains
+					for(int g = j+1; g < NUM_DUST; g++) {
+					// calculate the distance between dust grain j
+						//and all other grains
+						distdd.x = posDust[j].x - posDust[g].x;
+						distdd.y = posDust[j].y - posDust[g].y;
+						distdd.z = posDust[j].z - posDust[g].z;
+			
+						distSquared = distdd.x*distdd.x+distdd.y*distdd.y 
+							+ distdd.z*distdd.z;
+			
+						// calculate the hard distance
+						dist = sqrt(distSquared);
+			
+						//calculate a scalar intermediate
+						//linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
+						//	* (simCharge[g]) / (dist*dist*dist)
+						//	* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
+						linForce=DUST_DUST_ACC_MULT*(simDust[j]) 
+							* (simDust[g]) / (dist*dist*dist);
+			
+						// add the acceleration to the current dust grain
+						accDust[j].x += linForce * distdd.x;
+						accDust[j].y += linForce * distdd.y;
+						accDust[j].z += linForce * distdd.z;
+
+						// add -acceleration to other dust grain
+						accDust2[g].x -= linForce * distdd.x;
+						accDust2[g].y -= linForce * distdd.y;
+						accDust2[g].z -= linForce * distdd.z;     
+					}
+
+					accDust[j].x +=  accDust2[j].x;
+					accDust[j].y +=  accDust2[j].y;
+					accDust[j].z +=  accDust2[j].z;
 						
-				// calculate acceleration of the dust
-				//radial acceleration from confinement
-				//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
-				////accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
-				accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
-				accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
-				//Radial position of dust
-				rhoDustsq = posDust[j].x * posDust[j].x +
-							   posDust[j].y * posDust[j].y;
+					// calculate acceleration of the dust
+					//radial acceleration from confinement
+					//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
+					////accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
+					accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
+					accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
+					//Radial position of dust
+					rhoDustsq = posDust[j].x * posDust[j].x +
+								posDust[j].y * posDust[j].y;
 
-				// Big accel to keep dust from leaving sides of cylinder
-				rhoDust = sqrt(rhoDustsq);
-				if(rhoDust > radialConfine) {
-				acc = simCharge[j]/MASS_DUST*OMEGA2 
-						*(rhoDust-radialConfine) / rhoDust;
-				accDust[j].x += acc * posDust[j].x;
-				accDust[j].y += acc * posDust[j].y;
-				}
+					// Big accel to keep dust from leaving sides of cylinder
+					rhoDust = sqrt(rhoDustsq);
+					if(rhoDust > radialConfine) {
+					acc = simCharge[j]/MASS_DUST*OMEGA2 
+							*(rhoDust-radialConfine) / rhoDust;
+					accDust[j].x += acc * posDust[j].x;
+					accDust[j].y += acc * posDust[j].y;
+					}
 				
 				//debugSpecificFile << "confinement acceleration ";
 				//debugSpecificFile << acc*posDust[j].x << ", ";
 				//debugSpecificFile << acc*posDust[j].y << ", ";
 
-				//axial confinement in z for dust near ends of cylinder	
-				if(abs(posDust[j].z) > axialConfine) {
-					if(posDust[j].z > 0) {
-						adj_z = posDust[j].z - axialConfine;
-					} else {
-					adj_z = posDust[j].z + axialConfine;
-					}	
-					//accDust[j].z += OMEGA_DIV_M* simCharge[j] * adj_z;
-					accDust[j].z += OMEGA2/MASS_DUST* simCharge[j] * adj_z;
-				}
-				
-				//polarity switching
-				q_div_m = (simCharge[j]) / MASS_DUST;
-				accDust[j].z -= q_div_m * E_FIELD 
-			 *(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
+					//axial confinement in z for dust near ends of cylinder	
+					if(abs(posDust[j].z) > axialConfine) {
+						if(posDust[j].z > 0) {
+							adj_z = posDust[j].z - axialConfine;
+						} else {
+							adj_z = posDust[j].z + axialConfine;
+						}	
+						//accDust[j].z += OMEGA_DIV_M* simCharge[j] * adj_z;
+						accDust[j].z += OMEGA2/MASS_DUST* simCharge[j] * adj_z;
+					}
+					
+					//polarity switching
+					q_div_m = (simCharge[j]) / MASS_DUST;
+					accDust[j].z -= q_div_m * E_FIELD 
+						*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
-				// forces for sheath above lower electrode
-				// force due to gravity
-				//accDust[j].z -= 9.81;
-	
-				// sheath -- adjust pos.z for ht above lower electr.
-                //ht = posDust[j].z + BOX_CENTER;
-                //ht2 = ht*ht;
-                //acc = -8083 + 553373*ht + 2.0e8*ht2 -
-                //3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
-				// Multiple by E_MULT to change steepness as power changes
-				//accDust[j].z += q_div_m * acc * E_MULT;
-                //accDust[j].z += q_div_m * acc;
-
-				// gravity for dust in glass box
-				//accDust[j].z -= 9.81;
-
-				// laser push on lower particle
-				//if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
-			//		accDust[j].x -= 0.5;
-			//	}
-
-				//dustTraceFile << "sheath E acceleration  ";
-				//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
-				//debugSpecificFile << q_div_m * acc << std::endl;
-
-
-				// forces from ions outside simulation region
-				rad = sqrt(posDust[j].x * posDust[j].x +
-							posDust[j].y * posDust[j].y);
-				zsq = posDust[j].z * posDust[j].z;
-				radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-				vertAcc = P01Z * posDust[j].z +
-					  P21Z * rad * rad * posDust[j].z +
-					  P03Z * posDust[j].z * zsq +
-					  P23Z * rad * rad * posDust[j].z * zsq +
-					  P05Z * posDust[j].z * zsq * zsq;
-				accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				accDust[j].z += vertAcc * q_div_m;
+					// forces for sheath above lower electrode
+					// force due to gravity
+					//accDust[j].z -= 9.81;
 		
-				//debugSpecificFile << "outside ion acceleration  ";
-				//debugSpecificFile << posDust[j].x*radAcc*q_div_m;
-				//debugSpecificFile << ", " << posDust[j].y*radAcc*q_div_m;
-				//debugSpecificFile << ", " << vertAcc*q_div_m << "\n";
+					// sheath -- adjust pos.z for ht above lower electr.
+					//ht = posDust[j].z + BOX_CENTER;
+					//ht2 = ht*ht;
+					//acc = -8083 + 553373*ht + 2.0e8*ht2 -
+					//3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+					// Multiple by E_MULT to change steepness as power changes
+					//accDust[j].z += q_div_m * acc * E_MULT;
+					//accDust[j].z += q_div_m * acc;
 
-				// drag force
-				accDust[j].x -= BETA*velDust[j].x;
-				accDust[j].y -= BETA*velDust[j].y;
-				accDust[j].z -= BETA*velDust[j].z;
+
+
+						// laser push on lower particle
+						//if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
+						//		accDust[j].x -= 0.5;
+						//	}
+
+						//dustTraceFile << "sheath E acceleration  ";
+						//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
+						//debugSpecificFile << q_div_m * acc << std::endl;
+
+
+					// forces from ions outside simulation region
+					rad = sqrt(posDust[j].x * posDust[j].x +
+							posDust[j].y * posDust[j].y);
+					zsq = posDust[j].z * posDust[j].z;
+					radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+					vertAcc = P01Z * posDust[j].z +
+							P21Z * rad * rad * posDust[j].z +
+							P03Z * posDust[j].z * zsq +
+							P23Z * rad * rad * posDust[j].z * zsq +
+							P05Z * posDust[j].z * zsq * zsq;
+					accDust[j].x += posDust[j].x * radAcc * q_div_m;
+					accDust[j].y += posDust[j].y * radAcc * q_div_m;
+					accDust[j].z += vertAcc * q_div_m;
+		
+					//debugSpecificFile << "outside ion acceleration  ";
+					//debugSpecificFile << posDust[j].x*radAcc*q_div_m;
+					//debugSpecificFile << ", " << posDust[j].y*radAcc*q_div_m;
+					//debugSpecificFile << ", " << vertAcc*q_div_m << "\n";
+
+					// drag force
+					accDust[j].x -= BETA*velDust[j].x;
+					accDust[j].y -= BETA*velDust[j].y;
+					accDust[j].z -= BETA*velDust[j].z;
     
-				// Add Brownian motion
-				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].x += randNum * SIGMA;
-				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].y += randNum * SIGMA;
-				randNum = (((rand() % (num*2)) - num) / (float)num);
-				accDust[j].z += randNum * SIGMA;
-						
-				//kick half a  time step
-				velDust[j].x += accDust[j].x * half_dust_dt;
-				velDust[j].y += accDust[j].y * half_dust_dt;
-				velDust[j].z += accDust[j].z * half_dust_dt;
+					// Add Brownian motion
+					randNum = (((rand() % (num*2)) - num) / (float)num);
+					accDust[j].x += randNum * SIGMA;
+					randNum = (((rand() % (num*2)) - num) / (float)num);
+					accDust[j].y += randNum * SIGMA;
+					randNum = (((rand() % (num*2)) - num) / (float)num);
+					accDust[j].z += randNum * SIGMA;
+							
+					//kick half a  time step
+					velDust[j].x += accDust[j].x * half_dust_dt;
+					velDust[j].y += accDust[j].y * half_dust_dt;
+					velDust[j].z += accDust[j].z * half_dust_dt;
 
-				// Add deltavee due to ion collection drag force
-				velDust[j].x += deltavee.x;
-				velDust[j].y += deltavee.y;
-				velDust[j].z += deltavee.z;
+					// Add deltavee due to ion collection drag force
+					velDust[j].x += deltavee.x;
+					velDust[j].y += deltavee.y;
+					velDust[j].z += deltavee.z;
 
-				// print the dust position to the dustPosTrace file
-				//dustTraceFile << "After the dust timestep" << std::endl;
-				dustTraceFile << posDust[j].x;
-				dustTraceFile << ", " << posDust[j].y;
-				dustTraceFile << ", " << posDust[j].z;
-				dustTraceFile << ", " << velDust[j].x;
-				dustTraceFile << ", " << velDust[j].y;
-				dustTraceFile << ", " << velDust[j].z;
-				dustTraceFile << ", " << accDust[j].x;
-				dustTraceFile << ", " << accDust[j].y;
-				dustTraceFile << ", " << accDust[j].z << std::endl;
+					// print the dust position to the dustPosTrace file
+					//dustTraceFile << "After the dust timestep" << std::endl;
+					dustTraceFile << posDust[j].x;
+					dustTraceFile << ", " << posDust[j].y;
+					dustTraceFile << ", " << posDust[j].z;
+					dustTraceFile << ", " << velDust[j].x;
+					dustTraceFile << ", " << velDust[j].y;
+					dustTraceFile << ", " << velDust[j].z;
+					dustTraceFile << ", " << accDust[j].x;
+					dustTraceFile << ", " << accDust[j].y;
+					dustTraceFile << ", " << accDust[j].z << std::endl;
 	
-			//zero momIonDust
-			momIonDust[j].x = 0;
-			momIonDust[j].y = 0;
-			momIonDust[j].z = 0;
+					//zero momIonDust
+					momIonDust[j].x = 0;
+					momIonDust[j].y = 0;
+					momIonDust[j].z = 0;
 
-			} // End of dust timestep
+				} // End of dust timestep
 
-			// copy the dust position to the GPU
-			d_posDust.hostToDev();
-			d_accIonDust.hostToDev();
-			d_momIonDust.hostToDev();
+				// copy the dust position to the GPU
+				d_posDust.hostToDev();
+				d_accIonDust.hostToDev();
+				d_momIonDust.hostToDev();
 
-			// zero the ionDustAcc
-			zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
-				(d_accDustIon.getDevPtr(),
-				d_NUM_DUST.getDevPtr(),
-				d_NUM_ION.getDevPtr());
+				// zero the ionDustAcc
+				zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
+					d_accDustIon.getDevPtr(),
+					d_NUM_DUST.getDevPtr(),
+					d_NUM_ION.getDevPtr());
 
-     		roadBlock_000(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
+			}
+		} //end of loop through commands
+
+		// Print and Zero ionDensity
+		if (i % 10  == 0) { //N will need to be related to frequency
+			// copy ion density and potential to host
+			d_ionDensity.devToHost();
+			d_ionPotential.devToHost();
+
+			roadBlock_104(  statusFile, __LINE__, __FILE__, 
+				"Copy d_ionDensity and d_ionPotential to Host", false);
+			// print the data to the ionDensOutFile
+			for(int j = 0; j < NUM_GRID_PTS; j++){
+				ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << std::endl;
+			}
+			ionDensOutFile << std::endl;
+
+			//reset the potential and density to zero
+			zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>> (
+				d_ionPotential.getDevPtr(),
+       	        d_ionDensity.getDevPtr()
+			);
+
+			roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", false);
+
 		}
-	} //end of loop through commands
 
+		// ****** Print the Ion Forces on the Dust ****** //
+		// {{{
 
-	if (i % 10  == 0) { //N will need to be related to frequency
-        // copy ion density and potential to host
-        d_ionDensity.devToHost();
-        d_ionPotential.devToHost();
+		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
+			d_accDustIon.getDevPtr(), // {{{
+			d_NUM_DUST.getDevPtr(),
+			d_NUM_ION.getDevPtr()); 
+				
+		roadBlock_104(statusFile, __LINE__, __FILE__,"sumDustIonAcc_103", false);
+		// }}}
 
-        // print the data to the ionDensOutFile
-        for(int j = 0; j < NUM_GRID_PTS; j++){
-            ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
-            ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT << std::endl;
+		d_accDustIon.devToHost();
+		roadBlock_104(statusFile, __LINE__, __FILE__,
+			"Copy d_accDustIon to host", false);
+
+		for( int i=0 ; i<NUM_DUST ; i++ ) {		
+			ionOnDustAccFile << accDustIon[i].x << ", "
+								<< accDustIon[i].y << ", "
+								<< accDustIon[i].z << std::endl;
 		}
-        ionDensOutFile << "" << std::endl;
 
-        //reset the potential and density to zero
-        zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
-			(d_ionPotential.getDevPtr(),
-       	         d_ionDensity.getDevPtr());
+		statusFile << "|" << std::endl;
+		
+		// ****** Update Continue Files ****** //
+		// {{{
+		// Print ion and dust data needed for using the continue 
+		// option. The files are overwritten each time step.
 
-		roadBlock_000(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", false);
+		// open an output file for saving final dust data  
+		fileName = dataDirName + runName + "_dust-final.txt";
+		std::ofstream dustFinalFile(fileName.c_str());
 
-	 }
+		// open an output file for final ion data
+		fileName = dataDirName + runName + "_ion-final.txt";
+		std::ofstream ionFinalFile(fileName.c_str());
 
+		// print out final dust data
+		dustFinalFile<<"    rX      rY      rZ      vX      vY      vZ      Q\n";
 
-	statusFile << "|" << std::endl;
+		for( int i=0 ; i<NUM_DUST ; i++ ){
+			dustFinalFile << "[" << i << "]   ";
+			dustFinalFile << posDust[i].x << " ";
+			dustFinalFile << posDust[i].y << " ";
+			dustFinalFile << posDust[i].z << " ";
+			dustFinalFile << velDust[i].x << " ";
+			dustFinalFile << velDust[i].y << " ";
+			dustFinalFile << velDust[i].z << " ";
+			dustFinalFile << simCharge[i] << std::endl;
+		}
+
+		// print out final ion data
+		for( int i=0 ; i<NUM_ION ; i++ ) {
+			ionFinalFile << posIon[i].x << " ";
+			ionFinalFile << posIon[i].y << " ";
+			ionFinalFile << posIon[i].z << " ";
+			ionFinalFile << velIon[i].x << " ";
+			ionFinalFile << velIon[i].y << " ";
+			ionFinalFile << velIon[i].z << std::endl;
+		}
+
+		dustFinalFile.close();
+		ionFinalFile.close();
+		// }}}
+		
 	} // ***** end time step loop **** //
 
-	if (debugMode) {
-		// print the index of the traced ion to the debugging file
-		debugFile << "Single ion trace index: " << ionTraceIndex << "\n\n";
-	}
 
-	//Checking Dust charge
-	debugFile << "**********DUST CHARGE**********" << std::endl;
-	for (int g = 0; g < NUM_DUST ; g++){
-		debugFile << "DUST CHARGE: " << g << ": " << chargeDust[g] << std::endl;
-	
-	}
-	
-	/***********************
-	save data
+	/************************
+		Post-Processes
 	***********************/
+	
+	/****** Save Data ******/
 
 	// copy ion positions to host
 	d_posIon.devToHost();
@@ -2276,7 +2358,15 @@ int main(int argc, char* argv[])
 	d_chargeDust.devToHost();
 
 	// synchronize threads and check for errors
-	roadBlock_000( statusFile, __LINE__, __FILE__, "devToHost", false);
+	roadBlock_104( statusFile, __LINE__, __FILE__, "devToHost", false);
+	if (debugMode) {
+		// print the index of the traced ion to the debugging file
+		debugFile << "Single ion trace index: " << ionTraceIndex << "\n\n";
+	}				 
+	//Checking Dust charge
+	debugFile << "**********DUST CHARGE**********" << std::endl;
+	for (int g = 0; g < NUM_DUST ; g++){
+		debugFile << "DUST CHARGE: " << g << ": " << simCharge[g] << std::endl;																	 
 
 	// print final ion positions to the ionPosFile
 	// loop over all of the positions
@@ -2384,9 +2474,7 @@ int main(int argc, char* argv[])
 		debugFile << std::endl;
 	}
 
-	/*************************
-	check device "constants"
-	*************************/
+	/****** Check Device "Constants" ******/
 
 	d_NUM_DIV_QTH.compare();
 	d_NUM_DIV_VEL.compare();
@@ -2430,9 +2518,7 @@ int main(int argc, char* argv[])
 	d_I_CS_RANGES.compare();
 	d_TOT_ION_COLL_FREQ.compare();
 
-	/**********************
-	free memory
-	**********************/
+	/****** Free Memory ******/
 
 	free(posDust);
 	free(velDust);
@@ -2454,9 +2540,7 @@ int main(int argc, char* argv[])
 	free(ionDensity);
 	delete[] ionCurrent;
 
-	/*************************
-	close files
-	*************************/
+	/****** Close Files ******/
 
 	// close all opened files
 	paramFile.close();
@@ -2474,70 +2558,7 @@ int main(int argc, char* argv[])
 	paramOutFile.close();
 	ionDensOutFile.close();
 
-	// exit
+
 	return 0;
+
 }
-
-/*
-* Name: roadBlock_000
-* Description:
-*	Prints to the status file if print is on. Then checks for a CUDA error
-* 	after the kernel launch. Then it synchronizes the threads and checks
-*	for a CUDA error again. If a CUDA error found at any point it displays
-*	an erro message and kills the program.
-*
-* Input:
-* 	line: the line number where the function is called from
-*	file: the file where the function is called from
-*	name: a name that will be associated with the error
-*	print: a boolian  value that determins if a message is
-*		is printed to hte status file.
-*
-* Output <void>:
-*	If a CUDA error is found the program will be terminated
-*	and an error mesage will be printed to stderr
-*
-* Assumptions:
-* 	status holds a variable of type cudaError_t
-*
-* Includes
-* 	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-
-void roadBlock_000(ofstream& statusFile, int line, string file, string name, bool print) {
-        cudaError_t cudaStatus;
-
-        if (print) {
-                // print the name to the status file
-                statusFile << name << std::endl;
-        }
-
-        // check if there is a CUDA error after the kernel launch
-        cudaStatus = cudaGetLastError();
-
-        if (cudaStatus != cudaSuccess) {
-                // print an error
-                fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
-                fprintf(stderr, "Kernel launch failed: %s\n", name.c_str());
-                fprintf(stderr, "Error code : %s\n\n", cudaGetErrorString(cudaStatus));
-
-                // terminate the program
-                fatalError();
-        }
-
-        // synchronize threads and check for a CUDA error
-        cudaStatus = cudaDeviceSynchronize();
-
-        if (cudaStatus != cudaSuccess) {
-                // print an error
-                fprintf(stderr, "ERROR on line number %d in file %s\n", line, file.c_str());
-                fprintf(stderr, "Synchronize threads failed: %s\n", name.c_str());
-                fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
-
-                // terminate the program
-                fatalError();
-        }
-}
-
