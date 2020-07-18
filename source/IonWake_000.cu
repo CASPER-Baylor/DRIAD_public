@@ -1,68 +1,3 @@
-/*
-* Project: IonWake
-* File Type: script - main
-* File Name: IonWake_000.cu
-*
-* Created: 6/13/2017
-*
-* Editors
-*	Last Modified: 11/20/2017
-*	Contributor(s):
-*		Name: Dustin Sanford
-*		Contact: Dustin_Sanford@baylor.edu
-*		Last Contribution: 11/12/2017
-*
-*       Name: Lorin Matthews
-*       Contact: Lorin_Matthews@baylor.edu
-*		Last contribution: 3/01/2018
-*		Added adaptive time steps for ions
-*       Last Contribution: 02/19/2018
-*		Added dust motion.
-*       Last Contribution: 11/20/2017
-*		Added in variables for cylindrical simulation region.  See addition
-*		of variables RAD_CYL_DEBYE, HT_CYL_DEBYE, RAD_CYL, RAD_CYL_SQRD,
-*		HT_CYL.  Calculation of SIM_VOLUME is changed appropriately.  Added
-*		code to check that ions initially placed inside cylinder.
-*
-* Description:
-*	Handles the execution of the IonWake simulation. Provides a user interface
-*   in the form of input and output files. Handles memory allocation and
-*   declaration for non-function specific variables on both the CPU host and
-*   GPU device. Includes a modular time-step for rapid development and testing
-*   of various time step schemes. For descriptions of the scope of the IonWake
-*   simulation as well as user interface, program input and output, and
-*   time-step options please see the respective sections of the README file.
-*
-* Output:
-*	Determined by user settings. For a complete description of all available
-*   program output please see the README file.
-*
-* Input:
-*	Determined by user settings. For a complete description of all available
-*   program input please see the README file.
-*
-* Implementation:
-*	The program begins by opening all the input and output text files.
-*   Constant values are defined and general user parameters are pulled from
-*   the params.txt file. Derived parameters are then calculated from the user
-*   parameters. The charges and positions of the dust particles, if any, are
-*   pulled from the dust-params.txt file. The time step commands are then
-*   pulled from the timestep.txt file and parsed. Host memory is initialized
-*   and initial values are assigned. Then Device memory is allocated and the
-*   respective host variables are copied to the device. Then the time step is
-*   begun. For each time step, all the time step commands are processed in
-*   order. The time step is repeated the number of times specified in the
-*   parameters. After the time step, the calculated values are copied to the
-*   host and saved to their respective output file. Device variables that
-*   should remain constant are copied to the host and checked against their
-*   const counterparts. Finally, dynamically allocated host memory is freed,
-*   all files are closed and the program terminates.
-*
-* Assumptions:
-*	Determined by user time-step settings. For a complete description of all
-*	available time-step settings please see the README file.
-*/
-
 // header file
 #include "IonWake_000.h"
 #include <iostream>
@@ -122,7 +57,7 @@ int main(int argc, char* argv[])
 	// open an output file for dust acc due to ion forces 
 	fileName = dataDirName + runName + "_ion_on_dust_acc.txt";
 	std::ofstream ionOnDustAccFile(fileName.c_str());
-	
+
 	// open an output file for general debugging output
 	fileName = dataDirName + runName + "_debug.txt";
 	std::ofstream debugFile(fileName.c_str());
@@ -215,6 +150,7 @@ int main(int argc, char* argv[])
 		debugFile.flush();
 	}
 
+	// }}}
 
 	/****** Constants ******/
 
@@ -440,7 +376,7 @@ int main(int argc, char* argv[])
 	setIonCrossSection_105( GAS_TYPE, I_CS_RANGES, NUM_DEN_GAS,
 		MASS_SINGLE_ION, sigma_i1, sigma_i2, sigma_i_tot,
 		totIonCollFreq, debugMode, debugSpecificFile);
-	
+
 	//Number of ions to collide each time step.  Adjust for non-integer value.
 	const float N1 = NUM_ION * (1.0 - exp(- totIonCollFreq * ION_TIME_STEP));
 	const int N_COLL = (int)(N1);
@@ -549,7 +485,7 @@ int main(int argc, char* argv[])
      	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
 		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< "BOX_CENTER		  " << BOX_CENTER		 << '\n'
-		<< "TEMP_GAS		  " << TEMP_GAS			 << '\n'
+		<< "TEMP_GAS   		  " << TEMP_GAS			 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -755,7 +691,7 @@ int main(int argc, char* argv[])
 			dustParamFile >> velDust[i].x;
 			dustParamFile >> velDust[i].y;
 			dustParamFile >> velDust[i].z;
-			
+
 			// save the dust charge
 			dustParamFile >> chargeDust[i];
 		}
@@ -828,7 +764,7 @@ int main(int argc, char* argv[])
 	paramOutFile.flush();
 	
 	/****** Calculations on the Grid ******/
-	
+
 	// pointer for grid positions, potentials, and ion density 
 	float3* gridPos = NULL;
 	float* ionDensity = NULL;
@@ -868,6 +804,8 @@ int main(int argc, char* argv[])
 	// number of blocks per grid for grid points
 	int blocksPerGridGrid = (NUM_GRID_PTS +1) / DIM_BLOCK;	
     /**********************/
+
+	// }}}
 	
 	/****** Time Step Parameters ******/
 
@@ -1031,12 +969,8 @@ int main(int argc, char* argv[])
 	// initialize the dust velocities, accelerations and momentum transfer 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		velDust[i].x = 0;
-		velDust[i].y = 0;
-		velDust[i].z = 0;
 		accDust[i].x = OMEGA_DIV_M * chargeDust[i] * posDust[i].x;
 		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
-
 		//polarity switching
 		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
 		//gravity
@@ -1068,7 +1002,6 @@ int main(int argc, char* argv[])
 
 	} else { // as no initial ion data was given, initialize ion data with 
 			 //zeros or random values
-			 
 		// loop over all the ions and initialize their velocity, acceleration,
 		// and position
 		for (int i = 0; i < NUM_ION; i++) {
@@ -1164,7 +1097,7 @@ int main(int argc, char* argv[])
 
 		debugFile << "-- Initialized From File --" << '\n'
 		<< "Ions From File: " << init_ions_from_file << '\n' << '\n';
-		
+
 		debugFile << "-- Basic Memory Sizes --" << '\n'
 		<< "float  " << sizeof(float) << '\n'
 		<< "int    " << sizeof(int) << '\n'
@@ -1397,7 +1330,7 @@ int main(int argc, char* argv[])
 		d_boundsIon.getDevPtr(), // <-->
 		d_RAD_DUST_SQRD.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
-		d_posDust.getDevPtr()); // <--
+		d_posDust.getDevPtr()); 
 
 	roadBlock_104(statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
 
@@ -1572,11 +1505,12 @@ int main(int argc, char* argv[])
 			//		debugFile << "m: " << m[ii] <<
 			//			   "tsf: " << timeStepFactor[ii] << std::endl;
 			//	}
+
 			//KDK using just the ion-dust acceleration for s^m iterations
  
 			if(GEOMETRY == 0) {
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
-					d_posIon.getDevPtr(), // <-->
+					d_posIon.getDevPtr(), // {{{
 					d_velIon.getDevPtr(), // <-->
 					d_accIonDust.getDevPtr(), // <--
 					d_m.getDevPtr(), // <
@@ -1765,8 +1699,10 @@ int main(int argc, char* argv[])
 			for(int c = 0; c < numCommands; c++){
 				// copy ion positions to the host
 				if (commands[c] == 1) {
+					// {{{
 					// print the command number to the status file
 					statusFile << "1 ";
+					statusFile.flush();
 			
 					// copy ion positions to host
 					d_posIon.devToHost();
@@ -1775,9 +1711,11 @@ int main(int argc, char* argv[])
 					traceFile << posIon[ionTraceIndex].x;
 					traceFile << ", " << posIon[ionTraceIndex].y;
 					traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
+					// }}}
 
 				// copy the ion velocities to the host
 				} else if (commands[c] == 2) {
+					// {{{
 					statusFile << "2 ";
 
 					// copy ion velocities to host
@@ -1787,9 +1725,11 @@ int main(int argc, char* argv[])
 					traceFile << velIon[ionTraceIndex].x;
 					traceFile << ", " << velIon[ionTraceIndex].y;
 					traceFile << ", " << velIon[ionTraceIndex].z << std::endl;
-	
+					// }}}	
+
 				// copy the ion accelerations to the host
 				} else if (commands[c] == 3) {
+					// {{{
 					// print the command number to the status file
 					statusFile << "3 ";
 	
@@ -1800,9 +1740,10 @@ int main(int argc, char* argv[])
 					traceFile << accIon[ionTraceIndex].x;
 					traceFile << ", " << accIon[ionTraceIndex].y;
 					traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
-				
+
 				// Calculate New Dust Charge
 				} else if (commands[c] == 4){
+					// {{{
 					// copy ion bounds to host
 					d_boundsIon.devToHost();
 
@@ -1827,7 +1768,7 @@ int main(int argc, char* argv[])
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-						dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST);
+						dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST); 
 						//- ELC_TEMP_EV; 
 
 						// calculate the electron current to the dust
@@ -1847,10 +1788,10 @@ int main(int argc, char* argv[])
 
 					// copy the dust charge to the GPU
 					d_chargeDust.hostToDev(); 
-	
+
 				// Check For Erroneous Command
 				} else if ( commands[c] != 5){
-	
+					// {{{
 					// output an error message
 					fprintf(stderr, "ERROR on line number %d in file %s\n",
 						__LINE__, __FILE__);
@@ -1888,6 +1829,7 @@ int main(int argc, char* argv[])
 		d_collList.devToHost();
 
 		// prepare list of ions to collide:
+		// {{{
 		for(int j=0; j < n_coll; j++){
 			collID[j] = 0;
 			do{
@@ -1898,10 +1840,11 @@ int main(int argc, char* argv[])
 			collID[j] = dum;
 			collList[dum] = unset_value;
 		}
-		
+		// }}}
+
 		//copy collision list to device
 		d_collList.hostToDev();
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", false);																
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", false);					
 		
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
 			d_collList.getDevPtr(),
@@ -1918,6 +1861,7 @@ int main(int argc, char* argv[])
 			d_collision_counter.getDevPtr());
 
 		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
+
 		// copy collision counter to the host 
 		//d_collision_counter.devToHost();
 		//debugFile << "Number ion collisions: " << collision_counter << "\n";
@@ -2055,7 +1999,7 @@ int main(int argc, char* argv[])
 					accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 					//print this acceleration to the trace file
-					//dustTraceFile << "ion acceleration  ";											 
+					//dustTraceFile << "ion acceleration  ";
 					debugSpecificFile << accDust[j].x;
 					debugSpecificFile << ", " << accDust[j].y;
 					debugSpecificFile << ", " << accDust[j].z;
@@ -2161,16 +2105,14 @@ int main(int argc, char* argv[])
 					//accDust[j].z += q_div_m * acc * E_MULT;
 					//accDust[j].z += q_div_m * acc;
 
+					// laser push on lower particle
+					//if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
+					//		accDust[j].x -= 0.5;
+					//	}
 
-
-						// laser push on lower particle
-						//if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
-						//		accDust[j].x -= 0.5;
-						//	}
-
-						//dustTraceFile << "sheath E acceleration  ";
-						//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
-						//debugSpecificFile << q_div_m * acc << std::endl;
+					//dustTraceFile << "sheath E acceleration  ";
+					//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
+					//debugSpecificFile << q_div_m * acc << std::endl;
 
 
 					// forces from ions outside simulation region
@@ -2196,7 +2138,7 @@ int main(int argc, char* argv[])
 					accDust[j].x -= BETA*velDust[j].x;
 					accDust[j].y -= BETA*velDust[j].y;
 					accDust[j].z -= BETA*velDust[j].z;
-    
+
 					// Add Brownian motion
 					randNum = (((rand() % (num*2)) - num) / (float)num);
 					accDust[j].x += randNum * SIGMA;
@@ -2341,7 +2283,7 @@ int main(int argc, char* argv[])
 		
 	} // ***** end time step loop **** //
 
-
+				
 	/************************
 		Post-Processes
 	***********************/
@@ -2366,7 +2308,8 @@ int main(int argc, char* argv[])
 	//Checking Dust charge
 	debugFile << "**********DUST CHARGE**********" << std::endl;
 	for (int g = 0; g < NUM_DUST ; g++){
-		debugFile << "DUST CHARGE: " << g << ": " << simCharge[g] << std::endl;																	 
+		debugFile << "DUST CHARGE: " << g << ": " << simCharge[g] << std::endl;	
+	}
 
 	// print final ion positions to the ionPosFile
 	// loop over all of the positions
@@ -2475,7 +2418,8 @@ int main(int argc, char* argv[])
 	}
 
 	/****** Check Device "Constants" ******/
-
+	// {{{
+	
 	d_NUM_DIV_QTH.compare();
 	d_NUM_DIV_VEL.compare();
 	d_NUM_ION.compare();
@@ -2557,7 +2501,6 @@ int main(int argc, char* argv[])
 	dustChargeFile.close();
 	paramOutFile.close();
 	ionDensOutFile.close();
-
 
 	return 0;
 
