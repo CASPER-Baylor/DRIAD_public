@@ -2035,8 +2035,8 @@ int main(int argc, char* argv[])
 						//linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
 						//	* (simCharge[g]) / (dist*dist*dist)
 						//	* (1.0+dist/DEBYE) * exp(-dist/DEBYE);
-						linForce=DUST_DUST_ACC_MULT*(simDust[j]) 
-							* (simDust[g]) / (dist*dist*dist);
+						linForce=DUST_DUST_ACC_MULT*(simCharge[j]) 
+							* (simCharge[g]) / (dist*dist*dist);
 			
 						// add the acceleration to the current dust grain
 						accDust[j].x += linForce * distdd.x;

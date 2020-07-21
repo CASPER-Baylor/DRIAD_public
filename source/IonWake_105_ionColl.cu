@@ -1,4 +1,3 @@
-<<<<<<< HEAD:source/IonWake_105_ionColl.cu
 /*
 * Project: IonWake
 * File Type: function library implementation
