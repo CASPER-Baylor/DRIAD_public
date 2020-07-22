@@ -76,7 +76,7 @@
 			}
 		}	
 		
-		fprintf( stderr, "ERROR: the parameter %s was not found in"
+		fprintf( stderr, "ERROR: the parameter %s was not found in "
 			"parameter file.\n", param_name.c_str() );
 
 		exit(-1);
