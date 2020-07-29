@@ -1212,7 +1212,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
 	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
 	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
-	CUDAvar<float3> d_momIonDust(momIonDust, NUM_DUST);
+	//CUDAvar<float3> d_momIonDust(momIonDust, NUM_DUST);
 	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
@@ -1239,7 +1239,7 @@ int main(int argc, char* argv[])
 	d_minDistDust.hostToDev();
 	d_accDustIon.hostToDev();
 	d_accDust.hostToDev();
-	d_momIonDust.hostToDev();
+	//d_momIonDust.hostToDev();
 	d_gridPos.hostToDev();
 	d_ionPotential.hostToDev();
 	d_ionDensity.hostToDev();
@@ -1516,7 +1516,7 @@ int main(int argc, char* argv[])
 					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
-					d_momIonDust.getDevPtr(), // -->
+					//d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
@@ -1540,7 +1540,7 @@ int main(int argc, char* argv[])
 					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
 					d_posDust.getDevPtr(), // <--
-					d_momIonDust.getDevPtr(), // -->
+					//d_momIonDust.getDevPtr(), // -->
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
@@ -1755,6 +1755,10 @@ int main(int argc, char* argv[])
 						if (boundsIon[k] > 0){
 							// increase the current to that dust particle by 1
 							ionCurrent[boundsIon[k] - 1] += 1;
+							// sum the ion momentum transfer to dust
+							momIonDust[boundsIon[k] - 1].x += velIon[k].x;
+							momIonDust[boundsIon[k] - 1].y += velIon[k].y;
+							momIonDust[boundsIon[k] - 1].z += velIon[k].z;
 						}
 					}
 
@@ -1919,19 +1923,6 @@ int main(int argc, char* argv[])
 					dustChargeFile << simCharge[k] << ", ";
 					//dustChargeFile << chargeDust[k] << ", ";
 
-					//ion-dust momentum transfer (collection term of ion drag)
-					//deltavee.x = momIonDust[k].x ;
-					//deltavee.y = momIonDust[k].y ;
-					//deltavee.z = momIonDust[k].z ;
-
-					//dustTraceFile << deltavee.x;
-					//dustTraceFile << ", " << deltavee.y;
-					//dustTraceFile << ", " << deltavee.z << "\n";
-
-					//zero momIonDust
-					//momIonDust[k].x = 0;
-					//momIonDust[k].y = 0;
-					//momIonDust[k].z = 0;
 				}
 
 			dustChargeFile << std::endl;
@@ -1942,7 +1933,7 @@ int main(int argc, char* argv[])
 				// Print the command number to the status file 
 				statusFile << "5 ";
 					
-				d_momIonDust.devToHost();
+				//d_momIonDust.devToHost();
 					
 				// copy the dust positions to the host
 				d_posDust.devToHost();
@@ -2164,17 +2155,12 @@ int main(int argc, char* argv[])
 					dustTraceFile << ", " << accDust[j].y;
 					dustTraceFile << ", " << accDust[j].z << std::endl;
 	
-					//zero momIonDust
-					momIonDust[j].x = 0;
-					momIonDust[j].y = 0;
-					momIonDust[j].z = 0;
-
 				} // End of dust timestep
 
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
 				//d_accIonDust.hostToDev();
-				d_momIonDust.hostToDev();
+				//d_momIonDust.hostToDev();
 
 			}
 		} //end of loop through commands
@@ -2211,7 +2197,13 @@ int main(int argc, char* argv[])
 		for( int i=0 ; i<NUM_DUST ; i++ ) {		
 			ionOnDustAccFile << accDustIon[i*NUM_ION].x/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
 					<< accDustIon[i*NUM_ION].y/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
-					<< accDustIon[i*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << std::endl;
+					<< accDustIon[i*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< momIonDust[i].x << ","
+					<< momIonDust[i].y << ","
+					<< momIonDust[i].z << "," << std::endl;
+			momIonDust[i].x = 0;
+			momIonDust[i].y = 0;
+			momIonDust[i].z = 0;
 		}
 
 		// copy back to the device
