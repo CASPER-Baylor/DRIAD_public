@@ -1890,6 +1890,8 @@ int main(int argc, char* argv[])
 					
 	roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
 
+	d_accDustIon.devToHost();
+
 		// ***** begin dust updates *****//
 		// If dust particles have static positions 
 		if(MOVE_DUST ==0) dust_time = ionTime;
@@ -1947,14 +1949,6 @@ int main(int argc, char* argv[])
 				// Print the command number to the status file 
 				statusFile << "5 ";
 					
-				//sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
-				//	d_accDustIon.getDevPtr(),
-				//	d_NUM_DUST.getDevPtr(),
-				//	d_NUM_ION.getDevPtr()); 
-				//	
-				//roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
-			
-				d_accDustIon.devToHost();
 				d_momIonDust.devToHost();
 					
 				// copy the dust positions to the host
@@ -2186,16 +2180,9 @@ int main(int argc, char* argv[])
 
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
-				d_accIonDust.hostToDev();
+				//d_accIonDust.hostToDev();
 				d_momIonDust.hostToDev();
 
-				// zero the ionDustAcc
-				//zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
-				//	d_accDustIon.getDevPtr(),
-				//	d_NUM_DUST.getDevPtr(),
-				//	d_NUM_ION.getDevPtr());
-//
-//				roadBlock_104(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
 			}
 		} //end of loop through commands
 
@@ -2226,33 +2213,26 @@ int main(int argc, char* argv[])
 		}
 
 		// ****** Print the Ion Forces on the Dust ****** //
-		// {{{
-
-//		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
-//			d_accDustIon.getDevPtr(), // {{{
-//			d_NUM_DUST.getDevPtr(),
-//			d_NUM_ION.getDevPtr()); 
-//				
-//		roadBlock_104(statusFile, __LINE__, __FILE__,"sumDustIonAcc_103", false);
-		// }}}
-
-		d_accDustIon.devToHost();
-		roadBlock_104(statusFile, __LINE__, __FILE__,
-			"Copy d_accDustIon to host", false);
-
+		// These are forces in units of Newtons
+		
 		for( int i=0 ; i<NUM_DUST ; i++ ) {		
-			ionOnDustAccFile << accDustIon[i].x << ", "
-								<< accDustIon[i].y << ", "
-								<< accDustIon[i].z << std::endl;
+			ionOnDustAccFile << accDustIon[i*NUM_ION].x/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< accDustIon[i*NUM_ION].y/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< accDustIon[i*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << std::endl;
 		}
 
-				// zero the ionDustAcc
-				zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
-					d_accDustIon.getDevPtr(),
-					d_NUM_DUST.getDevPtr(),
-					d_NUM_ION.getDevPtr());
+		// copy back to the device
+		d_accIonDust.hostToDev();
+		roadBlock_104(statusFile, __LINE__, __FILE__,
+			"Copy d_accDustIon to device ", false);
 
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "end_dst_loop", false);
+		// zero the ionDustAcc
+		zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
+			d_accDustIon.getDevPtr(),
+			d_NUM_DUST.getDevPtr(),
+			d_NUM_ION.getDevPtr());
+
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "zero DustIonAcc", false);
 
 		statusFile << "|" << std::endl;
 		
