@@ -298,7 +298,6 @@ __global__ void select_100
 *	d_RAD_DUST
 *	d_NUM_DUST
 *   d_posDust
-*   //d_momIonDust
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
@@ -309,7 +308,6 @@ __global__ void select_100
 *   pos: updated positions of ions
 *	vel: updated velocities of ions
 *	boundsIon: updated boundary crossings
-*	momIonDust: momentum transfer from ions to dust
 *
 * Assumptions:
 *	All inputs are real values
@@ -333,7 +331,6 @@ __global__ void KDK_100
 	 const float* d_RAD_DUST,
 	 const int* d_NUM_DUST,
 	 float3* d_posDust,
-	 //float3* d_momIonDust,
 	 const int* d_NUM_ION,
 	 const float* d_SOFT_RAD_SQRD,
 	 const float* d_ION_DUST_ACC_MULT,
@@ -388,7 +385,6 @@ __global__ void KDK_100
 			oldIonPos,
 			d_chargeDust,
 			d_RAD_COLL_MULT);
-			//d_momIonDust);
 						
 		if(d_boundsIon[threadID] == 0){
 			// calculate the acceleration due to ion-dust interactions
@@ -649,7 +645,6 @@ __device__ void checkIonCylinderBounds_101_dev
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
 *		in if the ion is in or has crossed a dust particle.
-*	d_momIonDust: momentum (vel) of ions transferred to dust
 *
 * Assumptions:
 *	All dust particles have the same radius 
@@ -667,7 +662,6 @@ __device__ void checkIonDustBounds_100_dev(
 		float3 posIon2,
 		const float* d_chargeDust,
 		const float* d_RAD_COLL_MULT){
-		//float3* d_momIonDust){
 	
 	// distance
 	float dist, b_c;
@@ -703,10 +697,6 @@ __device__ void checkIonDustBounds_100_dev(
 			{
 				// flag which dust particle the ion is in
 				*d_boundsIon = (i + 1);
-				// sum the momentum (velocity) transferred to dust
-				//d_momIonDust[i].x += d_velIon->x;
-				//d_momIonDust[i].y += d_velIon->y;
-				//d_momIonDust[i].z += d_velIon->z;
 			}
 			else {
 				// Line segment of ion's trajectory
@@ -737,10 +727,6 @@ __device__ void checkIonDustBounds_100_dev(
 					if (P_sq <= b_c) {
 					//if (P_sq <= *d_RAD_DUST * *d_RAD_DUST) {
 						*d_boundsIon = (i+1);
-						// sum the momentum (velocity) transferred to dust
-						//d_momIonDust[i].x += d_velIon->x;
-						//d_momIonDust[i].y += d_velIon->y;
-						//d_momIonDust[i].z += d_velIon->z;
 					}
 				}
 			} //close else

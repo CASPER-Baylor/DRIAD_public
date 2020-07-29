@@ -214,7 +214,6 @@ __global__ void KDK_100
 	 const float*,
 	 const int*,
 	 float3*,
-	 //float3*,
 	 const int*,
 	 const float*,
 	 const float*,
@@ -404,7 +403,6 @@ __device__ void checkIonDustBounds_100_dev(
 		float3 const,
 		const float*,
 		const float*);
-		//float3*);
 /*
 * Name: calcIonDustAcc_102_dev
 * Created: 3/20/2018
