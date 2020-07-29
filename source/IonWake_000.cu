@@ -697,16 +697,9 @@ int main(int argc, char* argv[])
 		}
 	}
 
-	// input dust positions are in terms of the Debye length
-	// convert to meters and dust charges are in terms of
-	// the electron charge, convert to coulombs
+	// set up temporary variables used for dust charge
 	for (int i = 0; i < NUM_DUST; i++) {
-		posDust[i].x *= DEBYE;
-		posDust[i].y *= DEBYE;
-		posDust[i].z *= DEBYE;
-		chargeDust[i] *= CHARGE_ELC;
 		tempCharge[i] = 0;
-		//dynCharge[i] = chargeDust[i];
 		simCharge[i] = chargeDust[i];
 	}
 
