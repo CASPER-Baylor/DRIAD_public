@@ -246,10 +246,17 @@ int main(int argc, char* argv[])
 	const float AXIAL_CONF = getParam_106<float>( paramFile, "AXIAL_CONF" );
 	const int	N_IONDT_PER_DUSTDT 
 		= getParam_106<int>( paramFile, "N_IONDT_PER_DUSTDT" );
+	const int	N_PRINT_DEN_POT
+		= getParam_106<int>( paramFile, "N_PRINT_DEN_POT" );
 	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
 	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
     const float BOX_CENTER = getParam_106<float>( paramFile, "BOX_CENTER" );
     const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
+    const int USE_ELE_GRAV = getParam_106<int>( paramFile, "USE_ELE_GRAV" );
+	const float E_MULT = getParam_106<float>( paramFile, "E_MULT" );
+    const int USE_LASER = getParam_106<int>( paramFile, "USE_LASER" );
+    const float LASER_ON = getParam_106<float>( paramFile, "LASER_ON" );
+    const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
 
 	// debye length (m)
 	const float DEBYE =
@@ -403,10 +410,8 @@ int main(int argc, char* argv[])
 	float rhoDust = 0; // for radial dust confinement
 	float acc = 0; //for radial dust confinement
 	float adj_z = 0; //for dust confinement in z
-	//float ht = 0; //for adjusting dust height above electrode
-	//float ht2 = 0; 
-	//const float LASER_ON = 2.00;
-    //const float LASER_OFF = 2.05;
+	float ht = 0; //for adjusting dust height above electrode
+	float ht2 = 0; 
 	// for force from ions outside simulation
 	float rad = 0; 
 	float zsq = 0;
@@ -426,7 +431,7 @@ int main(int argc, char* argv[])
 	//Thermal bath or Brownian motion of dust
 	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
 
-	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
+	int N = N_PRINT_DEN_POT; //determines how often ion dens and potential are printed 
 	// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
@@ -441,19 +446,23 @@ int main(int argc, char* argv[])
 		<< "DEN_FAR_PLASMA    " << DEN_FAR_PLASMA    << '\n'
 		<< "TEMP_ELC          " << TEMP_ELC          << '\n'
 		<< "TEMP_ION          " << TEMP_ION          << '\n'
-		<< "DEN_DUST          " << DEN_DUST          << '\n'
-		<< "MASS_SINGLE_ION   " << MASS_SINGLE_ION   << '\n'
+		<< "TEMP_GAS   		  " << TEMP_GAS			 << '\n'
+		<< "PRESSURE          " << PRESSURE          << '\n'
 		<< "MACH              " << MACH              << '\n'
-		<< "SOFT_RAD          " << SOFT_RAD          << '\n'
-		<< "RAD_DUST          " << RAD_DUST          << '\n'
-		<< "M_FACTOR		  " << M_FACTOR 		 << '\n'
+     	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
 		<< "CHARGE_SINGLE_ION " << CHARGE_SINGLE_ION << '\n'
+		<< "MASS_SINGLE_ION   " << MASS_SINGLE_ION   << '\n'
+		<< "SOFT_RAD          " << SOFT_RAD          << '\n'
+		<< "M_FACTOR		  " << M_FACTOR 		 << '\n'
+		<< "RAD_DUST          " << RAD_DUST          << '\n'
+		<< "DEN_DUST          " << DEN_DUST          << '\n'
 		<< "ION_TIME_STEP     " << ION_TIME_STEP     << '\n'
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
+		<< "N_IONDT_PER_DUSTDT " << N_IONDT_PER_DUSTDT << '\n'
+		<< "GEOMETRY          " << GEOMETRY          << '\n'
 		<< "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
 		<< "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
-		<< "GEOMETRY          " << GEOMETRY          << '\n'
 		<< "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
 		<< "HT_CYL_DEBYE      " << HT_CYL_DEBYE      << '\n'
 		<< "P10X              " << P10X	             << '\n'
@@ -464,24 +473,20 @@ int main(int argc, char* argv[])
 		<< "P03Z              " << P03Z	             << '\n'
 		<< "P23Z              " << P23Z	             << '\n'
 		<< "P05Z              " << P05Z	             << '\n'
-		<< "PRESSURE          " << PRESSURE          << '\n'
-		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
+		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "OMEGA1			  " << OMEGA1			 << '\n'
 		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "RADIAL_CONF		  "	<< RADIAL_CONF		 << '\n'
 		<< "AXIAL_CONF		  "	<< AXIAL_CONF		 << '\n'
-		<< "N_IONDT_PER_DUSTDT" << N_IONDT_PER_DUSTDT << '\n'
-		<< "RESX			  " << RESX				 << '\n'
-		<< "RESZ			  " << RESZ				 << '\n'
-		<< "dx			      " << dx				 << '\n'
+		<< "N_PRINT_DEN_POT	  " << N_PRINT_DEN_POT	 << '\n'
 		<< "GRID_FACTOR	      " << GRID_FACTOR		 << '\n'
-		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'
-		<< "NUM_DEN_GAS		  " << NUM_DEN_GAS		 << '\n'
-     	<< "GAS_TYPE          " << GAS_TYPE          << '\n'
-		<< "totIonCollFreq 	  " << totIonCollFreq	 << '\n'
 		<< "BOX_CENTER		  " << BOX_CENTER		 << '\n'
-		<< "TEMP_GAS   		  " << TEMP_GAS			 << '\n'
+		<< "USE_ELE_GRAV	  " << USE_ELE_GRAV		 << '\n'
+		<< "E_MULT			  " << E_MULT			 << '\n'
+		<< "USE_LASER		  " << USE_LASER		 << '\n'
+		<< "LASER_ON		  " << LASER_ON			 << '\n'
+		<< "LASER_OFF		  " << LASER_OFF		 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -500,7 +505,9 @@ int main(int argc, char* argv[])
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
 		<< "CHARGE_ION     " << CHARGE_ION     << '\n'
-		<< "MASS_ION       " << MASS_ION       << '\n' << '\n';
+		<< "MASS_ION       " << MASS_ION       << '\n'
+		<< "totIonCollFreq " << totIonCollFreq << '\n'
+		<< "NUM_DEN_GAS	   " << NUM_DEN_GAS	   << '\n' << '\n';
 
 		debugFile << "-- Further Derived Parameters --"  << '\n'
 		<< "INV_DEBYE         " << INV_DEBYE         << '\n'
@@ -517,13 +524,12 @@ int main(int argc, char* argv[])
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
 		<< "Q_DIV_M   	      " << Q_DIV_M	         << '\n' 
-		<< "OMEGA1			  " << OMEGA1			 << '\n'
-		<< "OMEGA2			  " << OMEGA2			 << '\n'
 		<< "BETA			  " << BETA				 << '\n' 
 		<< "SIGMA			  " << SIGMA			 << '\n'
 		<< "RESX			  " << RESX				 << '\n'
 		<< "RESZ			  " << RESZ				 << '\n'
 		<< "NUM_GRID_PTS	  " << NUM_GRID_PTS		 << '\n'		
+		<< "dx			      " << dx				 << '\n'
 		<< '\n';
 
 		debugFile << "-- Sigma Values --" << '\n';
@@ -961,8 +967,9 @@ int main(int argc, char* argv[])
 		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
 		//polarity switching
 		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
-		//gravity
-		//accDust[i].z -= 9.81;
+		if(USE_ELE_GRAV ==1) {
+			accDust[i].z -= 9.81;
+		}
 		momIonDust[i].x = 0;
 		momIonDust[i].y = 0;
 		momIonDust[i].z = 0;
@@ -2043,28 +2050,31 @@ int main(int argc, char* argv[])
 					accDust[j].z -= q_div_m * E_FIELD 
 						*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
 
-					// forces for sheath above lower electrode
-					// force due to gravity
-					//accDust[j].z -= 9.81;
+					if(USE_ELE_GRAV == 1){
+						// force due to gravity
+						accDust[j].z -= 9.81;
 		
-					// sheath -- adjust pos.z for ht above lower electr.
-					//ht = posDust[j].z + BOX_CENTER;
-					//ht2 = ht*ht;
-					//acc = -8083 + 553373*ht + 2.0e8*ht2 -
-					//3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
-					// Multiple by E_MULT to change steepness as power changes
-					//accDust[j].z += q_div_m * acc * E_MULT;
-					//accDust[j].z += q_div_m * acc;
+						// forces for sheath above lower electrode
+						// -- adjust pos.z for ht above lower electr.
+						ht = posDust[j].z + BOX_CENTER;
+						ht2 = ht*ht;
+						acc = -8083 + 553373*ht + 2.0e8*ht2 -
+							3.017e10*ht*ht2 + 1.471e12*ht2*ht2 - 2.306e13*ht*ht2*ht2;
+						// Multiple by E_MULT to change steepness as power changes
+						accDust[j].z += q_div_m * acc * E_MULT;
+						//accDust[j].z += q_div_m * acc;
 
-					// laser push on lower particle
-					//if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
-					//		accDust[j].x -= 0.5;
-					//	}
+						// laser push on lower particle
+						if(USE_LASER == 1) {
+							if(dust_time > LASER_ON &&dust_time < LASER_OFF && j==1) {
+								accDust[j].x -= 0.5;
+							}
+						}
 
-					//dustTraceFile << "sheath E acceleration  ";
-					//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
-					//debugSpecificFile << q_div_m * acc << std::endl;
-
+						//dustTraceFile << "sheath E acceleration  ";
+						//dustTraceFile << q_div_m <<", "<< ht << ", " << acc << ", ";
+						//debugSpecificFile << q_div_m * acc << std::endl;
+					}
 
 					// forces from ions outside simulation region
 					rad = sqrt(posDust[j].x * posDust[j].x +
@@ -2129,7 +2139,7 @@ int main(int argc, char* argv[])
 		} //end of loop through commands
 
 		// Print and Zero ionDensity
-		if (i % 10  == 0) { //N will need to be related to frequency
+		if (i % N  == 0) { //print every N dust time steps
 			// copy ion density and potential to host
 			d_ionDensity.devToHost();
 			d_ionPotential.devToHost();
@@ -2138,8 +2148,8 @@ int main(int argc, char* argv[])
 				"Copy d_ionDensity and d_ionPotential to Host", false);
 			// print the data to the ionDensOutFile
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/10/N_IONDT_PER_DUSTDT;
-				ionDensOutFile << ", " << ionPotential[j]/10/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << ionDensity[j]/N/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << ", " << ionPotential[j]/N/N_IONDT_PER_DUSTDT;
 				ionDensOutFile << std::endl;
 			}
 			ionDensOutFile << std::endl;
