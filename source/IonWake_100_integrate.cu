@@ -17,6 +17,10 @@
 * Local Functions
 *   drift_dev()
 *   kick_dev()
+*	checkIonDustbounds_100_dev()
+*	checkIonSphereBounds_101_dev()
+*	checkIonCylinderBounds_101_dev()
+*	calcIonDustAcc_102_dev()
 *
 */
 

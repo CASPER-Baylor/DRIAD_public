@@ -13,6 +13,13 @@
 *	drift_100()
 *	kick_100()
 *   select_100()
+* Local Functions:
+* 	kick_dev()
+* 	drift_dev()
+*	checkIonDustbounds_100_dev()
+*	checkIonSphereBounds_101_dev()
+*	checkIonCylinderBounds_101_dev()
+*	calcIonDustAcc_102_dev()
 *
 * Includes:
 *	kick()
