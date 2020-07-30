@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
 		EXIT_WITH_FATAL_ERROR;
 	}
 
-	// open an input file for time step parameters
+	// open input file for time step parameters
 	fileName = inputDirName + "timestep.txt";
 	std::ifstream timestepFile(fileName.c_str());
 	if (!timestepFile){
@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
 	const float CHARGE_ELC = -1.602177e-19;
 
 	// permittivity of free pace in a vacuum (F/m)
-	const float PERM_FREE_SPACE = 8.854e-12;
+	const float PERM_FREE_SPACE = 8.854188e-12;
 
 	// Boltzmann Constant (Kgm^2)/(K*s^2)
 	const float BOLTZMANN = 1.380649e-23;
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
 	const float ELC_MASS = 9.10938356e-31;
 
 	// Coulomb's constant
-	const float COULOMB_CONST = 8.988e9;
+	const float COULOMB_CONST = 8.987552e9;
 
 	// maximum depth for adaptive time step
 	const int MAX_DEPTH = 8;
@@ -393,10 +393,6 @@ int main(int argc, char* argv[])
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
-	// Damping factor for dust
-	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
-		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_GAS);
-	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -409,6 +405,8 @@ int main(int argc, char* argv[])
 	float adj_z = 0; //for dust confinement in z
 	//float ht = 0; //for adjusting dust height above electrode
 	//float ht2 = 0; 
+	//const float LASER_ON = 2.00;
+    //const float LASER_OFF = 2.05;
 	// for force from ions outside simulation
 	float rad = 0; 
 	float zsq = 0;
@@ -420,18 +418,16 @@ int main(int argc, char* argv[])
 	deltavee.y = 0;
 	deltavee.z = 0;
 	float mom_const = MASS_ION/MASS_DUST*dust_dt/(2*N_IONDT_PER_DUSTDT*ION_TIME_STEP);
-	//const float LASER_ON = 2.00;
-    //const float LASER_OFF = 2.05;
 	//Adjust the dust charge for non-zero plasma potential
-	float adj_q = 4.0*PI*PERM_FREE_SPACE*RAD_DUST*ELC_TEMP_EV*(1+RAD_DUST/DEBYE_I);
-	//float adj_q = 0;
-	//float adj_zsq = 0;
-    //float tempx, tempy, tempz; // for debugging purposes
 	int num = 1000; //Random number for Brownian kick
+	// Damping factor for dust
+	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
+		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_GAS);
 	//Thermal bath or Brownian motion of dust
 	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
 
-		// Set up grid for collecting ion number density and potential
+	//int N = 20; //determines when to print out ion density and potential maps -- MOVE TO PARAMS.TXT	
+	// Set up grid for collecting ion number density and potential
 	const int RESX = 32;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
 	const float grid_factor = GRID_FACTOR; 
@@ -499,8 +495,7 @@ int main(int argc, char* argv[])
 		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
 		<< "ELC_CURRENT_0 " << ELC_CURRENT_0 << '\n'
 		<< "ELC_TEMP_EV   " << ELC_TEMP_EV << '\n'
-		<< "MASS_DUST     " << MASS_DUST     << '\n'
-		<< "ADJ_Q  		  " << adj_q    << '\n' << '\n';
+		<< "MASS_DUST     " << MASS_DUST     << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
@@ -772,7 +767,7 @@ int main(int argc, char* argv[])
 	ionDensity = (float*)malloc(memFloatGrid);
 	ionPotential = (float*)malloc(memFloatGrid);
 	
-		//Set up grid for output number density and ion potential
+	//Set up grid for output number density and ion potential
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
 			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2.0 + dx * x);
@@ -1078,12 +1073,6 @@ int main(int argc, char* argv[])
 		accIonDust[i].y = 0;
 		accIonDust[i].z = 0;
 
-		// set the initial DustIon acceleration to 0
-		//for(int d = 0; d < NUM_DUST; d++) {
-			//accDustIon[d * NUM_ION + i].x = 0;
-			//accDustIon[d * NUM_ION + i].y = 0;
-			//accDustIon[d * NUM_ION + i].z = 0;
-		//}
 	}
 
 	if (debugMode) {
@@ -1463,7 +1452,7 @@ int main(int argc, char* argv[])
 	/****** Time Step Loop ******/
 
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
-	//NUM_TIME_STEP now in terms of dust, originally will be tested with 200
+	//NUM_TIME_STEP is the number of dust time steps 
 	{
 		// print the time step number to the status file
 		statusFile << i << ": "<< std::endl;
@@ -1895,15 +1884,12 @@ int main(int argc, char* argv[])
 			if (commands[c] == 4) {
 
 				// copy the dust charge to the GPU
-				d_chargeDust.hostToDev();
+				//d_chargeDust.hostToDev();
 
 				// print all the dust charges to the trace file
 			
-				//dustChargeFile << std::endl;
-
 				for (int k = 0; k < NUM_DUST; k++){
 					//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
-					//dustChargeFile << chargeDust[k] << ",";
 
 					//smooth the simulated dust charge over past timesteps 
 					simCharge[k] = 0.95 * simCharge[k] 
@@ -1912,8 +1898,8 @@ int main(int argc, char* argv[])
 					//reset the tempCharge to zero
 					tempCharge[k] = 0;
 
+					// print all the dust charges to the trace file
 					dustChargeFile << simCharge[k] << ", ";
-					//dustChargeFile << chargeDust[k] << ", ";
 
 				}
 
@@ -1974,15 +1960,6 @@ int main(int argc, char* argv[])
 					accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
 					accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
-					//print this acceleration to the trace file
-					//dustTraceFile << "ion acceleration  ";
-					debugSpecificFile << accDust[j].x;
-					debugSpecificFile << ", " << accDust[j].y;
-					debugSpecificFile << ", " << accDust[j].z;
-					debugSpecificFile << ", " << deltavee.x;
-					debugSpecificFile << ", " << deltavee.y;
-					debugSpecificFile << ", " << deltavee.z << "\n";
-
 
 					// Calculate dust-dust acceleration 
 					if(j == 0) {
@@ -2030,9 +2007,7 @@ int main(int argc, char* argv[])
 					accDust[j].z +=  accDust2[j].z;
 						
 					// calculate acceleration of the dust
-					//radial acceleration from confinement
-					//accDust[j].x += OMEGA_DIV_M * chargeDust[j] * posDust[j].x;
-					////accDust[j].y += OMEGA_DIV_M * chargeDust[j] * posDust[j].y;
+					// radial acceleration from confinement
 					accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
 					accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
 					//Radial position of dust
@@ -2042,7 +2017,7 @@ int main(int argc, char* argv[])
 					// Big accel to keep dust from leaving sides of cylinder
 					rhoDust = sqrt(rhoDustsq);
 					if(rhoDust > radialConfine) {
-					acc = simCharge[j]/MASS_DUST*OMEGA2 
+					acc = 10* OMEGA_DIV_M * simCharge[j]
 							*(rhoDust-radialConfine) / rhoDust;
 					accDust[j].x += acc * posDust[j].x;
 					accDust[j].y += acc * posDust[j].y;
