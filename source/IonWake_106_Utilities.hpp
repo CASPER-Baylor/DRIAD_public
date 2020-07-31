@@ -13,6 +13,9 @@
 *	findMax_106()
 *	findMin_106()
 *
+* Templates:
+* 	getParam_106()
+*
 * Includes:
 *	none
 *

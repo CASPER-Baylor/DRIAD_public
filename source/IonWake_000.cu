@@ -257,6 +257,7 @@ int main(int argc, char* argv[])
     const int USE_LASER = getParam_106<int>( paramFile, "USE_LASER" );
     const float LASER_ON = getParam_106<float>( paramFile, "LASER_ON" );
     const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
+    const int USE_TIME_EVOL = getParam_106<int>( paramFile, "USE_TIME_EVOL" );
 
 	// debye length (m)
 	const float DEBYE =
@@ -324,16 +325,16 @@ int main(int argc, char* argv[])
 		(CHARGE_ION * CHARGE_ION) / (4.0 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// a constant multiplier for acceleration due to Ion Dust forces
-	const float ION_DUST_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_ION;
+	const float ION_DUST_ACC_MULT = COULOMB_CONST * CHARGE_ION / MASS_ION;
 
 	// a constant multiplier for accelerations due to Dust Ion forces
-	const float DUST_ION_ACC_MULT = (8.9877e9) * CHARGE_ION / MASS_DUST;
+	const float DUST_ION_ACC_MULT = COULOMB_CONST * CHARGE_ION / MASS_DUST;
 	
 	// a constant muliplier for accleration due to Dust Dust forces
-	const float DUST_DUST_ACC_MULT = 8.9877e9 / MASS_DUST;
+	const float DUST_DUST_ACC_MULT = COULOMB_CONST / MASS_DUST;
 
 	// a constant multiplier for ion potential 
-	const float ION_POTENTIAL_MULT = (8.9877e9) * CHARGE_ION;
+	const float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
 	
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
@@ -487,6 +488,7 @@ int main(int argc, char* argv[])
 		<< "USE_LASER		  " << USE_LASER		 << '\n'
 		<< "LASER_ON		  " << LASER_ON			 << '\n'
 		<< "LASER_OFF		  " << LASER_OFF		 << '\n'
+		<< "USE_TIME_EVOL	  " << USE_TIME_EVOL	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -973,6 +975,47 @@ int main(int argc, char* argv[])
 		momIonDust[i].x = 0;
 		momIonDust[i].y = 0;
 		momIonDust[i].z = 0;
+	}
+
+
+	// input file for evolving plasma conditions 
+	if( USE_TIME_EVOL > 0 ) {
+
+		// allocate memory for the evolving time parameters 
+		float* evolEz = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolEr = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolTe = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolTi = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolne = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolni = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolVz = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+		float* evolMach = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+
+		fileName = inputDirName + "plasma_params.txt";
+		std::ifstream plasmaEvolFile(fileName.c_str());
+		// check if the file opened
+		bool plasma_cond_file = plasmaEvolFile.is_open();
+
+		if( plasma_cond_file ) { // read in evolving plasma params from file 
+			// seek to the beginning  of the file
+			plasmaEvolFile.seekg(0, std::ios::beg);
+
+			// skip the first line of the file
+			std::getline(plasmaEvolFile, line);
+
+			for( int i=0; i<USE_TIME_EVOL; i++ ) {
+				plasmaEvolFile >> evolEz[i];
+				plasmaEvolFile >> evolEr[i];
+				plasmaEvolFile >> evolTe[i];
+				plasmaEvolFile >> evolTi[i];
+				plasmaEvolFile >> evolne[i];
+				plasmaEvolFile >> evolni[i];
+				plasmaEvolFile >> evolVz[i];
+				plasmaEvolFile >> evolMach[i];
+			
+			}
+			plasmaEvolFile.close();
+		}
 	}
 
 	// attempt to open input file for initial ion positions and velocities
@@ -2184,11 +2227,6 @@ int main(int argc, char* argv[])
 			momIonDust[i].z = 0;
 		}
 
-		// copy back to the device
-		d_accIonDust.hostToDev();
-		roadBlock_104(statusFile, __LINE__, __FILE__,
-			"Copy d_accDustIon to device ", false);
-
 		// zero the ionDustAcc
 		zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
 			d_accDustIon.getDevPtr(),
@@ -2196,6 +2234,11 @@ int main(int argc, char* argv[])
 			d_NUM_ION.getDevPtr());
 
 		roadBlock_104(  statusFile, __LINE__, __FILE__, "zero DustIonAcc", false);
+
+		// copy back to the device
+		d_accIonDust.hostToDev();
+		roadBlock_104(statusFile, __LINE__, __FILE__,
+			"Copy d_accDustIon to device ", false);
 
 		statusFile << "|" << std::endl;
 		
