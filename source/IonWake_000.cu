@@ -204,14 +204,14 @@ int main(int argc, char* argv[])
 		= static_cast<int>(
 			 getParam_106<int>( paramFile, "NUM_ION" ) / (2*DIM_BLOCK)
 		  )	* (2 * DIM_BLOCK);
-	const float DEN_FAR_PLASMA 
+	float DEN_FAR_PLASMA 
 		= getParam_106<float>( paramFile, "DEN_FAR_PLASMA" );
-	const float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
-	const float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
+	float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
+	float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
 	const short DEN_DUST = getParam_106<short>( paramFile, "DEN_DUST" );
 	const float MASS_SINGLE_ION 
 		= getParam_106<float>( paramFile, "MASS_SINGLE_ION" );
-	const float MACH = getParam_106<float>( paramFile, "MACH" ); 
+	float MACH = getParam_106<float>( paramFile, "MACH" ); 
 	const float SOFT_RAD = getParam_106<float>( paramFile, "SOFT_RAD" );
 	const float RAD_DUST = getParam_106<float>( paramFile, "RAD_DUST" );
 	const float M_FACTOR = getParam_106<float>( paramFile, "M_FACTOR" );
@@ -239,7 +239,7 @@ int main(int argc, char* argv[])
 	const float P05Z = getParam_106<float>( paramFile, "P05Z" );
 	const float PRESSURE = getParam_106<float>( paramFile, "PRESSURE" );
 	const float FREQ = getParam_106<float>( paramFile, "FREQ" );
-	const float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
+	float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
 	const float OMEGA1 = getParam_106<float>( paramFile, "OMEGA1" );
 	const float OMEGA2 = getParam_106<float>( paramFile, "OMEGA2" );
 	const float RADIAL_CONF = getParam_106<float>( paramFile, "RADIAL_CONF" );
@@ -257,10 +257,10 @@ int main(int argc, char* argv[])
     const int USE_LASER = getParam_106<int>( paramFile, "USE_LASER" );
     const float LASER_ON = getParam_106<float>( paramFile, "LASER_ON" );
     const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
-    const int USE_TIME_EVOL = getParam_106<int>( paramFile, "USE_TIME_EVOL" );
+    const int TIME_EVOL = getParam_106<int>( paramFile, "TIME_EVOL" );
 
 	// debye length (m)
-	const float DEBYE =
+	float DEBYE =
 		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
 
@@ -277,7 +277,7 @@ int main(int argc, char* argv[])
 	const float RAD_SIM = RAD_SIM_DEBYE * DEBYE;
 
 	// inverse debye (1/m)
-	const float INV_DEBYE = 1.0 / DEBYE;
+	float INV_DEBYE = 1.0 / DEBYE;
 
 	// soft radius squared (m^2)
 	const float SOFT_RAD_SQRD = SOFT_RAD * SOFT_RAD;
@@ -312,61 +312,59 @@ int main(int argc, char* argv[])
 	const float SIM_VOLUME = temp_volume;
 
 	// multiplier for super ions
-	const float SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
+	float SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
 
 	// charge on each super ion (C)
-	const float CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
+	float CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 
 	// mass of a super ion (Kg)
-	const float MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
+	float MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
+
+	const float Q_DIV_M = CHARGE_ION / MASS_ION;
 
 	// a constant multiplier for acceleration due to Ion Ion forces
-	const float ION_ION_ACC_MULT =
+	float ION_ION_ACC_MULT =
 		(CHARGE_ION * CHARGE_ION) / (4.0 * PI * PERM_FREE_SPACE * MASS_ION);
 
 	// a constant multiplier for acceleration due to Ion Dust forces
-	const float ION_DUST_ACC_MULT = COULOMB_CONST * CHARGE_ION / MASS_ION;
+	const float ION_DUST_ACC_MULT = COULOMB_CONST * Q_DIV_M;
 
 	// a constant multiplier for accelerations due to Dust Ion forces
-	const float DUST_ION_ACC_MULT = COULOMB_CONST * CHARGE_ION / MASS_DUST;
+	const float DUST_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
 	
 	// a constant muliplier for accleration due to Dust Dust forces
 	const float DUST_DUST_ACC_MULT = COULOMB_CONST / MASS_DUST;
 
 	// a constant multiplier for ion potential 
-	const float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+	float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
 	
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
-	const float EXTERN_ELC_MULT =
+	float EXTERN_ELC_MULT =
 		((RAD_SIM / DEBYE) + 1.0) * exp(-RAD_SIM / DEBYE) *
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
-		(CHARGE_ION / MASS_ION) / (PERM_FREE_SPACE);
-
-	// a constant multiplier to acceleration due to electric field
-	// outside the cylindrical simulation bounds
-	const float Q_DIV_M = CHARGE_ION / MASS_ION;
+		(Q_DIV_M) / (PERM_FREE_SPACE);
 
 	// sound speed of the plasma (m/s)
-	const float SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
-	const float ION_SPEED = sqrt(BOLTZMANN * TEMP_ION / MASS_SINGLE_ION);
+	float SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
+	float ION_SPEED = sqrt(BOLTZMANN * TEMP_ION / MASS_SINGLE_ION);
 
 	// the drift velocity of the ions
-	const float DRIFT_VEL_ION = MACH * SOUND_SPEED;
+	float DRIFT_VEL_ION = MACH * SOUND_SPEED;
 
 	// a constant multiplier for ion collection radius
-	const float vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
+	float vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
 			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
-	const float RAD_COLL_MULT = 
-		2 * CHARGE_ION / MASS_ION *(8.9877e9) / RAD_DUST / vs_sq;
+	float RAD_COLL_MULT = 
+		2 * Q_DIV_M * COULOMB_CONST / RAD_DUST / vs_sq;
 	
 	// the electron current to an uncharged dust grain
-	const float ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+	float ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
 		CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
 
 	// the electron temperature in eV is the plasma potential for this
 	// model, which excludes the electrons from the calculations
-	const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
+	//const float ELC_TEMP_EV = TEMP_ELC * 8.61733e-5;
 
 	// Set collision cross sections for ion and neutral gas
 	const int I_CS_RANGES = 1000000;
@@ -488,7 +486,7 @@ int main(int argc, char* argv[])
 		<< "USE_LASER		  " << USE_LASER		 << '\n'
 		<< "LASER_ON		  " << LASER_ON			 << '\n'
 		<< "LASER_OFF		  " << LASER_OFF		 << '\n'
-		<< "USE_TIME_EVOL	  " << USE_TIME_EVOL	 << '\n'
+		<< "TIME_EVOL	      " << TIME_EVOL	 << '\n'
 		<< '\n';
 
 		debugFile << "-- Derived Parameters --"  << '\n'
@@ -501,7 +499,6 @@ int main(int argc, char* argv[])
 		<< "SOUND_SPEED   " << SOUND_SPEED   << '\n'
 		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
 		<< "ELC_CURRENT_0 " << ELC_CURRENT_0 << '\n'
-		<< "ELC_TEMP_EV   " << ELC_TEMP_EV << '\n'
 		<< "MASS_DUST     " << MASS_DUST     << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
@@ -977,19 +974,21 @@ int main(int argc, char* argv[])
 		momIonDust[i].z = 0;
 	}
 
+		// allocate memory for the evolving time parameters 
+		float* evolEz = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolEr = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolTe = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolTi = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolne = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolni = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolVz = (float*)malloc(TIME_EVOL * sizeof(float));
+		float* evolMach = (float*)malloc(TIME_EVOL * sizeof(float));
+
+		// index for advancing to next evolving time
+		int counter = 1;
 
 	// input file for evolving plasma conditions 
-	if( USE_TIME_EVOL > 0 ) {
-
-		// allocate memory for the evolving time parameters 
-		float* evolEz = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolEr = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolTe = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolTi = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolne = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolni = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolVz = (float*)malloc(USE_TIME_EVOL * sizeof(float));
-		float* evolMach = (float*)malloc(USE_TIME_EVOL * sizeof(float));
+	if( TIME_EVOL > 0 ) {
 
 		fileName = inputDirName + "plasma_params.txt";
 		std::ifstream plasmaEvolFile(fileName.c_str());
@@ -1003,7 +1002,7 @@ int main(int argc, char* argv[])
 			// skip the first line of the file
 			std::getline(plasmaEvolFile, line);
 
-			for( int i=0; i<USE_TIME_EVOL; i++ ) {
+			for( int i=0; i<TIME_EVOL; i++ ) {
 				plasmaEvolFile >> evolEz[i];
 				plasmaEvolFile >> evolEr[i];
 				plasmaEvolFile >> evolTe[i];
@@ -1012,9 +1011,19 @@ int main(int argc, char* argv[])
 				plasmaEvolFile >> evolni[i];
 				plasmaEvolFile >> evolVz[i];
 				plasmaEvolFile >> evolMach[i];
-			
 			}
 			plasmaEvolFile.close();
+		}
+		if (debugMode) {
+			debugFile << "-- First and last plasma params from file --" << '\n'
+			<< evolEz[0] << ", " << evolEr[0] << ", " 
+			<< evolTe[0] << ", " << evolTi[0] << ", " 
+			<< evolne[0] << ", " << evolni[0] << ", " 
+			<< evolVz[0] << ", " << evolMach[0] << '\n' 
+			<< evolEz[TIME_EVOL -1] << ", " << evolEr[TIME_EVOL-1] << ", " 
+			<< evolTe[TIME_EVOL -1] << ", " << evolTi[TIME_EVOL-1] << ", " 
+			<< evolne[TIME_EVOL -1] << ", " << evolni[TIME_EVOL-1] << ", " 
+			<< evolVz[TIME_EVOL -1] << ", "<<evolMach[TIME_EVOL-1] << '\n' << std::endl;
 		}
 	}
 
@@ -1526,16 +1535,6 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", false);
 
-			// copy ion m_value to host
-			//d_m.devToHost();
-			//d_timeStepFactor.devToHost();
-			//debugFile << "First 20 ion m values: " << std::endl;
-			//for (int ii = 0; ii < 20; ii++)
-			//{
-			//		debugFile << "m: " << m[ii] <<
-			//			   "tsf: " << timeStepFactor[ii] << std::endl;
-			//	}
-
 			//KDK using just the ion-dust acceleration for s^m iterations
  
 			if(GEOMETRY == 0) {
@@ -1912,6 +1911,40 @@ int main(int argc, char* argv[])
 	
 		roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", false);
 	
+		// Recalculate evolving parameters for time-dependent plasma conditions
+		if(TIME_EVOL >0) {
+			//advance values every 10th ion time step
+			if( i % 10 == 0) {
+			counter = (counter+1) % TIME_EVOL;
+			TEMP_ELC = evolTe[counter];
+			TEMP_ION = evolTi[counter];
+			DEN_FAR_PLASMA = evolne[counter];
+			MACH = evolMach[counter];
+			E_FIELD = evolEz[counter];
+			DRIFT_VEL_ION = evolVz[counter];
+
+			DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
+				(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
+			INV_DEBYE = 1.0 / DEBYE;
+			SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
+			CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
+			MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
+			ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
+			ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+			SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
+			vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
+				+ DRIFT_VEL_ION * DRIFT_VEL_ION;
+			RAD_COLL_MULT = 
+				2 * Q_DIV_M * COULOMB_CONST / RAD_DUST / vs_sq;
+			ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
+				CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
+
+			// recalculate coefficients for injection 
+			// recalculate the electric field due to outside ions
+
+			}
+
+		}
 	} // ***** end of ion loop *****// 
 
 					
