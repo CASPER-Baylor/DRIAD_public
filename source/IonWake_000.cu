@@ -759,16 +759,16 @@ int main(int argc, char* argv[])
 	/****** Calculations on the Grid ******/
 
 	// pointer for grid positions, potentials, and ion density 
-	float3* gridPos = NULL;
+	float2* gridPos = NULL;
 	float* ionDensity = NULL;
 	float* ionPotential = NULL;
 
 	// amount of memory required for the grid variables
-	int memFloat3Grid = NUM_GRID_PTS * sizeof(float3);
+	int memFloat2Grid = NUM_GRID_PTS * sizeof(float2);
 	int memFloatGrid  = NUM_GRID_PTS * sizeof(float);
 	
 	// allocate memory for the grid variables
-	gridPos = (float3*)malloc(memFloat3Grid);
+	gridPos = (float2*)malloc(memFloat2Grid);
 	ionDensity = (float*)malloc(memFloatGrid);
 	ionPotential = (float*)malloc(memFloatGrid);
 	
@@ -776,16 +776,16 @@ int main(int argc, char* argv[])
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < RESX; x++) {
 			gridPos[RESX* z + x].x = (-(RAD_CYL*grid_factor) + dx/2.0 + dx * x);
-			gridPos[RESX* z + x].y = 0;
-			gridPos[RESX* z + x].z = (-HT_CYL*grid_factor + dz/2.0 + dz * z);
+			//gridPos[RESX* z + x].y = 0;
+			gridPos[RESX* z + x].y = (-HT_CYL*grid_factor + dz/2.0 + dz * z);
 		}
 	}
 	
 	// output all of the grid positions such that matlab can read them in
 	for (int j =0; j< NUM_GRID_PTS; j++) {
 		ionDensOutFile << gridPos[j].x;
-		ionDensOutFile << ", " << gridPos[j].y;
-		ionDensOutFile << ", " << gridPos[j].z << std::endl;
+		//ionDensOutFile << ", " << gridPos[j].y;
+		ionDensOutFile << ", " << gridPos[j].y << std::endl;
 	}
 	ionDensOutFile << "" << std::endl;
 
@@ -1260,7 +1260,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
 	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
 	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
-	CUDAvar<float3> d_gridPos(gridPos, NUM_GRID_PTS);
+	CUDAvar<float2> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
 	CUDAvar<float> d_SIGMA_I1(sigma_i1, I_CS_RANGES+1);

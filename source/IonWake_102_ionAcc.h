@@ -244,12 +244,13 @@ __global__ void calcExtrnElcAccCyl_102
 /*
  *  Name: calcIonDensityPotential_102
  *  Created: 5/4/2018
- *  Last Modified: 5/4/2018
+ *  Last Modified:8.27.2020 
  * 
  *  Editors
  * 	Name: Lorin Matthews
  * 	Contact: Lorin_Matthews@baylor.edu
- * 	last edit: 5/4/2018
+ * 	last edit: 8.27.2020
+ * 	Implemented float2 for grid positions
  * 
  *  Description:
  * 	Calculates electric potential from ions at points on grid in 
@@ -276,7 +277,7 @@ __global__ void calcExtrnElcAccCyl_102
  * 
  */
 __global__ void calcIonDensityPotential_102
-	(float3*,
+	(float2*,
 	 float3*,
 	 float* const,
 	 float* const,
