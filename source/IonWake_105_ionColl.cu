@@ -240,9 +240,9 @@ __global__ void ionCollisions_105
 	int			index;
 	float	vx_i, vy_i, vz_i, vx_a, vy_a,vz_a;
 	float	eps_rel, real_coll_freq, t1, t2, dum, randNum;
-	double  khi,phi,mm;
-	double  hx,hy,hz,g,gx,gy,gz,sk,ck,sf,cf;
-	double  pi = 3.1415926536;
+	float   khi,phi,mm;
+	float   hx,hy,hz,g,gx,gy,gz,sk,ck,sf,cf;
+	float   pi = 3.1415926536;
 	*d_collision_counter = 0;
 
 	if (d_collList[threadID] == 1) {
@@ -461,10 +461,10 @@ __global__ void setCollisionList_105
 *
 */
 
-__device__ double errorFn_inv(double y) {
+__device__ float errorFn_inv(float y) {
  
-  double s, t, u, w, x, z; 
-  double k = y;  // store y before switching its sign 
+  float s, t, u, w, x, z; 
+  float k = y;  // store y before switching its sign 
   
   if (y == 0) 
     { 
