@@ -4,7 +4,7 @@
 * File Name: IonWake_102_ionAcc.cu
 *
 * Created: 6/13/2017
-* Last Modified: 10/21/2017
+* Last Modified: 09/09/2020
 *
 * Description:
 *	Includes functions for calculating ion-ion accelerations 
@@ -276,7 +276,7 @@ __global__ void calcExtrnElcAccCyl_102
  * 
  */
 __global__ void calcIonDensityPotential_102
-	(float3*,
+	(float2*,
 	 float3*,
 	 float* const,
 	 float* const,

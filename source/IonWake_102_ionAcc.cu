@@ -4,7 +4,7 @@
 * File Name: IonWake_102_ionAcc.cu
 *
 * Created: 6/13/2017
-* Last Modified: 11/14/2017
+* Last Modified: 09/09/2020
 *
 * Description:
 *	Includes functions for calculating ion-ion accelerations 
@@ -435,7 +435,7 @@ __global__ void calcExtrnElcAccCyl_102
 * Editors
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 5/4/2018
+*	last edit: 9/9/2020  GridPos now float2
 *
 * Description:
 *	Calculates electric potential from ions at points on grid in 
@@ -463,7 +463,7 @@ __global__ void calcExtrnElcAccCyl_102
 */
 
 __global__ void calcIonDensityPotential_102
-	(float3* d_gridPos,
+	(float2* d_gridPos,
 	 float3* d_posIon,
 	 float * const d_ION_POTENTIAL_MULT,
 	 float * const d_INV_DEBYE,
@@ -515,8 +515,9 @@ __global__ void calcIonDensityPotential_102
 			// calculate the distance between the ion in shared
 			// memory and the current grid point
 			dist.x = d_gridPos[IDgrid].x - sharedPos[h].x;
-			dist.y = d_gridPos[IDgrid].y - sharedPos[h].y;
-			dist.z = d_gridPos[IDgrid].z - sharedPos[h].z;
+			//dist.y = d_gridPos[IDgrid].y - sharedPos[h].y;
+			dist.y = 0 - sharedPos[h].y;
+			dist.z = d_gridPos[IDgrid].y - sharedPos[h].z;
 			
 			// calculate the distance squared
 			distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
