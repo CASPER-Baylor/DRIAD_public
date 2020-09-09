@@ -227,7 +227,7 @@ __global__ void setCollisionList_105
 *
 */
 
-__device__ double errorFn_inv(double y); 
+__device__ float errorFn_inv(float y); 
 
 //--------------------------------------------------------------------
 // sampling of Maxwellian distributions :
