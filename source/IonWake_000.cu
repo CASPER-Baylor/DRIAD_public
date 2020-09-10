@@ -619,16 +619,14 @@ int main(int argc, char* argv[])
 	/****** Dust Parameters ******/
 
 	// pointer for dust positions,velocities, and accels
-	float3* posDust = NULL;
+	float4* posDust = NULL; //4th position is dust charge
 	float3* velDust = NULL;
 	float3* accDust = NULL;
 	float3* momIonDust = NULL;
 	float3* accDust2 = NULL;
 
-	// pointer for dust charges;
-	float* chargeDust = NULL;
+	// pointer for dust charges used in dust timestep (on host)
 	float* tempCharge = NULL; 
-	//float* dynCharge = NULL; 
 	float* simCharge = NULL; 
 
 	// counts the number of dust particles
@@ -636,6 +634,7 @@ int main(int argc, char* argv[])
 
 	// amount of memory required for the dust positions
 	int memFloat3Dust = 0;
+	int memFloat4Dust = 0;
 	int memFloatDust = 0;
 
 	// temporary holder for lines in the file
@@ -656,13 +655,12 @@ int main(int argc, char* argv[])
 	if (NUM_DUST > 0) {
 		// amount of memory required for the dust variables
 		memFloat3Dust = NUM_DUST * sizeof(float3);
+		memFloat4Dust = NUM_DUST * sizeof(float4);
 		memFloatDust  = NUM_DUST * sizeof(float);
 
 		// allocate memory for the dust variables
-		posDust = (float3*)malloc(memFloat3Dust);
-		chargeDust = (float*)malloc(memFloatDust);
+		posDust = (float4*)malloc(memFloat4Dust);
 		tempCharge = (float*)malloc(memFloatDust); 
-		//dynCharge = (float*)malloc(memFloatDust); 
 		simCharge = (float*)malloc(memFloatDust); 
 		velDust = (float3*)malloc(memFloat3Dust);
 		accDust = (float3*)malloc(memFloat3Dust);
@@ -694,14 +692,14 @@ int main(int argc, char* argv[])
 			dustParamFile >> velDust[i].z;
 
 			// save the dust charge
-			dustParamFile >> chargeDust[i];
+			dustParamFile >> posDust[i].w;
 		}
 	}
 
-	// set up temporary variables used for dust charge
+	// set up temporary variables used for dust charge on host
 	for (int i = 0; i < NUM_DUST; i++) {
 		tempCharge[i] = 0;
-		simCharge[i] = chargeDust[i];
+		simCharge[i] = posDust[i].w;
 	}
 
 	// check if any of the dust particles are outside of
@@ -746,7 +744,7 @@ int main(int argc, char* argv[])
 			debugFile << "X: " << posDust[i].x <<
 			" Y: " << posDust[i].y <<
 			" Z: " << posDust[i].z <<
-			" Q: " << chargeDust[i] << std::endl;
+			" Q: " << posDust[i].w << std::endl;
 		}
 
 		debugFile << std::endl;
@@ -896,23 +894,23 @@ int main(int argc, char* argv[])
 	// number of blocks per grid for ions
 	int blocksPerGridIon = (NUM_ION + 1) / DIM_BLOCK;
 
-	// memory size for float3 type ion data arrays
-	int memFloat3Ion = NUM_ION * sizeof(float3);
+	// memory size for float4 type ion data arrays
+	int memFloat4Ion = NUM_ION * sizeof(float4);
 
 	// allocate memory for the ion positions
-	float3* posIon = (float3*)malloc(memFloat3Ion);
+	float4* posIon = (float4*)malloc(memFloat4Ion);
 
 	// allocate memory for the ion velocities
-	float3* velIon = (float3*)malloc(memFloat3Ion);
+	float4* velIon = (float4*)malloc(memFloat4Ion);
 
 	// allocate memory for the ion accelerations
-	float3* accIon = (float3*)malloc(memFloat3Ion);
+	float4* accIon = (float4*)malloc(memFloat4Ion);
 
 	// allocate memory for ion accel due to dust
-	float3* accIonDust = (float3*)malloc(memFloat3Ion);
+	float4* accIonDust = (float4*)malloc(memFloat4Ion);
 
 	// allocate memory for dust accel due to ion
-	float3* accDustIon = (float3*)malloc(memFloat3Ion * NUM_DUST);
+	float4* accDustIon = (float4*)malloc(memFloat4Ion * NUM_DUST);
 
 	// allocate memory for the ion bounds flag
 	int* boundsIon = (int*)malloc(NUM_ION * sizeof(int));
@@ -963,10 +961,10 @@ int main(int argc, char* argv[])
 	// initialize the dust velocities, accelerations and momentum transfer 
 	for (int i = 0; i < NUM_DUST; i++)
 	{
-		accDust[i].x = OMEGA_DIV_M * chargeDust[i] * posDust[i].x;
-		accDust[i].y = OMEGA_DIV_M * chargeDust[i] * posDust[i].y;
+		accDust[i].x = OMEGA_DIV_M * simCharge[i] * posDust[i].x;
+		accDust[i].y = OMEGA_DIV_M * simCharge[i] * posDust[i].y;
 		//polarity switching
-		accDust[i].z = chargeDust[i] / MASS_DUST * E_FIELD;
+		accDust[i].z = simCharge[i] / MASS_DUST * E_FIELD;
 		if(USE_ELE_GRAV ==1) {
 			accDust[i].z -= 9.81;
 		}
@@ -991,6 +989,8 @@ int main(int argc, char* argv[])
 			ionInitFile >>  velIon[i].x;
 			ionInitFile >>  velIon[i].y;
 			ionInitFile >>  velIon[i].z;
+			// read in the charge
+			ionInitFile >>  posIon[i].w;
 		}
 
 		ionInitFile.close();
@@ -1000,6 +1000,9 @@ int main(int argc, char* argv[])
 		// loop over all the ions and initialize their velocity, acceleration,
 		// and position
 		for (int i = 0; i < NUM_ION; i++) {
+			//set the charge on the ion
+			posIon[i].w = CHARGE_SINGLE_ION*SUPER_ION_MULT;
+			//set the position of the ion
 			if(GEOMETRY == 0) {
 				// give the ion a random position
 				randNum = (((rand() % (number*2)) - number) / (float)number);
@@ -1090,7 +1093,8 @@ int main(int argc, char* argv[])
 		debugFile << "-- Basic Memory Sizes --" << '\n'
 		<< "float  " << sizeof(float) << '\n'
 		<< "int    " << sizeof(int) << '\n'
-		<< "float3 " << sizeof(float3) << '\n' << '\n';
+		<< "float3 " << sizeof(float3) << '\n'
+		<< "float4 " << sizeof(float4) << '\n' << '\n';
 
 		debugFile << "-- Host Memory Use --" << '\n'
 		<< "velIon  " 		  << sizeof(*velIon) * NUM_ION << '\n'
@@ -1191,6 +1195,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<int> d_MAX_DEPTH(&MAX_DEPTH, 1);
 	constCUDAvar<int> d_I_CS_RANGES(&I_CS_RANGES, 1);
 	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
+	constCUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
 
 	// create device pointers
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1199,15 +1204,13 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_QCOM(NUM_DIV_QTH);
 	CUDAvar<float> d_VCOM(NUM_DIV_VEL);
 	CUDAvar<float> d_GCOM(NUM_DIV_QTH * NUM_DIV_VEL);
-	CUDAvar<float> d_chargeDust(chargeDust, NUM_DUST);
-	CUDAvar<float3> d_posIon(posIon, NUM_ION);
-	CUDAvar<float3> d_velIon(velIon, NUM_ION);
-	CUDAvar<float3> d_accIon(accIon, NUM_ION);
-	CUDAvar<float3> d_accIonDust(accIonDust, NUM_ION);
-	CUDAvar<float3> d_posDust(posDust, NUM_DUST);
+	CUDAvar<float4> d_posIon(posIon, NUM_ION);
+	CUDAvar<float4> d_velIon(velIon, NUM_ION);
+	CUDAvar<float4> d_accIon(accIon, NUM_ION);
+	CUDAvar<float4> d_accIonDust(accIonDust, NUM_ION);
+	CUDAvar<float4> d_posDust(posDust, NUM_DUST);
 	CUDAvar<float> d_minDistDust(minDistDust, NUM_ION);
-	CUDAvar<float3> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
-	CUDAvar<float3> d_accDust(accDust, NUM_DUST);
+	CUDAvar<float4> d_accDustIon(accDustIon, NUM_DUST * NUM_ION);
 	CUDAvar<float2> d_gridPos(gridPos, NUM_GRID_PTS);
 	CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
 	CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
@@ -1225,7 +1228,6 @@ int main(int argc, char* argv[])
 	d_QCOM.hostToDev();
 	d_VCOM.hostToDev();
 	d_GCOM.hostToDev();
-	d_chargeDust.hostToDev();
 	d_posIon.hostToDev();
 	d_velIon.hostToDev();
 	d_accIon.hostToDev();
@@ -1233,7 +1235,6 @@ int main(int argc, char* argv[])
 	d_posDust.hostToDev();
 	d_minDistDust.hostToDev();
 	d_accDustIon.hostToDev();
-	d_accDust.hostToDev();
 	d_gridPos.hostToDev();
 	d_ionPotential.hostToDev();
 	d_ionDensity.hostToDev();
@@ -1345,6 +1346,7 @@ int main(int argc, char* argv[])
 			d_MACH.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
+			d_CHARGE_ION.getDevPtr(),
 			xac);
 
 		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
@@ -1370,6 +1372,7 @@ int main(int argc, char* argv[])
 			d_MACH.getDevPtr(),
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
+			d_CHARGE_ION.getDevPtr(),
 			xac); // <--
 
 		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
@@ -1384,7 +1387,7 @@ int main(int argc, char* argv[])
 	//Calculate ion-ion forces
 	//Ions inside the simulation region
 	// calculate the acceleration due to ion-ion interactions
-	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float3) * DIM_BLOCK >>>(
+	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
 		d_posIon.getDevPtr(), // <--
 		d_accIon.getDevPtr(), // <-->
 		d_NUM_ION.getDevPtr(), 
@@ -1451,7 +1454,6 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_SOFT_RAD_SQRD.getDevPtr(),
 		d_ION_DUST_ACC_MULT.getDevPtr(),
-		d_chargeDust.getDevPtr(), // <--
 		d_minDistDust.getDevPtr()); // -->
 
 	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
@@ -1513,8 +1515,7 @@ int main(int argc, char* argv[])
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
-					d_RAD_COLL_MULT.getDevPtr(),
-					d_chargeDust.getDevPtr()); // <--
+					d_RAD_COLL_MULT.getDevPtr());
 
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 				
@@ -1536,8 +1537,7 @@ int main(int argc, char* argv[])
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
-					d_RAD_COLL_MULT.getDevPtr(),
-					d_chargeDust.getDevPtr()); // <--
+					d_RAD_COLL_MULT.getDevPtr());
 
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
 			}
@@ -1570,6 +1570,7 @@ int main(int argc, char* argv[])
 					d_MACH.getDevPtr(),
 					d_MASS_SINGLE_ION.getDevPtr(),
 					d_BOLTZMANN.getDevPtr(),
+					d_CHARGE_ION.getDevPtr(),
 					xac);
 		
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
@@ -1595,6 +1596,7 @@ int main(int argc, char* argv[])
 					d_MACH.getDevPtr(),
 					d_MASS_SINGLE_ION.getDevPtr(),
 					d_BOLTZMANN.getDevPtr(),
+					d_CHARGE_ION.getDevPtr(),
 					xac); // <--
 		
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
@@ -1605,7 +1607,6 @@ int main(int argc, char* argv[])
 				d_posIon.getDevPtr(), // {{{
 				d_posDust.getDevPtr(), // <-->
 				d_accDustIon.getDevPtr(), // <--
-				d_chargeDust.getDevPtr(), // <--
 				d_NUM_DUST.getDevPtr(),
 				d_NUM_ION.getDevPtr(),
 				d_INV_DEBYE.getDevPtr(),
@@ -1615,7 +1616,7 @@ int main(int argc, char* argv[])
 
 			// calc ion number density and ion potential
 			calcIonDensityPotential_102 
-				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>> (
+				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
 				d_gridPos.getDevPtr(), // {{{
 				 d_posIon.getDevPtr(),
 				 d_ION_POTENTIAL_MULT.getDevPtr(),
@@ -1629,7 +1630,7 @@ int main(int argc, char* argv[])
 			//Ions inside the simulation region
 			// calculate the acceleration due to ion-ion interactions
 			calcIonIonAcc_102 
-				<<< blocksPerGridIon, DIM_BLOCK, sizeof(float3) * DIM_BLOCK >>> (
+				<<< blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
 				d_posIon.getDevPtr(), // {{{
 				d_accIon.getDevPtr(), // <-->
 				d_NUM_ION.getDevPtr(),
@@ -1732,8 +1733,8 @@ int main(int argc, char* argv[])
 					// copy ion bounds to host
 					d_boundsIon.devToHost();
 
-					// copy dust charge to host
-					d_chargeDust.devToHost();
+					// copy dust positions and charge to host
+					d_posDust.devToHost();
 
 					// calculate the ion currents to the dust particles
 					// set initial currents to 0
@@ -1757,7 +1758,7 @@ int main(int argc, char* argv[])
 					// Update charge on dust
 					for (int g = 0; g < NUM_DUST; g++) {
 						// calculate the grain potential wrt plasma potential
-						dustPotential =(COULOMB_CONST* chargeDust[g]/ RAD_DUST); 
+						dustPotential =(COULOMB_CONST* posDust[g].w/ RAD_DUST); 
 						//- ELC_TEMP_EV; 
 
 						// calculate the electron current to the dust
@@ -1766,17 +1767,17 @@ int main(int argc, char* argv[])
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-						chargeDust[g] += elcCurrent+ionCurrent[g]* CHARGE_ION;
+						posDust[g].w += elcCurrent+ionCurrent[g]* CHARGE_ION;
 
-						//dustChargeFile << chargeDust[g] << ", ";
+						//dustChargeFile << posDust[g].w << ", ";
 						//save charge for averaging
-						tempCharge[g] += chargeDust[g];
+						tempCharge[g] += posDust[g].w;
 					}
 
 					//dustChargeFile << "\n";
 
-					// copy the dust charge to the GPU
-					d_chargeDust.hostToDev(); 
+					// copy the dust charge (and position) to the GPU
+					d_posDust.hostToDev(); 
 
 				// Check For Erroneous Command
 				} else if ( commands[c] != 5){
@@ -1872,7 +1873,7 @@ int main(int argc, char* argv[])
 	} // ***** end of ion loop *****// 
 
 					
-	sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float3)*DIM_BLOCK>>> (
+	sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float4)*DIM_BLOCK>>> (
 		d_accDustIon.getDevPtr(),
 		d_NUM_DUST.getDevPtr(),
 		d_NUM_ION.getDevPtr()); 
@@ -1890,13 +1891,9 @@ int main(int argc, char* argv[])
 			// Dust Charging
 			if (commands[c] == 4) {
 
-				// copy the dust charge to the GPU
-				//d_chargeDust.hostToDev();
-
 				// print all the dust charges to the trace file
 			
 				for (int k = 0; k < NUM_DUST; k++){
-					//chargeDust[k] = tempCharge[k]/N_IONDT_PER_DUSTDT;
 
 					//smooth the simulated dust charge over past timesteps 
 					simCharge[k] = 0.95 * simCharge[k] 
@@ -2255,9 +2252,6 @@ int main(int argc, char* argv[])
 	// copy ion velocities to host
 	d_velIon.devToHost();
 
-	// copy dust charges to the host
-	d_chargeDust.devToHost();
-
 	// synchronize threads and check for errors
 	roadBlock_104( statusFile, __LINE__, __FILE__, "devToHost", false);
 	if (debugMode) {
@@ -2292,7 +2286,6 @@ int main(int argc, char* argv[])
 	// loop over all of the dust particles
 	for (int i = 0; i < NUM_DUST; i++) {
 		// print the dust charge
-		//dustChargeFile << chargeDust[i] << ", ";
 		dustChargeFile << simCharge[i] << ", ";
 	}
 	dustChargeFile << std::endl;
@@ -2420,14 +2413,13 @@ int main(int argc, char* argv[])
 	d_MAX_DEPTH.compare();
 	d_I_CS_RANGES.compare();
 	d_TOT_ION_COLL_FREQ.compare();
+	d_CHARGE_ION.compare();
 
 	/****** Free Memory ******/
 
 	free(posDust);
 	free(velDust);
-	free(accDust);
 	free(accDust2);
-	free(chargeDust);
 	free(tempCharge);
 	free(simCharge);
 	free(commands);

@@ -35,22 +35,21 @@
 	#include "device_launch_parameters.h"
 
 	__global__ void calcDustIonAcc_103
-           (float3 *, 
-            float3 *,
-			float3 *, 
-            float * const,
+           (float4 *, 
+            float4 *,
+			float4 *, 
+            int * const,
 			int * const,
-			int * const, 
-			float * const,
+			float * const, 
             float * const);
    
 	__global__ void sumDustIonAcc_103
-           (float3 *, 
+           (float4 *, 
 			int * const,
 			int * const);
 
 	__global__ void zeroDustIonAcc_103
-           (float3 *, 
+           (float4 *, 
 			int * const,
 			int * const);
 #endif

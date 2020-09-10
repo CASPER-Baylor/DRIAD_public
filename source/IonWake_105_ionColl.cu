@@ -227,7 +227,7 @@ __global__ void ionCollisions_105
 	float* sigma_i1,
 	float* sigma_i2,
 	float* sigma_i_tot,
-	float3* velIon,
+	float4* velIon,
 	curandState_t* const randStates,
 	int* d_collision_counter) {
 			

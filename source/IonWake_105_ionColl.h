@@ -137,7 +137,7 @@ __global__ void ionCollisions_105 (
 		float*,
 		float*,
 		float*,
-		float3*,
+		float4*,
 		curandState_t* const, 
 		int*);
 

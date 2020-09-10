@@ -40,11 +40,11 @@
 *	checks if an ion is within  a dust particle 
 *
 * Input:
-*	d_posIon: the ion positions
+*	d_posIon: the ion positions and charges
 *	d_boundsIon: a flag for if an ion position is out of bounds
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
-*	d_posDust: the dust particle positions
+*	d_posDust: the dust particle positions and charges
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
@@ -61,11 +61,11 @@
 *
 */
 __global__ void checkIonDustBounds_101(
-	float3* const d_posIon, 
+	float4* const d_posIon, 
 	int* d_boundsIon,
 	float* const d_RAD_DUST_SQRD,
 	int* const d_NUM_DUST,
-	float3* const d_posDust) {
+	float4* const d_posDust) {
 	
 	// distance
 	float dist;
@@ -76,7 +76,7 @@ __global__ void checkIonDustBounds_101(
 	// Only check ions which are in bounds
 	if (d_boundsIon[IDion] == 0) {
 		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
+		float4 posCrntIon = d_posIon[IDion];
 
 		// temporary distance holders
 		float deltaX, deltaY, deltaZ;
@@ -124,7 +124,7 @@ __global__ void checkIonDustBounds_101(
 *	as described in Piel 2017 
 *
 * Input:
-*	d_posIon: ion positions
+*	d_posIon: ion positions and charges
 *	d_velIon: ion velocities
 *   d_accIon: ion accelerations
 *	randStates: a set of random states with at least as many
@@ -143,6 +143,7 @@ __global__ void checkIonDustBounds_101(
 *   d_MACH: the mach number 
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *	d_BOLTZMANN: the boltzmann constant 
+*	d_CHARGE_ION: the charge on a super-ion
 *
 * Output (void):
 *	d_posIon: each ion that is out of bounds is given a new 
@@ -162,9 +163,9 @@ __global__ void checkIonDustBounds_101(
 *
 */
 __global__ void injectIonSphere_101(
-		float3* d_posIon, 
-		float3* d_velIon,
-		float3* d_accIon,		
+		float4* d_posIon, 
+		float4* d_velIon,
+		float4* d_accIon,		
 		curandState_t* const randStates, 
 		float* const d_RAD_SIM, 
 		int* const d_boundsIon,
@@ -180,6 +181,7 @@ __global__ void injectIonSphere_101(
 		float* const d_MACH,
 		float* const d_MASS_SINGLE_ION,
 		float* const d_BOLTZMANN,
+		float* const d_CHARGE_ION,
 		int xac){
 	
 	// thread ID 
@@ -304,6 +306,9 @@ __global__ void injectIonSphere_101(
 		d_accIon[IDion].x = 0;
 		d_accIon[IDion].y = 0;
 		d_accIon[IDion].z = 0;
+
+		// set the charge
+		d_posIon[IDion].w = *d_CHARGE_ION;
 	}
 }
 
@@ -344,6 +349,8 @@ __global__ void injectIonSphere_101(
 *   d_MACH: the mach number 
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *	d_BOLTZMANN: the boltzmann constant 
+*   d_CHARGE_ION: the charge on a super-ion
+*	xac: 0 or 1 for polarity switching
 *
 * Output (void):
 *	d_posIon: each ion that is out of bounds is given a new 
@@ -365,9 +372,9 @@ __global__ void injectIonSphere_101(
 *
 */
 __global__ void injectIonCylinder_101(
-	float3* d_posIon, 
-	float3* d_velIon,
-	float3* d_accIon,		
+	float4* d_posIon, 
+	float4* d_velIon,
+	float4* d_accIon,		
 	curandState_t* const randStates, 
 	float* const d_RAD_CYL, 
 	float* const d_HT_CYL, 
@@ -384,6 +391,7 @@ __global__ void injectIonCylinder_101(
 	float* const d_MACH,
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
+	float* const d_CHARGE_ION,
 	int xac){
 	
 	// thread ID 
@@ -537,6 +545,9 @@ __global__ void injectIonCylinder_101(
 		d_accIon[IDion].x = 0;
 		d_accIon[IDion].y = 0;
 		d_accIon[IDion].z = 0;
+
+		// set the charge
+		d_posIon[IDion].w = *d_CHARGE_ION;
 	}
 }
 

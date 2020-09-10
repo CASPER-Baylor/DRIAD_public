@@ -145,11 +145,11 @@
     *	checks if an ion is within a dust particle 
     *
     * Input:
-    *	d_posIon: the ion positions
+    *	d_posIon: the ion positions and charges
     *	d_boundsIon: a flag for if an ion position is out of bounds
     *	d_RAD_DUST_SQRD: the radius of the dust particles squared
     *	d_NUM_DUST: the number of dust particles 
-    *	d_posDust: the dust particle positions
+    *	d_posDust: the dust particle positions and charges
     *
     * Output (void):
     *	d_boundsIon: set to the index of the dust particle the ion is
@@ -166,11 +166,11 @@
     *
     */
 	__global__ void checkIonDustBounds_101(		
-		float3* const, 
+		float4* const, 
 		int*,
 		float* const,
 		int* const,
-		float3* const);
+		float4* const);
 
 			
 /*
@@ -185,7 +185,7 @@
     *	as described in Piel 2017 
     *
     * Input:
-    *	d_posIon: ion positions
+    *	d_posIon: ion positions and charges
     *	d_velIon: ion velocities
     *   d_accIon: ion accelerations
     *	randStates: a set of random states with at least as many
@@ -204,6 +204,8 @@
     *   d_MACH: the mach number 
     *   d_MASS_SINGLE_ION: the mass of a single ion
     *	d_BOLTZMANN: the boltzmann constant 
+    *	d_CHARGE_SUPER_ION: the charge on a super-ion
+    *
 	*   xac: 0 or 1 for polarity switching of E field
     *
     * Output (void):
@@ -224,9 +226,9 @@
     *
     */
 	__global__ void injectIonSphere_101(
-			float3*, 
-			float3*, 
-			float3*,
+			float4*, 
+			float4*, 
+			float4*,
 			curandState_t* const, 
 			float* const, 
 			int* const,
@@ -235,6 +237,7 @@
 			float* const,
 			int* const,
 			int* const,
+			float* const,
 			float* const,
 			float* const,
 			float* const,
@@ -281,11 +284,13 @@
 *   d_MACH: the mach number
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *       d_BOLTZMANN: the boltzmann constant
+*       d_CHARGE_SUPER_ION: the charge on a super-ion
+*
 *   xac: 0 or 1 for polarity switching of E field
 *
 * Output (void):
 *       d_posIon: each ion that is out of bounds is given a new
-*               position assuming flowing ions
+*               position, assuming flowing ions, and charge
 *       d_velIon: each ion that is out of bounds is given a new
 *               velocity from a shifted Maxwellian
 *       d_accIon: is reset to 0
@@ -303,9 +308,9 @@
 *
 */
 __global__ void injectIonCylinder_101(
-                float3* ,
-                float3* ,
-                float3* ,
+                float4* ,
+                float4* ,
+                float4* ,
                 curandState_t* const ,
                 float* const ,
                 float* const ,
@@ -315,6 +320,7 @@ __global__ void injectIonCylinder_101(
                 float* const ,
                 int* const ,
                 int* const ,
+                float* const ,
                 float* const ,
                 float* const ,
                 float* const ,

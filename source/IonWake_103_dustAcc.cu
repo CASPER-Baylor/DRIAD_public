@@ -21,12 +21,11 @@
 *	Calculates the force on each dust particle due to each ion. 
 *
 * Input:
-*	d_posIon: the ion positions
-*	d_posDust: the dust positions
+*	d_posIon: the ion positions and charges
+*	d_posDust: the dust positions and charges
 *	d_accDustIon: is clobbered
 *	d_NUM_DUST: the number of dust particles
 *	d_NUM_ION: the number of ions
-*	d_chargeDust: the charge on each dust particle
 *
 * Output (void):
 *	d_accDustIon: the acceleration on each dust partice from each ion 
@@ -43,10 +42,9 @@
 */
 
 __global__ void calcDustIonAcc_103(
-	float3* d_posIon,
-	float3* d_posDust,
-	float3* d_accDustIon,
-	float* const d_chargeDust,
+	float4* d_posIon,
+	float4* d_posDust,
+	float4* d_accDustIon,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION,
 	float* const d_INV_DEBYE,
@@ -60,7 +58,7 @@ __global__ void calcDustIonAcc_103(
 	float sDist;
 	float linForce;
 
-	float3 posIon = d_posIon[threadID];
+	float4 posIon = d_posIon[threadID];
 	int index = threadID;
 
 	// loop over all of the dust particles
@@ -75,7 +73,7 @@ __global__ void calcDustIonAcc_103(
 		sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
 		// calculate a scalar intermediate
-		linForce = *d_DUST_ION_ACC_MULT * d_chargeDust[i] / 
+		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].x / 
 			(sDist * sDist * sDist)
 			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 
@@ -119,11 +117,11 @@ __global__ void calcDustIonAcc_103(
 */
 
 __global__ void sumDustIonAcc_103(
-	float3* d_accDustIon,
+	float4* d_accDustIon,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION) {
 
-	extern __shared__ float3 sumData[];
+	extern __shared__ float4 sumData[];
 
 	int  tid= threadIdx.x;
 	int i = blockIdx.x * *d_NUM_ION + threadIdx.x; 
@@ -223,7 +221,7 @@ __global__ void sumDustIonAcc_103(
 */
 
 __global__ void zeroDustIonAcc_103(
-	float3* d_accDustIon,
+	float4* d_accDustIon,
 	int* const d_NUM_DUST,
 	int* const d_NUM_ION) {
 

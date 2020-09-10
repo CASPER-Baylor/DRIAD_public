@@ -61,8 +61,8 @@
 *
 */
 __global__ void kick_100
-       (float3* vel, 
-		float3* acc,
+       (float4* vel, 
+		float4* acc,
         const float* d_TIME_STEP)
 {
 	// thread ID
@@ -120,8 +120,8 @@ __global__ void kick_100
 *
 */
 __global__ void drift_100
-       (float3* pos, 
-        float3* vel, 
+       (float4* pos, 
+        float4* vel, 
         const float* d_HALF_TIME_STEP)
 {
 	// thread ID
@@ -156,8 +156,8 @@ __global__ void drift_100
 *	Select timestep division for adaptive time step
 *
 * Input:
-*	pos: ion positions 
-*	posDust: dust positions
+*	pos: ion positions and charge 
+*	posDust: dust positions and charge
 *	vel: ion velocities
 *   minDistDust: distance to closest dust grain
 *   d_RAD_DUST: radius of dust grains
@@ -178,9 +178,9 @@ __global__ void drift_100
 *
 */
 __global__ void select_100
-    (float3* d_posIon, 
-     float3* d_posDust, 
-     float3* velIon, 
+    (float4* d_posIon, 
+     float4* d_posDust, 
+     float4* velIon, 
 	 float* minDistDust,
 	 const float* d_RAD_DUST,
      const float* d_TIME_STEP,
@@ -277,7 +277,7 @@ __global__ void select_100
 /*
 * Name: KDK_100
 * Created: 3/14/2018
-* last edit: 4/30/2018
+* last edit: 9/10/2020
 *
 * Editors
 *	Name: Lorin Matthews
@@ -289,7 +289,7 @@ __global__ void select_100
 *   ions will be accurately captured by dust grains.
 *
 * Input:
-*	pos: positions of ions
+*	pos: positions and charge of ions
 *	vel: velocities of ions
 *	acc: accelerations of ions
 *   d_m: depth for time step divisions
@@ -301,12 +301,11 @@ __global__ void select_100
 *	d_GEOMETRY (0=spherical or 1=cylindrical)
 *	d_RAD_DUST
 *	d_NUM_DUST
-*   d_posDust
+*   d_posDust position and charge of dust
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
 *	d_RAD_COLL_MULT 
-*	d_chargeDust
 *
 * Output (void):
 *   pos: updated positions of ions
@@ -322,9 +321,9 @@ __global__ void select_100
 *
 */
 __global__ void KDK_100
-    (float3* posIon, 
-	 float3* velIon,
-	 float3* ionDustAcc,
+    (float4* posIon, 
+	 float4* velIon,
+	 float4* ionDustAcc,
 	 const int* m,
 	 const int* d_tsFactor,
 	 int* d_boundsIon,
@@ -334,12 +333,11 @@ __global__ void KDK_100
 	 const float* d_HT_CYL,
 	 const float* d_RAD_DUST,
 	 const int* d_NUM_DUST,
-	 float3* d_posDust,
+	 float4* d_posDust,
 	 const int* d_NUM_ION,
 	 const float* d_SOFT_RAD_SQRD,
 	 const float* d_ION_DUST_ACC_MULT,
-	 const float* d_RAD_COLL_MULT,
-	 const float* d_chargeDust) {
+	 const float* d_RAD_COLL_MULT) {
 
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -387,7 +385,6 @@ __global__ void KDK_100
 			d_NUM_DUST, 
 			d_posDust,
 			oldIonPos,
-			d_chargeDust,
 			d_RAD_COLL_MULT);
 						
 		if(d_boundsIon[threadID] == 0){
@@ -399,8 +396,7 @@ __global__ void KDK_100
                 d_NUM_ION,
                 d_NUM_DUST, 
                 d_SOFT_RAD_SQRD, 
-                d_ION_DUST_ACC_MULT, 
-                d_chargeDust);
+                d_ION_DUST_ACC_MULT); 
     
 			// Kick with IonDust accels for deltat/2^(m-1)
 			if(depth == timeStepFactor){
@@ -442,8 +438,8 @@ __global__ void KDK_100
 *
 */
 __device__ void kick_dev
-       (float3* vel, 
-		float3* acc,
+       (float4* vel, 
+		float4* acc,
         float timestep)
 {
 	// thread ID
@@ -488,8 +484,8 @@ __device__ void kick_dev
 *
 */
 __device__ void drift_dev
-       (float3* pos, 
-        float3* vel, 
+       (float4* pos, 
+        float4* vel, 
         float timestep)
 {
 	// thread ID
@@ -534,7 +530,7 @@ __device__ void drift_dev
 */
 
 __device__ void checkIonSphereBounds_100_dev
-      (float3* d_posIon, 
+      (float4* d_posIon, 
 		int* d_boundsIon,
 		const float* d_RAD_SIM_SQRD){
 	
@@ -593,7 +589,7 @@ __device__ void checkIonSphereBounds_100_dev
 *
 */
 __device__ void checkIonCylinderBounds_100_dev
-       (float3* d_posIon, 
+       (float4* d_posIon, 
 		int* d_boundsIon,
 		const float* d_RAD_CYL_SQRD,
 		const float* d_HT_CYL){
@@ -636,14 +632,13 @@ __device__ void checkIonCylinderBounds_100_dev
 *	the dust particle
 *
 * Input:
-*	d_posIon: the ion positions
+*	d_posIon: the ion positions and charges 
 *	posIon2: past ion position
 * 	d_velIon: ion velocities
 *	d_boundsIon: a flag for if an ion position is out of bounds
 *	d_RAD_DUST: the radius of the dust particles 
 *	d_NUM_DUST: the number of dust particles 
 *	d_posDust: the dust particle positions
-*	d_chargeDust: the dust charges
 *	d_RAD_COLL_MULT: constant multiplier used for collection radius
 *
 * Output (void):
@@ -657,14 +652,13 @@ __device__ void checkIonCylinderBounds_100_dev
 *
 */
 __device__ void checkIonDustBounds_100_dev(
-		float3* d_posIon, 
-		float3* d_velIon, 
+		float4* d_posIon, 
+		float4* d_velIon, 
 		int* d_boundsIon,
 		const float* d_RAD_DUST,
 		const int* d_NUM_DUST,
-		float3* const d_posDust,
+		float4* const d_posDust,
 		float3 posIon2,
-		const float* d_chargeDust,
 		const float* d_RAD_COLL_MULT){
 	
 	// distance
@@ -695,7 +689,7 @@ __device__ void checkIonDustBounds_100_dev(
 			// check if the dust particle and ion have collided
 			// calculate the collection radius 
 			// RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
-			b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_chargeDust[i]); 
+			b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_posDust[i].w); 
 			if (dist < b_c)
 			//if (dist < *d_RAD_DUST * *d_RAD_DUST)
 			{
@@ -752,14 +746,13 @@ __device__ void checkIonDustBounds_100_dev(
 *	Calculates the ion accelerations due to ion-dust interactions 
 *
 * Input:
-*	d_posIon: the positions of the ions
+*	d_posIon: the positions and charge of the ions
 *	d_accIon: the accelerations of the ions
-*	d_posDust: the dust particle positions
+*	d_posDust: the dust particle positions and charges
 *	d_NUM_ION: the number of ions
 *	d_NUM_DUST: the number of dust particles
 *	d_SOFT_RAD_SQRD: the squared softening radius squared
 *	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
-*   d_chargeDust: the charge on the dust particles 
 *
 * Output (void):
 *	d_accIon: the acceleration due to all the dust particles
@@ -778,14 +771,13 @@ __device__ void checkIonDustBounds_100_dev(
 *
 */
 __device__ void calcIonDustAcc_100_dev(
-		float3* d_posIon, 
-		float3* d_accIon, 
-        float3* d_posDust,
+		float4* d_posIon, 
+		float4* d_accIon, 
+        float4* d_posDust,
 		const int* d_NUM_ION,
         const int* d_NUM_DUST, 
 		const float* d_SOFT_RAD_SQRD, 
-		const float* d_ION_DUST_ACC_MULT, 
-		const float* d_chargeDust)
+		const float* d_ION_DUST_ACC_MULT) 
 {
 
 	// allocate variables
@@ -815,8 +807,8 @@ __device__ void calcIonDustAcc_100_dev(
 			// calculate the hard distance
 			hardDist = __fsqrt_rn(distSquared + softDistSqrd);
 
-			// calculate a scaler intermediate
-			linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
+			// calculate a scalar intermediate
+			linForce = *d_ION_DUST_ACC_MULT * (d_posDust+h)->w / 
                         (hardDist*hardDist*hardDist);
 
 			// add the acceleration to the current ion's acceleration
