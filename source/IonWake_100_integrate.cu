@@ -4,7 +4,7 @@
 * File Name: IonWake_100_integrate.cu
 *
 * Created: 6/13/2017
-* Last Modified: 3/20/2018
+* Last Modified: 9/10/2020
 *
 * Description:
 *	Includes time step integrators
@@ -18,9 +18,9 @@
 *   drift_dev()
 *   kick_dev()
 *	checkIonDustbounds_100_dev()
-*	checkIonSphereBounds_101_dev()
-*	checkIonCylinderBounds_101_dev()
-*	calcIonDustAcc_102_dev()
+*	checkIonSphereBounds_100_dev()
+*	checkIonCylinderBounds_100_dev()
+*	calcIonDustAcc_100_dev()
 *
 */
 
@@ -368,11 +368,11 @@ __global__ void KDK_100
 		//Check outside bounds
 		if(GEOMETRY == 0) {
             // check if any ions are outside of the simulation sphere
-			checkIonSphereBounds_101_dev
+			checkIonSphereBounds_100_dev
             	(posIon+threadID, d_boundsIon+threadID, d_bndry_sqrd);
         } else if(GEOMETRY == 1) {
         	// check if any ions are outside of the simulation cylinder
-            checkIonCylinderBounds_101_dev 
+            checkIonCylinderBounds_100_dev 
             	(posIon+threadID, 
 				d_boundsIon+threadID, 
                 d_bndry_sqrd, d_HT_CYL);
@@ -392,7 +392,7 @@ __global__ void KDK_100
 						
 		if(d_boundsIon[threadID] == 0){
 			// calculate the acceleration due to ion-dust interactions
-			calcIonDustAcc_102_dev
+			calcIonDustAcc_100_dev
             	(posIon + threadID, 
                 ionDustAcc + threadID,
                 d_posDust,
@@ -503,7 +503,7 @@ __device__ void drift_dev
     pos->z += timestep  * (vel->z);
 }
 /*
-* Name: checkIonSphereBounds_101_dev
+* Name: checkIonSphereBounds_100_dev
 * Created: 3/17/2018
 *
 * Editors
@@ -533,7 +533,7 @@ __device__ void drift_dev
 *
 */
 
-__device__ void checkIonSphereBounds_101_dev
+__device__ void checkIonSphereBounds_100_dev
       (float3* d_posIon, 
 		int* d_boundsIon,
 		const float* d_RAD_SIM_SQRD){
@@ -560,7 +560,7 @@ __device__ void checkIonSphereBounds_101_dev
 
 
 /*
-* Name: checkIonCylinderBounds_101_dev
+* Name: checkIonCylinderBounds_100_dev
 *
 * Created: 3/17/2018
 *
@@ -592,7 +592,7 @@ __device__ void checkIonSphereBounds_101_dev
 *	device_launch_parameters.h
 *
 */
-__device__ void checkIonCylinderBounds_101_dev
+__device__ void checkIonCylinderBounds_100_dev
        (float3* d_posIon, 
 		int* d_boundsIon,
 		const float* d_RAD_CYL_SQRD,
@@ -740,7 +740,7 @@ __device__ void checkIonDustBounds_100_dev(
 
 
 /*
-* Name: calcIonDustAcc_102_dev
+* Name: calcIonDustAcc_100_dev
 * Created: 3/20/2018
 *
 * Editors
@@ -777,7 +777,7 @@ __device__ void checkIonDustBounds_100_dev(
 *	device_launch_parameters.h
 *
 */
-__device__ void calcIonDustAcc_102_dev(
+__device__ void calcIonDustAcc_100_dev(
 		float3* d_posIon, 
 		float3* d_accIon, 
         float3* d_posDust,

@@ -17,9 +17,9 @@
 * 	kick_dev()
 * 	drift_dev()
 *	checkIonDustbounds_100_dev()
-*	checkIonSphereBounds_101_dev()
-*	checkIonCylinderBounds_101_dev()
-*	calcIonDustAcc_102_dev()
+*	checkIonSphereBounds_100_dev()
+*	checkIonCylinderBounds_100_dev()
+*	calcIonDustAcc_100_dev()
 *
 * Includes:
 *	kick()
@@ -49,9 +49,6 @@
 	*/
 	#include "device_launch_parameters.h"
 
-        /* Include boundary checking and IonDustAcc calculation */
-	#include "IonWake_101_bounds.h"
-	#include "IonWake_102_ionAcc.h"
 
 	/*
 	*
@@ -293,7 +290,7 @@ __device__ void drift_dev
         float3*, 
         float)	; 
 /*
-* Name: checkIonSphereBounds_101_dev
+* Name: checkIonSphereBounds_100_dev
 * Created: 3/17/2018
 *
 * Editors
@@ -323,13 +320,13 @@ __device__ void drift_dev
 *
 */
 
-__device__ void checkIonSphereBounds_101_dev(
+__device__ void checkIonSphereBounds_100_dev(
       float3* const, 
 		int*,
 		const float*);
 		
 /*
-* Name: checkIonCylinderBounds_101_dev
+* Name: checkIonCylinderBounds_100_dev
 *
 * Created: 3/17/2018
 *
@@ -361,7 +358,7 @@ __device__ void checkIonSphereBounds_101_dev(
 *	device_launch_parameters.h
 *
 */
-__device__ void checkIonCylinderBounds_101_dev(
+__device__ void checkIonCylinderBounds_100_dev(
        float3* const, 
 		int*,
 		const float*,
@@ -411,7 +408,7 @@ __device__ void checkIonDustBounds_100_dev(
 		const float*,
 		const float*);
 /*
-* Name: calcIonDustAcc_102_dev
+* Name: calcIonDustAcc_100_dev
 * Created: 3/20/2018
 *
 * Editors
@@ -448,7 +445,7 @@ __device__ void checkIonDustBounds_100_dev(
 *	device_launch_parameters.h
 *
 */
-__device__ void calcIonDustAcc_102_dev(
+__device__ void calcIonDustAcc_100_dev(
 		float3*, 
 		float3*, 
         float3*,
