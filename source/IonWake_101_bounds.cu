@@ -4,7 +4,7 @@
 * File Name: IonWake_101_bounds.cu
 *
 * Created: 6/13/2017
-* Last Modified: 11/18/2017
+* Last Modified: 09/10/2020
 *
 * Description:
 *	Functions for handling the boundary conditions for the ion positions.
@@ -12,8 +12,6 @@
 *   as reinserting out of bounds ions back into the simulation.
 *
 * Functions:
-*	checkIonSphereBounds_101()
-*	checkIonCylinderBounds_101()
 *	checkIonDustBounds_101()
 *	injectIonSphere_101()
 *	injectIonCylinder_101
@@ -27,140 +25,6 @@
 
 // header file
 #include "IonWake_101_bounds.h"
-
-/*
-* Name: checkIonSphereBounds_101
-* Created: 10/2/2017
-* last edit: 11/14/2017
-*
-* Editors
-*	Name: Dustin Sanford
-*	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 11/14/2017
-*
-* Description:
-*	Checks if an ion has left the simulation sphere
-*
-* Input:
-*	d_posIion: ion positions
-*	d_boundsIon: a flag for if an ion is out of bounds
-*	d_RAD_SIM_SQRD: the simulation radius squared
-*
-* Output (void):
-*	d_boundsIon: set to -1 for ions that are outside of the 
-*		simulation sphere.
-*
-* Assumptions:
-*	The simulation region is a sphere with (0,0,0) at its center 
-*   The number of ions is a multiple of the block size
-*   the flag -1 is unique value for the ion bounds flag
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-
-__global__ void checkIonSphereBounds_101
-      (float3* const d_posIon, 
-		int* d_boundsIon,
-		float* const d_RAD_SIM_SQRD){
-	
-	// distance
-	float dist;
-
-	// thread ID 
-	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
-	
-    // Only check ions which are in bounds
-	if (d_boundsIon[IDion] ==0){
-		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
-
-		// distance from the center of the simulation
-		dist = posCrntIon.x * posCrntIon.x +
-			posCrntIon.y * posCrntIon.y +
-			posCrntIon.z * posCrntIon.z;
-		
-		// check if the ion is out of the simulation sphere
-		if (dist > *d_RAD_SIM_SQRD)
-		{
-			// flag the ion as out of the simulation sphere
-			d_boundsIon[IDion] = -1;
-		}
-	}
-}
-
-
-
-/*
-* Name: checkIonCylinderBounds_101
-* This is really checkIonCylinderBounds_101
-*
-* Created: 11/18/2017
-* last edit: 11/18/2017
-*
-* Editors
-*	Name: Lorin Matthews
-*	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 11/18/2017
-*
-* Description:
-*	Checks if an ion has left the simulation cylinder
-*
-* Input:
-*	d_posIion: ion positions
-*	d_boundsIon: a flag for if an ion is out of bounds
-*	d_RAD_CYL_SQRD: the simulation radius squared
-*	d_HT_CYL: the (half)height of the cylinder
-*
-* Output (void):
-*	d_boundsIon: set to -1 for ions that are outside of the 
-*		simulation sphere.
-*
-* Assumptions:
-*	The simulation region is a cylinder with (0,0,0) at its center 
-*   The number of ions is a multiple of the block size
-*   the flag -1 is unique value for the ion bounds flag
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-__global__ void checkIonCylinderBounds_101
-       (float3* const d_posIon, 
-		int* d_boundsIon,
-		float* const d_RAD_CYL_SQRD,
-		float* const d_HT_CYL){
-	
-	// distance
-	float dist;
-	float distz;
-
-	// thread ID 
-	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
-
-	// Only check ions which are in bounds
-	if (d_boundsIon[IDion] ==0){
-		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
-
-		// radial distance from the center of the cylinder
-		dist = posCrntIon.x * posCrntIon.x +
-			posCrntIon.y * posCrntIon.y ;
-
-		// height from the center of the cylinder
-		distz = abs(posCrntIon.z);
-		
-		// check if the ion is out of the simulation cylinder
-		if (dist > *d_RAD_CYL_SQRD || distz > *d_HT_CYL)
-		{
-			// flag the ion as out of the simulation sphere
-			d_boundsIon[IDion] = -1;
-		}
-	}
-}
 
 /*
 * Name: checkIonDustBounds_101

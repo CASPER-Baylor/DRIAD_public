@@ -101,7 +101,6 @@ __global__ void calcDustIonAcc_103(
 *
 * Inputs:
 *	d_accDustIon: dust accleration due to each dust-ion pair
-*	d_accDust: acceleration of each dust particle 
 *	d_NUM_DUST: the number of dust particles
 *	d_NUM_ION: the number of ions
 *

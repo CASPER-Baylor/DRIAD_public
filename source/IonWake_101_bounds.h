@@ -4,18 +4,14 @@
 * File Name: IonWake_101_bounds.h
 *
 * Created: 6/13/2017
-* Last Modified: 11/14/2017
+* Last Modified: 09/10/2020
 *
 * Description:
 *	Functions for handling ions that have an illegal position.
 *	Such as outside of the simulation region or inside a dust particle.
 *
 * Functions:
-*	checkIonSphereBounds_101()
-*	checkIonCylinderBounds_101()
 *	checkIonDustBounds_101()
-*	checkIonSphereBounds_101_dev()
-*	checkIonCylinderBounds_101_dev()
 *	injectIonSphere_101()
 *	injectIonCylinder_101()
 *	resetIonBounds_101()
@@ -25,12 +21,6 @@
 *	init_101()
 *
 * Includes:
-*	checkIonSphereBounds_101()
-*		device_launch_parameters.h
-*		cuda_runtime.h
-*	checkIonCylinderBounds_101()
-*		device_launch_parameters.h
-*		cuda_runtime.h
 *	checkIonDustBounds_101()
 *		device_launch_parameters.h
 *		cuda_runtime.h
@@ -74,8 +64,6 @@
 
 	/* 
 	* Required By:
-	*	checkIonSphereBounds_101()
-	*	checkIonCylinderBounds_101()
 	*	checkIonDustBounds_101()
 	*	injectIonSphere_101()
 	*	injectIonCylinder_101()
@@ -89,8 +77,6 @@
 
 	/*
 	* Required By:
-	*	checkIonSphereBounds_101()
-	*	checkIonCylinderBounds_101()
 	*	checkIonDustBounds_101()
 	*	injectIonSphere_101()
 	*	injectIonSphereCylinder_101()
@@ -148,74 +134,6 @@
 	* 	std::string
 	*/
 	#include <string>
-	
-	/*
-	* Name: checkIonSphereBounds_101
-	*
-	* Editors
-	*	Dustin Sanford
-	*
-	* Description:
-	*	Checks if an ion has left the simulation sphere
-	*
-	* Input:
-	*	d_posIion: ion positions
-	*	d_boundsIon: a flag for if an ion is out of bounds
-	*	d_RAD_SIM_SQRD: the simulation radius squared
-	*
-	* Output (void):
-	*	d_boundsIon: set to -1 for ions that are outside of the 
-	*		simulation sphere.
-	*
-	* Assumptions:
-	*	The simulation region is a sphere with (0,0,0) at its center 
-	* Includes:
-	*	cuda_runtime.h
-	*	device_launch_parameters.h
-	*
-	*/
-	__global__ void checkIonSphereBounds_101(
-			float3* const, 
-			int*, 
-			float* const);
-/*
-* Name: checkIonCylinderBounds_101
-*
-* Editors
-*       Name: Lorin Matthews
-*       Contact: Lorin_Matthews@baylor.edu
-*       last edit: 11/18/2017
-*
-* Description:
-*       Checks if an ion has left the simulation cylinder
-*
-* Input:
-*       d_posIion: ion positions
-*       d_boundsIon: a flag for if an ion is out of bounds
-*       d_RAD_CYL_SQRD: the simulation radius squared
-*       d_HT_CYL: the (half)height of the cylinder
-*
-* Output (void):
-*       d_boundsIon: set to -1 for ions that are outside of the
-*               simulation sphere.
-*
-* Assumptions:
-*       The simulation region is a cylinder with (0,0,0) at its center
-*   The number of ions is a multiple of the block size
-*   the flag -1 is unique value for the ion bounds flag
-*
-* Includes:
-*       cuda_runtime.h
-*       device_launch_parameters.h
-*
-*/
-__global__ void checkIonCylinderBounds_101
-       (float3* const,
-                int*,
-                const float*, 
-                const float*);
-
-
 	
     /*
     * checkIonDustBounds_101
