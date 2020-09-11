@@ -230,8 +230,8 @@ int main(int argc, char* argv[])
 		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
 	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
 	const float P10X = getParam_106<float>( paramFile, "P10X" );
-	const float P12X = getParam_106<float>( paramFile, "P12X" );
-	const float P14X = getParam_106<float>( paramFile, "P14X" );
+	const float P20X = getParam_106<float>( paramFile, "P20X" );
+	const float P30X = getParam_106<float>( paramFile, "P30X" );
 	const float P01Z = getParam_106<float>( paramFile, "P01Z" );
 	const float P21Z = getParam_106<float>( paramFile, "P21Z" );
 	const float P03Z = getParam_106<float>( paramFile, "P03Z" );
@@ -466,8 +466,8 @@ int main(int argc, char* argv[])
 		<< "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
 		<< "HT_CYL_DEBYE      " << HT_CYL_DEBYE      << '\n'
 		<< "P10X              " << P10X	             << '\n'
-		<< "P12X              " << P12X  	         << '\n'
-		<< "P14X              " << P14X	             << '\n'
+		<< "P20X              " << P20X  	         << '\n'
+		<< "P30X              " << P30X	             << '\n'
 		<< "P01Z              " << P01Z	             << '\n'
 		<< "P21Z              " << P21Z	             << '\n'
 		<< "P03Z              " << P03Z	             << '\n'
@@ -577,8 +577,8 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
 	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
 	<< std::setw(14) << P10X              << " % P10X"              << '\n'
-	<< std::setw(14) << P12X              << " % P12X"              << '\n'
-	<< std::setw(14) << P14X              << " % P14X"              << '\n'
+	<< std::setw(14) << P20X              << " % P20X"              << '\n'
+	<< std::setw(14) << P30X              << " % P30X"              << '\n'
 	<< std::setw(14) << P01Z              << " % P01Z"              << '\n'
 	<< std::setw(14) << P21Z              << " % P21Z"              << '\n'
 	<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
@@ -991,6 +991,8 @@ int main(int argc, char* argv[])
 			ionInitFile >>  velIon[i].z;
 			// read in the charge
 			ionInitFile >>  posIon[i].w;
+			// initialize velIon.w to zero
+			velIon[i].w = 0.0;
 		}
 
 		ionInitFile.close();
@@ -1067,6 +1069,7 @@ int main(int argc, char* argv[])
 			velIon[i].y = ION_SPEED * randNum;
 			randNum = ((rand() % (number*2)) / (float)number) + 2.0*MACH;
 			velIon[i].z = - ION_SPEED * randNum;
+			velIon[i].w = 0.0;
 			
 		}
 		
@@ -1077,11 +1080,13 @@ int main(int argc, char* argv[])
 		accIon[i].x = 0;
 		accIon[i].y = 0;
 		accIon[i].z = 0;
+		accIon[i].w = 0;
 
 		// set the initial IonDust acceleration to 0
 		accIonDust[i].x = 0;
 		accIonDust[i].y = 0;
 		accIonDust[i].z = 0;
+		accIonDust[i].w = 0;
 
 	}
 
@@ -1166,8 +1171,8 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_RAD_CYL_SQRD(&RAD_CYL_SQRD, 1);
 	constCUDAvar<float> d_HT_CYL(&HT_CYL, 1);
 	constCUDAvar<float> d_P10X(&P10X, 1);
-	constCUDAvar<float> d_P12X(&P12X, 1);
-	constCUDAvar<float> d_P14X(&P14X, 1);
+	constCUDAvar<float> d_P20X(&P20X, 1);
+	constCUDAvar<float> d_P30X(&P30X, 1);
 	constCUDAvar<float> d_P01Z(&P01Z, 1);
 	constCUDAvar<float> d_P21Z(&P21Z, 1);
 	constCUDAvar<float> d_P03Z(&P03Z, 1);
@@ -1422,8 +1427,8 @@ int main(int argc, char* argv[])
 			d_posIon.getDevPtr(), 
 			d_Q_DIV_M.getDevPtr(),
 			d_P10X.getDevPtr(),
-			d_P12X.getDevPtr(),
-			d_P14X.getDevPtr(),
+			d_P20X.getDevPtr(),
+			d_P30X.getDevPtr(),
 			d_P01Z.getDevPtr(),
 			d_P21Z.getDevPtr(),
 			d_P03Z.getDevPtr(),
@@ -1666,8 +1671,8 @@ int main(int argc, char* argv[])
 					d_posIon.getDevPtr(), // <--
 					d_Q_DIV_M.getDevPtr(),
 					d_P10X.getDevPtr(),
-					d_P12X.getDevPtr(),
-					d_P14X.getDevPtr(),
+					d_P20X.getDevPtr(),
+					d_P30X.getDevPtr(),
 					d_P01Z.getDevPtr(),
 					d_P21Z.getDevPtr(),
 					d_P03Z.getDevPtr(),
@@ -2074,18 +2079,18 @@ int main(int argc, char* argv[])
 					}
 
 					// forces from ions outside simulation region
-					rad = sqrt(posDust[j].x * posDust[j].x +
-							posDust[j].y * posDust[j].y);
-					zsq = posDust[j].z * posDust[j].z;
-					radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-					vertAcc = P01Z * posDust[j].z +
-							P21Z * rad * rad * posDust[j].z +
-							P03Z * posDust[j].z * zsq +
-							P23Z * rad * rad * posDust[j].z * zsq +
-							P05Z * posDust[j].z * zsq * zsq;
-					accDust[j].x += posDust[j].x * radAcc * q_div_m;
-					accDust[j].y += posDust[j].y * radAcc * q_div_m;
-					accDust[j].z += vertAcc * q_div_m;
+					//rad = sqrt(posDust[j].x * posDust[j].x +
+					//		posDust[j].y * posDust[j].y);
+					//zsq = posDust[j].z * posDust[j].z;
+					//radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
+					//vertAcc = P01Z * posDust[j].z +
+				//			P21Z * rad * rad * posDust[j].z +
+				//			P03Z * posDust[j].z * zsq +
+				//			P23Z * rad * rad * posDust[j].z * zsq +
+				//			P05Z * posDust[j].z * zsq * zsq;
+				//	accDust[j].x += posDust[j].x * radAcc * q_div_m;
+				//	accDust[j].y += posDust[j].y * radAcc * q_div_m;
+				//	accDust[j].z += vertAcc * q_div_m;
 		
 					//debugSpecificFile << "outside ion acceleration  ";
 					//debugSpecificFile << posDust[j].x*radAcc*q_div_m;
@@ -2401,8 +2406,8 @@ int main(int argc, char* argv[])
 	d_MASS_SINGLE_ION.compare();
 	d_BOLTZMANN.compare();
 	d_P10X.compare();
-	d_P12X.compare();
-	d_P14X.compare();
+	d_P20X.compare();
+	d_P30X.compare();
 	d_P01Z.compare();
 	d_P21Z.compare();
 	d_P03Z.compare();

@@ -148,6 +148,7 @@ __global__ void calcIonIonAcc_102
 	d_accIon[IDcrntIon].x += accCrntIon.x;
 	d_accIon[IDcrntIon].y += accCrntIon.y;
 	d_accIon[IDcrntIon].z += accCrntIon.z;
+	d_accIon[IDcrntIon].w = 0.0;
 }
 
 /*
@@ -215,6 +216,7 @@ __global__ void calcIonDustAcc_102(
 	d_accIon[IDcrntIon].x = 0;
 	d_accIon[IDcrntIon].y = 0;
 	d_accIon[IDcrntIon].z = 0;
+	d_accIon[IDcrntIon].w = 0.0;
 	
 	// loop over all of the dust particles
 	for (int h = 0; h < *d_NUM_DUST; h++) {
@@ -325,6 +327,7 @@ __global__ void calcExtrnElcAcc_102
 	d_accIon[ID].x += d_posIon[ID].x * linForce;
 	d_accIon[ID].y += d_posIon[ID].y * linForce;
 	d_accIon[ID].z += d_posIon[ID].z * linForce;
+	d_accIon[ID].w = 0.0;
 }
 
 
@@ -347,8 +350,8 @@ __global__ void calcExtrnElcAcc_102
 *	d_posIon: ion positions and charges
 *	d_Q_DIV_M:  charge to mass ratio
 *	d_p10x: coefficient for radial E field
-*	d_p12x: coefficient for radial E field
-*	d_p14x: coefficient for radial E field
+*	d_p20x: coefficient for radial E field
+*	d_p30x: coefficient for radial E field
 *	d_p01z: coefficient for vertical E field
 *	d_p21z: coefficient for vertical E field
 *	d_p03z: coefficient for vertical E field
@@ -379,8 +382,8 @@ __global__ void calcExtrnElcAccCyl_102
     float4* d_posIon, 
 	float* d_Q_DIV_M,
 	float* d_p10x, 
-	float* d_p12x,
-	float* d_p14x,
+	float* d_p20x,
+	float* d_p30x,
 	float* d_p01z, 
 	float* d_p21z,
 	float* d_p03z, 
@@ -405,7 +408,8 @@ __global__ void calcExtrnElcAccCyl_102
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
 	// is divided by rad.
-	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
+	//float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
+	float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
 
 	// calculate vertical component of the acceleration
 	float vertAcc = *d_p01z * z +
@@ -423,6 +427,7 @@ __global__ void calcExtrnElcAccCyl_102
 
 	// add acceleration of ions by external electric field
 	d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_Esheath;
+	d_accIon[ID].w =0.0; 
 }
 
 /*

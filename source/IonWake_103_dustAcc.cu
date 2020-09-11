@@ -73,7 +73,7 @@ __global__ void calcDustIonAcc_103(
 		sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
 		// calculate a scalar intermediate
-		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].x / 
+		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w / 
 			(sDist * sDist * sDist)
 			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 
