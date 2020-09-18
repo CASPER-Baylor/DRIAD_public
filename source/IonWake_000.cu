@@ -1939,6 +1939,8 @@ int main(int argc, char* argv[])
 					deltavee.y = momIonDust[j].y*mom_const;
 					deltavee.z = momIonDust[j].z*mom_const;
 
+				debugFile << "Deltavee_z " << deltavee.z << std::endl;
+
 					// Add deltavee due to ion collection drag force
 					velDust[j].x += deltavee.x;
 					velDust[j].y += deltavee.y;
@@ -1968,7 +1970,6 @@ int main(int argc, char* argv[])
 					accDust[j].x = accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT;
 					accDust[j].y = accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT;
 					accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
-
 
 					// Calculate dust-dust acceleration 
 					if(j == 0) {
@@ -2014,7 +2015,7 @@ int main(int argc, char* argv[])
 					accDust[j].x +=  accDust2[j].x;
 					accDust[j].y +=  accDust2[j].y;
 					accDust[j].z +=  accDust2[j].z;
-						
+
 					// calculate acceleration of the dust
 					// radial acceleration from confinement
 					accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
@@ -2032,10 +2033,6 @@ int main(int argc, char* argv[])
 					accDust[j].y += acc * posDust[j].y;
 					}
 				
-				//debugSpecificFile << "confinement acceleration ";
-				//debugSpecificFile << acc*posDust[j].x << ", ";
-				//debugSpecificFile << acc*posDust[j].y << ", ";
-
 					//axial confinement in z for dust near ends of cylinder	
 					if(abs(posDust[j].z) > axialConfine) {
 						if(posDust[j].z > 0) {
@@ -2044,14 +2041,14 @@ int main(int argc, char* argv[])
 							adj_z = posDust[j].z + axialConfine;
 						}	
 						//accDust[j].z += OMEGA_DIV_M* simCharge[j] * adj_z;
-						accDust[j].z += OMEGA2/MASS_DUST* simCharge[j] * adj_z;
+						accDust[j].z += 10*OMEGA_DIV_M* simCharge[j] * adj_z;
 					}
-					
+
 					//polarity switching
 					q_div_m = (simCharge[j]) / MASS_DUST;
 					accDust[j].z -= q_div_m * E_FIELD 
 						*(4.0*floor(FREQ*dust_time)-2.0*floor(2.0*FREQ*dust_time)+1.);
-
+			
 					if(USE_ELE_GRAV == 1){
 						// force due to gravity
 						accDust[j].z -= 9.81;
@@ -2092,10 +2089,10 @@ int main(int argc, char* argv[])
 				//	accDust[j].y += posDust[j].y * radAcc * q_div_m;
 				//	accDust[j].z += vertAcc * q_div_m;
 		
-					//debugSpecificFile << "outside ion acceleration  ";
-					//debugSpecificFile << posDust[j].x*radAcc*q_div_m;
-					//debugSpecificFile << ", " << posDust[j].y*radAcc*q_div_m;
-					//debugSpecificFile << ", " << vertAcc*q_div_m << "\n";
+					//debugFile << "outside ion acceleration  ";
+					//debugFile << posDust[j].x*radAcc*q_div_m;
+					//debugFile << ", " << posDust[j].y*radAcc*q_div_m;
+					//debugFile << ", " << vertAcc*q_div_m << "\n";
 
 					// drag force
 					accDust[j].x -= BETA*velDust[j].x;
@@ -2103,11 +2100,14 @@ int main(int argc, char* argv[])
 					accDust[j].z -= BETA*velDust[j].z;
 
 					// Add Brownian motion
-					randNum = (((rand() % (num*2)) - num) / (float)num);
+					//randNum = (((rand() % (num*2)) - num) / (float)num);
+					randNum = normRand_106();
 					accDust[j].x += randNum * SIGMA;
-					randNum = (((rand() % (num*2)) - num) / (float)num);
+					//randNum = (((rand() % (num*2)) - num) / (float)num);
+					randNum = normRand_106();
 					accDust[j].y += randNum * SIGMA;
-					randNum = (((rand() % (num*2)) - num) / (float)num);
+					//randNum = (((rand() % (num*2)) - num) / (float)num);
+					randNum = normRand_106();
 					accDust[j].z += randNum * SIGMA;
 							
 					//kick half a  time step
