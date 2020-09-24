@@ -703,7 +703,7 @@ __device__ void checkIonDustBounds_100_dev(
 				dpY = posIon2.y - d_posIon->y;
 				dpZ = posIon2.z - d_posIon->z;
 
-				// Determine if line segment intesects dust.
+				// Determine if line segment intersects dust.
 				// Find point P on line closest to dust center
 				// by using fact that this is perpendicular
 				// distance and the dot product is zero.  

@@ -1741,6 +1741,9 @@ int main(int argc, char* argv[])
 					// copy dust positions and charge to host
 					d_posDust.devToHost();
 
+					// copy ion velocities to host
+					d_velIon.devToHost();
+
 					// calculate the ion currents to the dust particles
 					// set initial currents to 0
 					for (int k = 0; k < NUM_DUST; k++){
@@ -1757,6 +1760,7 @@ int main(int argc, char* argv[])
 							momIonDust[boundsIon[k] - 1].x += velIon[k].x;
 							momIonDust[boundsIon[k] - 1].y += velIon[k].y;
 							momIonDust[boundsIon[k] - 1].z += velIon[k].z;
+					//debugFile << velIon[k].x << ", " << velIon[k].z << std::endl;
 						}
 					}
 
@@ -1939,6 +1943,8 @@ int main(int argc, char* argv[])
 					deltavee.y = momIonDust[j].y*mom_const;
 					deltavee.z = momIonDust[j].z*mom_const;
 
+					//debugFile << momIonDust[j].z << ", ";
+
 					// Add deltavee due to ion collection drag force
 					velDust[j].x += deltavee.x;
 					velDust[j].y += deltavee.y;
@@ -2114,9 +2120,9 @@ int main(int argc, char* argv[])
 					velDust[j].z += accDust[j].z * half_dust_dt;
 
 					// Add deltavee due to ion collection drag force
-					//velDust[j].x += deltavee.x;
-					//velDust[j].y += deltavee.y;
-					//velDust[j].z += deltavee.z;
+					velDust[j].x += deltavee.x;
+					velDust[j].y += deltavee.y;
+					velDust[j].z += deltavee.z;
 
 					// print the dust position to the dustPosTrace file
 					//dustTraceFile << "After the dust timestep" << std::endl;
@@ -2131,6 +2137,8 @@ int main(int argc, char* argv[])
 					dustTraceFile << ", " << accDust[j].z << std::endl;
 	
 				} // End of dust timestep
+
+				//debugFile << std::endl;
 
 				// copy the dust position to the GPU
 				d_posDust.hostToDev();
@@ -2168,20 +2176,21 @@ int main(int argc, char* argv[])
 		// These are forces in units of Newtons
 		// reminder: mom_const = m_i/m_d*dust_dt/(2*N_ION_DT_PER_DUST_DT*ION_TIME_STEP)
 		
-		for( int i=0 ; i<NUM_DUST ; i++ ) {		
-			ionOnDustAccFile << accDustIon[i*NUM_ION].x/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
-					<< accDustIon[i*NUM_ION].y/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
-					<< accDustIon[i*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
-					<< momIonDust[i].x*mom_const*MASS_DUST/dust_dt*2 << ", "
-					<< momIonDust[i].y*mom_const*MASS_DUST/dust_dt*2 << ", "
-					<< momIonDust[i].z*mom_const*MASS_DUST/dust_dt*2 << ", " << std::endl;
+		for( int j=0 ; j<NUM_DUST ; j++ ) {		
+			ionOnDustAccFile << 
+					   accDustIon[j*NUM_ION].x/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< accDustIon[j*NUM_ION].y/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
+					<< momIonDust[j].x*mom_const*MASS_DUST/dust_dt*2 << ", "
+					<< momIonDust[j].y*mom_const*MASS_DUST/dust_dt*2 << ", "
+					<< momIonDust[j].z*mom_const*MASS_DUST/dust_dt*2 << ", " << std::endl;
 			// print just the velocity transferred
-					//<< momIonDust[i].x << ", "
-					//<< momIonDust[i].y << ", "
-					//<< momIonDust[i].z << ", " << std::endl;
-			momIonDust[i].x = 0;
-			momIonDust[i].y = 0;
-			momIonDust[i].z = 0;
+					//<< momIonDust[j].x << ", "
+					//<< momIonDust[j].y << ", "
+					//<< momIonDust[j].z << ", " << std::endl;
+			momIonDust[j].x = 0;
+			momIonDust[j].y = 0;
+			momIonDust[j].z = 0;
 		}
 
 		// copy back to the device
@@ -2215,25 +2224,25 @@ int main(int argc, char* argv[])
 			// print out final dust data
 			dustFinalFile<<"    rX      rY      rZ      vX      vY      vZ      Q\n";
 	
-			for( int i=0 ; i<NUM_DUST ; i++ ){
-				dustFinalFile << "[" << i << "]   ";
-				dustFinalFile << posDust[i].x << " ";
-				dustFinalFile << posDust[i].y << " ";
-				dustFinalFile << posDust[i].z << " ";
-				dustFinalFile << velDust[i].x << " ";
-				dustFinalFile << velDust[i].y << " ";
-				dustFinalFile << velDust[i].z << " ";
-				dustFinalFile << simCharge[i] << std::endl;
+			for( int j=0 ; j<NUM_DUST ; j++ ){
+				dustFinalFile << "[" << j << "]   ";
+				dustFinalFile << posDust[j].x << " ";
+				dustFinalFile << posDust[j].y << " ";
+				dustFinalFile << posDust[j].z << " ";
+				dustFinalFile << velDust[j].x << " ";
+				dustFinalFile << velDust[j].y << " ";
+				dustFinalFile << velDust[j].z << " ";
+				dustFinalFile << simCharge[j] << std::endl;
 			}
 	
 			// print out final ion data
-			for( int i=0 ; i<NUM_ION ; i++ ) {
-				ionFinalFile << posIon[i].x << " ";
-				ionFinalFile << posIon[i].y << " ";
-				ionFinalFile << posIon[i].z << " ";
-				ionFinalFile << velIon[i].x << " ";
-				ionFinalFile << velIon[i].y << " ";
-				ionFinalFile << velIon[i].z << std::endl;
+			for( int j=0 ; j<NUM_ION ; j++ ) {
+				ionFinalFile << posIon[j].x << " ";
+				ionFinalFile << posIon[j].y << " ";
+				ionFinalFile << posIon[j].z << " ";
+				ionFinalFile << velIon[j].x << " ";
+				ionFinalFile << velIon[j].y << " ";
+				ionFinalFile << velIon[j].z << std::endl;
 			}
 	
 			dustFinalFile.close();
