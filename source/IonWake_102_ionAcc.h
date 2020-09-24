@@ -4,7 +4,7 @@
 * File Name: IonWake_102_ionAcc.cu
 *
 * Created: 6/13/2017
-* Last Modified: 10/21/2017
+* Last Modified: 09/09/2020
 *
 * Description:
 *	Includes functions for calculating ion-ion accelerations 
@@ -71,7 +71,7 @@
     *	interactions modeled as Yakawa particles.
     *
     * Input:
-    *	d_posIon: the positions of the ions
+    *	d_posIon: the positions and charges of the ions
     *	d_accIon: the accelerations of the ions
     *	d_NUM_ION: the number of ions
     *	d_SOFT_RAD_SQRD: the squared softening radius squared
@@ -95,8 +95,8 @@
     *
     */
 	__global__ void calcIonIonAcc_102
-           (float3*, 
-            float3*, 
+           (float4*, 
+            float4*, 
             int * const,
             float * const, 
             float * const, 
@@ -112,15 +112,15 @@
     *	Calculates the ion accelerations due to ion-dust interactions 
     *
     * Input:
-    *	d_posIon: the positions of the ions
+    *	d_posIon: the positions of the ions, charge in 4th pos'n
     *	d_accIon: the accelerations of the ions
-    *	d_posDust: the dust particle positions
+    *	d_posDust: the dust particle positions, charge in 4th pos'n
     *	d_NUM_ION: the number of ions
     *	d_NUM_DUST: the number of dust particles
     *	d_SOFT_RAD_SQRD: the squared softening radius squared
     *	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
     *	d_INV_DEBYE: the inverse of the debye
-    *   d_chargeDust: the charge on the dust particles 
+    *   d_mindistDust: distance to closest dust particle
     *
     * Output (void):
     *	d_accIon: the acceleration due to all the dust particles
@@ -139,14 +139,13 @@
     *
     */
 	__global__ void calcIonDustAcc_102
-           (float3*, 
-			float3*,
-            float3*,
+           (float4*, 
+			float4*,
+            float4*,
 			int* const,
             int* const,
 			float* const, 
 			float* const, 
-			float* const,
 			float*);
 			
     /*
@@ -161,7 +160,7 @@
     *
     * Input:
     *	d_accIon: ion accelerations
-    *	d_posIon: ion positions
+    *	d_posIon: ion positions and charges
     *	d_EXTERN_ELC_MULT: constant multiplier for calculating the electric 
     *       field due to the ions outside of the simulation sphere
     *	d_INV_DEBYE: the inverse debye length
@@ -184,7 +183,7 @@
     *	device_launch_parameters.h
     *
     */
-	__global__ void calcExtrnElcAcc_102(float3*, float3*, float*, float*);
+	__global__ void calcExtrnElcAcc_102(float4*, float4*, float*, float*);
 
 /*
 * Name: calcExtrnElcAccCyl_102
@@ -202,7 +201,7 @@
 *
 * Input:
 *       d_accIon: ion accelerations
-*       d_posIon: ion positions
+*       d_posIon: ion positions and charges
 *       d_Q_DIV_M:  charge to mass ratio
 *       d_p10x: coefficient for radial E field
 *       d_p12x: coefficient for radial E field
@@ -234,8 +233,8 @@
 *
 */
 __global__ void calcExtrnElcAccCyl_102
-       (float3*,
-        float3*,
+       (float4*,
+        float4*,
         float*,
         float*, float*,float* ,
         float*, float*,float*, float*,float*,
@@ -249,7 +248,7 @@ __global__ void calcExtrnElcAccCyl_102
  *  Editors
  * 	Name: Lorin Matthews
  * 	Contact: Lorin_Matthews@baylor.edu
- * 	last edit: 8.27.2020
+ * 	last edit: 9/10/2020
  * 	Implemented float2 for grid positions
  * 
  *  Description:
@@ -278,7 +277,7 @@ __global__ void calcExtrnElcAccCyl_102
  */
 __global__ void calcIonDensityPotential_102
 	(float2*,
-	 float3*,
+	 float4*,
 	 float* const,
 	 float* const,
 	 int* const,

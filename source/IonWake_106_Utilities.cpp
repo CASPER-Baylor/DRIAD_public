@@ -4,7 +4,7 @@
 * File Name: IonWake_106_Utilities.cpp
 *
 * Created: 6/20/2017
-* Last Modified: 11/14/2017
+* Last Modified: 09/17/2020
 *
 * Description:
 *	Includes general purpose algorithms  
@@ -12,6 +12,7 @@
 * Functions:
 *	findMax_106()
 *	findMin_106()
+*	normRand_106()
 *
 */
 
@@ -151,4 +152,40 @@ int findMin_106(int val[], int numVals)
 		}
 	}
 	return min;
+}
+
+/*
+* Name: normRand_106
+* Created: 9/17/2020
+* last edit: 9/17/2020
+*
+* Editors
+*	Name: Lorin Matthews 
+*	Contact: Lorin_Matthews@baylor.edu
+*	last edit: 09/17/2020
+*
+* Description:
+*	Generates a random number from a normal distribution
+*
+* Input:
+*	void	
+*
+* Output:
+*	num: the random number
+*
+*
+* Assumptions:
+*
+* Includes:
+*	none
+*/
+
+float normRand_106()
+{
+	// get two random numbers from a uniform distribution
+	double x1, x2;
+	x1 = ((rand()) + 1.)/( (double)(RAND_MAX) + 1.);
+	x2 = ((rand()) + 1.)/( (double)(RAND_MAX) + 1.);
+
+	return cos(2*3.14159*x2) *sqrt(-2*log(x1));
 }

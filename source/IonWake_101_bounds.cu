@@ -4,7 +4,7 @@
 * File Name: IonWake_101_bounds.cu
 *
 * Created: 6/13/2017
-* Last Modified: 11/18/2017
+* Last Modified: 09/10/2020
 *
 * Description:
 *	Functions for handling the boundary conditions for the ion positions.
@@ -12,11 +12,7 @@
 *   as reinserting out of bounds ions back into the simulation.
 *
 * Functions:
-*	checkIonSphereBounds_101()
-*	checkIonCylinderBounds_101()
 *	checkIonDustBounds_101()
-*	checkIonSphereBounds_101_dev()
-*	checkIonCylinderBounds_101_dev()
 *	injectIonSphere_101()
 *	injectIonCylinder_101
 *	resetIonBounds_101()
@@ -29,140 +25,6 @@
 
 // header file
 #include "IonWake_101_bounds.h"
-
-/*
-* Name: checkIonSphereBounds_101
-* Created: 10/2/2017
-* last edit: 11/14/2017
-*
-* Editors
-*	Name: Dustin Sanford
-*	Contact: Dustin_Sanford@baylor.edu
-*	last edit: 11/14/2017
-*
-* Description:
-*	Checks if an ion has left the simulation sphere
-*
-* Input:
-*	d_posIion: ion positions
-*	d_boundsIon: a flag for if an ion is out of bounds
-*	d_RAD_SIM_SQRD: the simulation radius squared
-*
-* Output (void):
-*	d_boundsIon: set to -1 for ions that are outside of the 
-*		simulation sphere.
-*
-* Assumptions:
-*	The simulation region is a sphere with (0,0,0) at its center 
-*   The number of ions is a multiple of the block size
-*   the flag -1 is unique value for the ion bounds flag
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-
-__global__ void checkIonSphereBounds_101
-      (float3* const d_posIon, 
-		int* d_boundsIon,
-		float* const d_RAD_SIM_SQRD){
-	
-	// distance
-	float dist;
-
-	// thread ID 
-	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
-	
-    // Only check ions which are in bounds
-	if (d_boundsIon[IDion] ==0){
-		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
-
-		// distance from the center of the simulation
-		dist = posCrntIon.x * posCrntIon.x +
-			posCrntIon.y * posCrntIon.y +
-			posCrntIon.z * posCrntIon.z;
-		
-		// check if the ion is out of the simulation sphere
-		if (dist > *d_RAD_SIM_SQRD)
-		{
-			// flag the ion as out of the simulation sphere
-			d_boundsIon[IDion] = -1;
-		}
-	}
-}
-
-
-
-/*
-* Name: checkIonCylinderBounds_101
-* This is really checkIonCylinderBounds_101
-*
-* Created: 11/18/2017
-* last edit: 11/18/2017
-*
-* Editors
-*	Name: Lorin Matthews
-*	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 11/18/2017
-*
-* Description:
-*	Checks if an ion has left the simulation cylinder
-*
-* Input:
-*	d_posIion: ion positions
-*	d_boundsIon: a flag for if an ion is out of bounds
-*	d_RAD_CYL_SQRD: the simulation radius squared
-*	d_HT_CYL: the (half)height of the cylinder
-*
-* Output (void):
-*	d_boundsIon: set to -1 for ions that are outside of the 
-*		simulation sphere.
-*
-* Assumptions:
-*	The simulation region is a cylinder with (0,0,0) at its center 
-*   The number of ions is a multiple of the block size
-*   the flag -1 is unique value for the ion bounds flag
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-__global__ void checkIonCylinderBounds_101
-       (float3* const d_posIon, 
-		int* d_boundsIon,
-		float* const d_RAD_CYL_SQRD,
-		float* const d_HT_CYL){
-	
-	// distance
-	float dist;
-	float distz;
-
-	// thread ID 
-	int IDion = threadIdx.x + blockDim.x * blockIdx.x;
-
-	// Only check ions which are in bounds
-	if (d_boundsIon[IDion] ==0){
-		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
-
-		// radial distance from the center of the cylinder
-		dist = posCrntIon.x * posCrntIon.x +
-			posCrntIon.y * posCrntIon.y ;
-
-		// height from the center of the cylinder
-		distz = abs(posCrntIon.z);
-		
-		// check if the ion is out of the simulation cylinder
-		if (dist > *d_RAD_CYL_SQRD || distz > *d_HT_CYL)
-		{
-			// flag the ion as out of the simulation sphere
-			d_boundsIon[IDion] = -1;
-		}
-	}
-}
 
 /*
 * Name: checkIonDustBounds_101
@@ -178,11 +40,11 @@ __global__ void checkIonCylinderBounds_101
 *	checks if an ion is within  a dust particle 
 *
 * Input:
-*	d_posIon: the ion positions
+*	d_posIon: the ion positions and charges
 *	d_boundsIon: a flag for if an ion position is out of bounds
 *	d_RAD_DUST_SQRD: the radius of the dust particles squared
 *	d_NUM_DUST: the number of dust particles 
-*	d_posDust: the dust particle positions
+*	d_posDust: the dust particle positions and charges
 *
 * Output (void):
 *	d_boundsIon: set to the index of the dust particle the ion is
@@ -199,11 +61,11 @@ __global__ void checkIonCylinderBounds_101
 *
 */
 __global__ void checkIonDustBounds_101(
-	float3* const d_posIon, 
+	float4* const d_posIon, 
 	int* d_boundsIon,
 	float* const d_RAD_DUST_SQRD,
 	int* const d_NUM_DUST,
-	float3* const d_posDust) {
+	float4* const d_posDust) {
 	
 	// distance
 	float dist;
@@ -214,7 +76,7 @@ __global__ void checkIonDustBounds_101(
 	// Only check ions which are in bounds
 	if (d_boundsIon[IDion] == 0) {
 		// position of the current ion
-		float3 posCrntIon = d_posIon[IDion];
+		float4 posCrntIon = d_posIon[IDion];
 
 		// temporary distance holders
 		float deltaX, deltaY, deltaZ;
@@ -262,7 +124,7 @@ __global__ void checkIonDustBounds_101(
 *	as described in Piel 2017 
 *
 * Input:
-*	d_posIon: ion positions
+*	d_posIon: ion positions and charges
 *	d_velIon: ion velocities
 *   d_accIon: ion accelerations
 *	randStates: a set of random states with at least as many
@@ -281,6 +143,7 @@ __global__ void checkIonDustBounds_101(
 *   d_MACH: the mach number 
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *	d_BOLTZMANN: the boltzmann constant 
+*	d_CHARGE_ION: the charge on a super-ion
 *
 * Output (void):
 *	d_posIon: each ion that is out of bounds is given a new 
@@ -300,9 +163,9 @@ __global__ void checkIonDustBounds_101(
 *
 */
 __global__ void injectIonSphere_101(
-		float3* d_posIon, 
-		float3* d_velIon,
-		float3* d_accIon,		
+		float4* d_posIon, 
+		float4* d_velIon,
+		float4* d_accIon,		
 		curandState_t* const randStates, 
 		float* const d_RAD_SIM, 
 		int* const d_boundsIon,
@@ -318,6 +181,7 @@ __global__ void injectIonSphere_101(
 		float* const d_MACH,
 		float* const d_MASS_SINGLE_ION,
 		float* const d_BOLTZMANN,
+		float* const d_CHARGE_ION,
 		int xac){
 	
 	// thread ID 
@@ -442,6 +306,9 @@ __global__ void injectIonSphere_101(
 		d_accIon[IDion].x = 0;
 		d_accIon[IDion].y = 0;
 		d_accIon[IDion].z = 0;
+
+		// set the charge
+		d_posIon[IDion].w = *d_CHARGE_ION;
 	}
 }
 
@@ -482,6 +349,8 @@ __global__ void injectIonSphere_101(
 *   d_MACH: the mach number 
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *	d_BOLTZMANN: the boltzmann constant 
+*   d_CHARGE_ION: the charge on a super-ion
+*	xac: 0 or 1 for polarity switching
 *
 * Output (void):
 *	d_posIon: each ion that is out of bounds is given a new 
@@ -503,9 +372,9 @@ __global__ void injectIonSphere_101(
 *
 */
 __global__ void injectIonCylinder_101(
-	float3* d_posIon, 
-	float3* d_velIon,
-	float3* d_accIon,		
+	float4* d_posIon, 
+	float4* d_velIon,
+	float4* d_accIon,		
 	curandState_t* const randStates, 
 	float* const d_RAD_CYL, 
 	float* const d_HT_CYL, 
@@ -522,6 +391,7 @@ __global__ void injectIonCylinder_101(
 	float* const d_MACH,
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
+	float* const d_CHARGE_ION,
 	int xac){
 	
 	// thread ID 
@@ -675,6 +545,9 @@ __global__ void injectIonCylinder_101(
 		d_accIon[IDion].x = 0;
 		d_accIon[IDion].y = 0;
 		d_accIon[IDion].z = 0;
+
+		// set the charge
+		d_posIon[IDion].w = *d_CHARGE_ION;
 	}
 }
 

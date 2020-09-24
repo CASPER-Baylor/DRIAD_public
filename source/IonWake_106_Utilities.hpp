@@ -12,6 +12,7 @@
 * Functions:
 *	findMax_106()
 *	findMin_106()
+*	normRand_106()
 *
 * Templates:
 * 	getParam_106()
@@ -27,6 +28,10 @@
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <cmath>
+#include <cstdlib>
+#include <ctime>
+#include <iostream>
 
 
 	/*
@@ -111,5 +116,22 @@
 
 	float findMin_106(float val[], int numVals);
 	int   findMin_106(  int val[], int numVals);
+
+	/*
+ 	*  Name: normRand_106
+ 	*
+ 	*  Editors
+ 	*  	Lorin Matthews
+ 	*
+ 	*  Description:
+ 	*  	Returns a random number from a normal distribution
+ 	*
+ 	*  Input: void
+ 	*
+ 	*  Output: random number
+ 	*
+ 	*/
+	
+	float normRand_106();
 
 #endif // IONWAKE_106_UTILITIES

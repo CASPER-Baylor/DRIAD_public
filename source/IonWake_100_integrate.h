@@ -17,9 +17,9 @@
 * 	kick_dev()
 * 	drift_dev()
 *	checkIonDustbounds_100_dev()
-*	checkIonSphereBounds_101_dev()
-*	checkIonCylinderBounds_101_dev()
-*	calcIonDustAcc_102_dev()
+*	checkIonSphereBounds_100_dev()
+*	checkIonCylinderBounds_100_dev()
+*	calcIonDustAcc_100_dev()
 *
 * Includes:
 *	kick()
@@ -49,9 +49,6 @@
 	*/
 	#include "device_launch_parameters.h"
 
-        /* Include boundary checking and IonDustAcc calculation */
-	#include "IonWake_101_bounds.h"
-	#include "IonWake_102_ionAcc.h"
 
 	/*
 	*
@@ -79,8 +76,8 @@
 	*	device_launch_parameters.h
 	*/
 	__global__ void kick_100
-           (float3*, 
-	    float3*,
+           (float4*, 
+	    float4*,
             const float*);
 	/*
 	*
@@ -107,14 +104,14 @@
 	*	device_launch_parameters.h
 	*/
 	__global__ void drift_100
-           (float3*, 
-	    float3*,
+           (float4*, 
+	    float4*,
             const float*);
 			
 /*
 * Name: select_100
 * Created: 3/6/2018
-* last edit: 3/6/2018
+* last edit: 9/10/2020
 *
 * Editors
 *	Name: Lorin Matthews
@@ -125,8 +122,8 @@
 *	Select timestep division for adaptive time step
 *
 * Input:
-*	pos: ion positions 
-*	posDust: dust positions
+*	pos: ion positions, and charges 
+*	posDust: dust positions and charges
 *	vel: ion velocities
 *   minDistDust: distance to closest dust grain
 *   d_RAD_DUST: radius of dust grains
@@ -146,9 +143,9 @@
 *
 */
 __global__ void select_100
-       (float3*, 
-	float3*,
-	float3*,
+       (float4*, 
+	float4*,
+	float4*,
 	float*,
 	const float*,
         const float*,
@@ -161,7 +158,7 @@ __global__ void select_100
 /*
 * Name: KDK_100
 * Created: 3/14/2017
-* last edit: 3/14/2018
+* last edit: 9/10/2020
 *
 * Editors
 *	Name: Lorin Matthews
@@ -173,7 +170,7 @@ __global__ void select_100
 *   ions will be accurately captured by dust grains.
 *
 * Input:
-*	pos: positions of ions
+*	pos: positions and charge of ions
 *	vel: velocities of ions
 *	acc: accelerations of ions
 *   d_m: depth for time step divisions
@@ -185,19 +182,16 @@ __global__ void select_100
 *	d_GEOMETRY (0=spherical or 1=cylindrical)
 *	d_RAD_DUST_SQRD
 *	d_NUM_DUST
-*   d_posDust
-*   d_momIonDust
+*   d_posDust: positions and charge of dust
 *	d_NUM_ION
 *	d_SOFT_RAD_SQRD 
 *	d_ION_DUST_ACC_MULT 
 *	d_RAD_COLL_MULT 
-*	d_chargeDust
 *
 * Output (void):
 *   pos: updated positions of ions
 *	vel: updated velocities of ions
 *	boundsIon: updated boundary crossings
-*   momIonDust: momentum transfer from ions to dust
 *
 * Assumptions:
 *	All inputs are real values
@@ -208,9 +202,9 @@ __global__ void select_100
 *
 */
 __global__ void KDK_100
-    (float3*, 
-	 float3*,
-	 float3*,
+    (float4*, 
+	 float4*,
+	 float4*,
 	 const int*,
 	 const int*,
 	 int*,
@@ -220,9 +214,8 @@ __global__ void KDK_100
 	 const float*,
 	 const float*,
 	 const int*,
-	 float3*,
+	 float4*,
 	 const int*,
-	 const float*,
 	 const float*,
 	 const float*,
 	 const float*);
@@ -256,8 +249,8 @@ __global__ void KDK_100
 *
 */
 __device__ void kick_dev
-       (float3*, 
-		float3*,
+       (float4*, 
+		float4*,
         float);
 
 /*
@@ -289,11 +282,11 @@ __device__ void kick_dev
 *
 */
 __device__ void drift_dev
-       (float3*, 
-        float3*, 
+       (float4*, 
+        float4*, 
         float)	; 
 /*
-* Name: checkIonSphereBounds_101_dev
+* Name: checkIonSphereBounds_100_dev
 * Created: 3/17/2018
 *
 * Editors
@@ -323,13 +316,13 @@ __device__ void drift_dev
 *
 */
 
-__device__ void checkIonSphereBounds_101_dev(
-      float3* const, 
+__device__ void checkIonSphereBounds_100_dev(
+      float4* const, 
 		int*,
 		const float*);
 		
 /*
-* Name: checkIonCylinderBounds_101_dev
+* Name: checkIonCylinderBounds_100_dev
 *
 * Created: 3/17/2018
 *
@@ -361,8 +354,8 @@ __device__ void checkIonSphereBounds_101_dev(
 *	device_launch_parameters.h
 *
 */
-__device__ void checkIonCylinderBounds_101_dev(
-       float3* const, 
+__device__ void checkIonCylinderBounds_100_dev(
+       float4* const, 
 		int*,
 		const float*,
 		const float*);
@@ -401,36 +394,34 @@ __device__ void checkIonCylinderBounds_101_dev(
 *
 */
 __device__ void checkIonDustBounds_100_dev(
-		float3* const, 
-		float3* const, 
+		float4* const, 
+		float4* const, 
 		int*,
 		const float*,
 		const int*,
-		float3* const,
+		float4* const,
 		float3 const,
-		const float*,
 		const float*);
 /*
-* Name: calcIonDustAcc_102_dev
+* Name: calcIonDustAcc_100_dev
 * Created: 3/20/2018
 *
 * Editors
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 3/20/2018
+*	last edit: 9/10/2020
 *
 * Description:
 *	Calculates the ion accelerations due to ion-dust interactions 
 *
 * Input:
-*	d_posIon: the positions of the ions
+*	d_posIon: the positions and charge of the ions
 *	d_accIon: the accelerations of the ions
-*	d_posDust: the dust particle positions
+*	d_posDust: the dust particle positions and charges
 *	d_NUM_ION: the number of ions
 *	d_NUM_DUST: the number of dust particles
 *	d_SOFT_RAD_SQRD: the squared softening radius squared
 *	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
-*   d_chargeDust: the charge on the dust particles 
 *
 * Output (void):
 *	d_accIon: the acceleration due to all the dust particles
@@ -448,13 +439,12 @@ __device__ void checkIonDustBounds_100_dev(
 *	device_launch_parameters.h
 *
 */
-__device__ void calcIonDustAcc_102_dev(
-		float3*, 
-		float3*, 
-        float3*,
+__device__ void calcIonDustAcc_100_dev(
+		float4*, 
+		float4*, 
+        float4*,
 		const int*,
         const int*, 
-		const float*, 
 		const float*, 
 		const float*);
 		

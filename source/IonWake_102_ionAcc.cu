@@ -4,7 +4,7 @@
 * File Name: IonWake_102_ionAcc.cu
 *
 * Created: 6/13/2017
-* Last Modified: 11/14/2017
+* Last Modified: 09/09/2020
 *
 * Description:
 *	Includes functions for calculating ion-ion accelerations 
@@ -36,7 +36,7 @@
 *	interactions modeled as Yakawa particles.
 *
 * Input:
-*	d_posIon: the positions of the ions
+*	d_posIon: the positions and charges of the ions
 *	d_accIon: the accelerations of the ions
 *	d_NUM_ION: the number of ions
 *	d_SOFT_RAD_SQRD: the squared softening radius squared
@@ -60,8 +60,8 @@
 *
 */
 __global__ void calcIonIonAcc_102
-	(float3* d_posIon, 
-    float3* d_accIon, 
+	(float4* d_posIon, 
+    float4* d_accIon, 
     int * const d_NUM_ION,
     float * const d_SOFT_RAD_SQRD, 
     float * const d_ION_ION_ACC_MULT,
@@ -84,7 +84,7 @@ __global__ void calcIonIonAcc_102
   	d_accIon[IDcrntIon].z = 0;
 
 	// allocate shared memory
-	extern __shared__ float3 sharedPos[];
+	extern __shared__ float4 sharedPos[];
 
 	// loop over all of the ions by using tiles. Where each tile is a section
 	// of the ions that is loaded into shared memory. Each tile consists of 
@@ -104,7 +104,7 @@ __global__ void calcIonIonAcc_102
 		// wait for all threads to load the current position
 		__syncthreads();
 
-		// DEBUGING // 
+		// DEBUGGING // 
 		/*
 		* // PTX code used to access shared memory sizes
 		* // which are save to "ret"
@@ -148,12 +148,13 @@ __global__ void calcIonIonAcc_102
 	d_accIon[IDcrntIon].x += accCrntIon.x;
 	d_accIon[IDcrntIon].y += accCrntIon.y;
 	d_accIon[IDcrntIon].z += accCrntIon.z;
+	d_accIon[IDcrntIon].w = 0.0;
 }
 
 /*
 * Name: calcIonDustAcc_102
 * Created: 6/13/2017
-* last edit: 11/14/2017
+* last edit: 09/10/2020
 *
 * Editors
 *	Name: Dustin Sanford
@@ -164,14 +165,13 @@ __global__ void calcIonIonAcc_102
 *	Calculates the ion accelerations due to ion-dust interactions 
 *
 * Input:
-*	d_posIon: the positions of the ions
+*	d_posIon: the positions of the ions, charge in 4th pos'n
 *	d_accIon: the accelerations of the ions
-*	d_posDust: the dust particle positions
+*	d_posDust: the dust particle positions, charge in 4th pos'n
 *	d_NUM_ION: the number of ions
 *	d_NUM_DUST: the number of dust particles
 *	d_SOFT_RAD_SQRD: the squared softening radius squared
 *	d_ION_DUST_ACC_MULT: a constant multiplier for the ion-dust interaction
-*   d_chargeDust: the charge on the dust particles 
 *
 * Output (void):
 *	d_accIon: the acceleration due to all the dust particles
@@ -191,14 +191,13 @@ __global__ void calcIonIonAcc_102
 *
 */
 __global__ void calcIonDustAcc_102(
-	float3* d_posIon, 
-	float3* d_accIon, 
-    float3* d_posDust,
+	float4* d_posIon, 
+	float4* d_accIon, 
+    float4* d_posDust,
 	int* const d_NUM_ION,
     int* const d_NUM_DUST, 
 	float* const d_SOFT_RAD_SQRD, 
 	float* const d_ION_DUST_ACC_MULT, 
-	float* const d_chargeDust,
 	float* d_minDistDust) {
 
 	// index of the current ion
@@ -217,6 +216,7 @@ __global__ void calcIonDustAcc_102(
 	d_accIon[IDcrntIon].x = 0;
 	d_accIon[IDcrntIon].y = 0;
 	d_accIon[IDcrntIon].z = 0;
+	d_accIon[IDcrntIon].w = 0.0;
 	
 	// loop over all of the dust particles
 	for (int h = 0; h < *d_NUM_DUST; h++) {
@@ -233,8 +233,8 @@ __global__ void calcIonDustAcc_102(
 		// calculate the hard distance
 		hardDist = __fsqrt_rn(distSquared);
 
-		// calculate a scaler intermediate
-		linForce = *d_ION_DUST_ACC_MULT * d_chargeDust[h] / 
+		// calculate a scalar intermediate
+		linForce = *d_ION_DUST_ACC_MULT * d_posDust[h].w / 
         	(hardDist*hardDist*hardDist);
 
 		// add the acceleration to the current ion's acceleration
@@ -269,7 +269,7 @@ __global__ void calcIonDustAcc_102(
 *
 * Input:
 *	d_accIon: ion accelerations
-*	d_posIon: ion positions
+*	d_posIon: ion positions and charges
 *	d_EXTERN_ELC_MULT: constant multiplier for calculating the electric 
 *       field due to the ions outside of the simulation sphere
 *	d_INV_DEBYE: the inverse debye length
@@ -293,8 +293,8 @@ __global__ void calcIonDustAcc_102(
 *
 */
 __global__ void calcExtrnElcAcc_102
-	(float3* d_accIon, 
-    float3* d_posIon, 
+	(float4* d_accIon, 
+    float4* d_posIon, 
     float* const d_EXTERN_ELC_MULT, 
     float* const d_INV_DEBYE) {
 
@@ -327,6 +327,7 @@ __global__ void calcExtrnElcAcc_102
 	d_accIon[ID].x += d_posIon[ID].x * linForce;
 	d_accIon[ID].y += d_posIon[ID].y * linForce;
 	d_accIon[ID].z += d_posIon[ID].z * linForce;
+	d_accIon[ID].w = 0.0;
 }
 
 
@@ -346,16 +347,18 @@ __global__ void calcExtrnElcAcc_102
 *
 * Input:
 *	d_accIon: ion accelerations
-*	d_posIon: ion positions
+*	d_posIon: ion positions and charges
 *	d_Q_DIV_M:  charge to mass ratio
 *	d_p10x: coefficient for radial E field
-*	d_p12x: coefficient for radial E field
-*	d_p14x: coefficient for radial E field
+*	d_p20x: coefficient for radial E field
+*	d_p30x: coefficient for radial E field
 *	d_p01z: coefficient for vertical E field
 *	d_p21z: coefficient for vertical E field
 *	d_p03z: coefficient for vertical E field
 *	d_p23z: coefficient for vertical E field
 *	d_p05z: coefficient for vertical E field
+*	d_Esheath: sheath/DC electric field (z-direction)
+*	E_dir: direction of polarity-switched DC field
 *
 * Output (void):
 *	d_accIon: the acceleration due to the outside electric 
@@ -377,12 +380,12 @@ __global__ void calcExtrnElcAcc_102
 *
 */
 __global__ void calcExtrnElcAccCyl_102
-	(float3* d_accIon, 
-    float3* d_posIon, 
+	(float4* d_accIon, 
+    float4* d_posIon, 
 	float* d_Q_DIV_M,
 	float* d_p10x, 
-	float* d_p12x,
-	float* d_p14x,
+	float* d_p20x,
+	float* d_p30x,
 	float* d_p01z, 
 	float* d_p21z,
 	float* d_p03z, 
@@ -407,7 +410,8 @@ __global__ void calcExtrnElcAccCyl_102
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
 	// is divided by rad.
-	float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
+	//float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
+	float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
 
 	// calculate vertical component of the acceleration
 	float vertAcc = *d_p01z * z +
@@ -425,47 +429,19 @@ __global__ void calcExtrnElcAccCyl_102
 
 	// add acceleration of ions by external electric field
 	d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_Esheath;
+	d_accIon[ID].w =0.0; 
 }
 
 /*
 * Name: calcIonDensityPotential_102
 * Created: 5/4/2018
-* Last Modified: 8/27/2020
+* Last Modified: 9/10/2020
 *
 * Editors
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 8/27/2018
-*	Use of float2 for grid positions.
-*
-* Description:
-*	Calculates electric potential from ions at points on grid in 
-* 	the xz-plane.  Also calculates the number density at each grid 
-*	point by counting the number of ions in a sphere of radius r_dens
-* 	centered at each grid point.
-*
-* Input:
-*	d_posIion: ion positions
-*	d_gridPos: the grid points in xz-plane
-*	d_ION_POTENTIAL_MULT
-*	d_INV_DEBYE
-*
-* Output (void):
-*	d_ionPotential: potential at each grid point
-*	d_ionDenisty: ion number density at each grid point
-*
-* Assumptions: 
-*   The number of grid points is a multiple of the block size?????
-*
-* Includes:
-*	cuda_runtime.h
-*	device_launch_parameters.h
-*
-*/
-
-__global__ void calcIonDensityPotential_102
-	(float2* d_gridPos,
-	 float3* d_posIon,
+*	last edit: 9/9/2020  GridPos now float2,replaced float3 with float4
+	 float4* d_posIon,
 	 float * const d_ION_POTENTIAL_MULT,
 	 float * const d_INV_DEBYE,
 	 int * const d_NUM_ION,
@@ -491,7 +467,7 @@ __global__ void calcIonDensityPotential_102
 	//d_ionPotential[IDgrid] = 0;
 	
 	// allocate shared memory
-	extern __shared__ float3 sharedPos[];
+	extern __shared__ float4 sharedPos[];
 	
 	// loop over all of the ions by using tiles, where each tile is a section
 	// of the ions that is loaded into shared memory. Each tile consists of 
