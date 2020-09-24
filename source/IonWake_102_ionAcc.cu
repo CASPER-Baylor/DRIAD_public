@@ -357,6 +357,8 @@ __global__ void calcExtrnElcAcc_102
 *	d_p03z: coefficient for vertical E field
 *	d_p23z: coefficient for vertical E field
 *	d_p05z: coefficient for vertical E field
+*	d_Esheath: sheath/DC electric field (z-direction)
+*	E_dir: direction of polarity-switched DC field
 *
 * Output (void):
 *	d_accIon: the acceleration due to the outside electric 

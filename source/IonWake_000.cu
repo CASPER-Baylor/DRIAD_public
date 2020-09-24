@@ -1939,8 +1939,6 @@ int main(int argc, char* argv[])
 					deltavee.y = momIonDust[j].y*mom_const;
 					deltavee.z = momIonDust[j].z*mom_const;
 
-				debugFile << "Deltavee_z " << deltavee.z << std::endl;
-
 					// Add deltavee due to ion collection drag force
 					velDust[j].x += deltavee.x;
 					velDust[j].y += deltavee.y;
@@ -2116,9 +2114,9 @@ int main(int argc, char* argv[])
 					velDust[j].z += accDust[j].z * half_dust_dt;
 
 					// Add deltavee due to ion collection drag force
-					velDust[j].x += deltavee.x;
-					velDust[j].y += deltavee.y;
-					velDust[j].z += deltavee.z;
+					//velDust[j].x += deltavee.x;
+					//velDust[j].y += deltavee.y;
+					//velDust[j].z += deltavee.z;
 
 					// print the dust position to the dustPosTrace file
 					//dustTraceFile << "After the dust timestep" << std::endl;
@@ -2174,9 +2172,9 @@ int main(int argc, char* argv[])
 			ionOnDustAccFile << accDustIon[i*NUM_ION].x/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
 					<< accDustIon[i*NUM_ION].y/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
 					<< accDustIon[i*NUM_ION].z/N_IONDT_PER_DUSTDT*MASS_DUST << ", "
-					<< momIonDust[i].x*mom_const*MASS_DUST/dust_dt << ", "
-					<< momIonDust[i].y*mom_const*MASS_DUST/dust_dt << ", "
-					<< momIonDust[i].z*mom_const*MASS_DUST/dust_dt << ", " << std::endl;
+					<< momIonDust[i].x*mom_const*MASS_DUST/dust_dt*2 << ", "
+					<< momIonDust[i].y*mom_const*MASS_DUST/dust_dt*2 << ", "
+					<< momIonDust[i].z*mom_const*MASS_DUST/dust_dt*2 << ", " << std::endl;
 			// print just the velocity transferred
 					//<< momIonDust[i].x << ", "
 					//<< momIonDust[i].y << ", "
@@ -2201,46 +2199,46 @@ int main(int argc, char* argv[])
 
 		statusFile << "|" << std::endl;
 		
-		// ****** Update Continue Files ****** //
-		// {{{
-		// Print ion and dust data needed for using the continue 
-		// option. The files are overwritten each time step.
-
-		// open an output file for saving final dust data  
-		fileName = dataDirName + runName + "_dust-final.txt";
-		std::ofstream dustFinalFile(fileName.c_str());
-
-		// open an output file for final ion data
-		fileName = dataDirName + runName + "_ion-final.txt";
-		std::ofstream ionFinalFile(fileName.c_str());
-
-		// print out final dust data
-		dustFinalFile<<"    rX      rY      rZ      vX      vY      vZ      Q\n";
-
-		for( int i=0 ; i<NUM_DUST ; i++ ){
-			dustFinalFile << "[" << i << "]   ";
-			dustFinalFile << posDust[i].x << " ";
-			dustFinalFile << posDust[i].y << " ";
-			dustFinalFile << posDust[i].z << " ";
-			dustFinalFile << velDust[i].x << " ";
-			dustFinalFile << velDust[i].y << " ";
-			dustFinalFile << velDust[i].z << " ";
-			dustFinalFile << simCharge[i] << std::endl;
-		}
-
-		// print out final ion data
-		for( int i=0 ; i<NUM_ION ; i++ ) {
-			ionFinalFile << posIon[i].x << " ";
-			ionFinalFile << posIon[i].y << " ";
-			ionFinalFile << posIon[i].z << " ";
-			ionFinalFile << velIon[i].x << " ";
-			ionFinalFile << velIon[i].y << " ";
-			ionFinalFile << velIon[i].z << std::endl;
-		}
-
-		dustFinalFile.close();
-		ionFinalFile.close();
-		// }}}
+		if (i % 10  == 0) { //print every 10 dust time steps
+			// ****** Update Continue Files ****** //
+			// Print ion and dust data needed for using the continue 
+			// option. The files are overwritten each time step.
+	
+			// open an output file for saving final dust data  
+			fileName = dataDirName + runName + "_dust-final.txt";
+			std::ofstream dustFinalFile(fileName.c_str());
+	
+			// open an output file for final ion data
+			fileName = dataDirName + runName + "_ion-final.txt";
+			std::ofstream ionFinalFile(fileName.c_str());
+	
+			// print out final dust data
+			dustFinalFile<<"    rX      rY      rZ      vX      vY      vZ      Q\n";
+	
+			for( int i=0 ; i<NUM_DUST ; i++ ){
+				dustFinalFile << "[" << i << "]   ";
+				dustFinalFile << posDust[i].x << " ";
+				dustFinalFile << posDust[i].y << " ";
+				dustFinalFile << posDust[i].z << " ";
+				dustFinalFile << velDust[i].x << " ";
+				dustFinalFile << velDust[i].y << " ";
+				dustFinalFile << velDust[i].z << " ";
+				dustFinalFile << simCharge[i] << std::endl;
+			}
+	
+			// print out final ion data
+			for( int i=0 ; i<NUM_ION ; i++ ) {
+				ionFinalFile << posIon[i].x << " ";
+				ionFinalFile << posIon[i].y << " ";
+				ionFinalFile << posIon[i].z << " ";
+				ionFinalFile << velIon[i].x << " ";
+				ionFinalFile << velIon[i].y << " ";
+				ionFinalFile << velIon[i].z << std::endl;
+			}
+	
+			dustFinalFile.close();
+			ionFinalFile.close();
+		} // if for Update Continue Files
 		
 	} // ***** end time step loop **** //
 
