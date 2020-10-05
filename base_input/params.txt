@@ -16,7 +16,7 @@
       NUM_TIME_STEP   20	!number of dust_steps = 1e-4s
  N_IONDT_PER_DUSTDT   100 
            GEOMETRY	  1
-      RAD_SIM_DEBYE   3.0
+      RAD_SPH_DEBYE   3.0
         NUM_DIV_VEL   50
         NUM_DIV_QTH   3
       RAD_CYL_DEBYE	  1.25
@@ -35,7 +35,7 @@
   			 OMEGA2   1.53e10
   		RADIAL_CONF   0.95
   		 AXIAL_CONF   1.0
-	N_PRINT_DEN_POT   10	!print density and potential every N steps
+	N_PRINT_DEN_POT   10	!print density and potential every N duststeps
 		GRID_FACTOR   1.0	!fraction of simulation region to calc den, pot
 		 BOX_CENTER   0.0	! height above the lower electrode in m
   	   USE_ELE_GRAV   0		! 0 = no gravity, 1 = grav + sheath E field
@@ -43,3 +43,4 @@
 		  USE_LASER   0		! for laser push in simulation of lab
 		   LASER_ON   0.20	! time to turn on laser push (applied to particle 1)
 		  LASER_OFF   0.205 ! time to turn off laser push
+	      TIME_EVOL	  0		! give number of lines in the file for evolving plasma
