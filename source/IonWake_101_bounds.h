@@ -204,8 +204,7 @@
     *   d_MACH: the mach number 
     *   d_MASS_SINGLE_ION: the mass of a single ion
     *	d_BOLTZMANN: the boltzmann constant 
-    *	d_CHARGE_SUPER_ION: the charge on a super-ion
-    *
+    *	d_CHARGE_ION; charge on the superion
 	*   xac: 0 or 1 for polarity switching of E field
     *
     * Output (void):
@@ -284,8 +283,7 @@
 *   d_MACH: the mach number
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *       d_BOLTZMANN: the boltzmann constant
-*       d_CHARGE_SUPER_ION: the charge on a super-ion
-*
+*	d_CHARGE_ION; charge on the superion
 *   xac: 0 or 1 for polarity switching of E field
 *
 * Output (void):

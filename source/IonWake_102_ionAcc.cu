@@ -236,7 +236,7 @@ __global__ void calcIonDustAcc_102(
 		// calculate a scalar intermediate
 		linForce = *d_ION_DUST_ACC_MULT * d_posDust[h].w / 
         	(hardDist*hardDist*hardDist);
-
+		
 		// add the acceleration to the current ion's acceleration
 		d_accIon[IDcrntIon].x += linForce * dist.x;
 		d_accIon[IDcrntIon].y += linForce * dist.y;
@@ -441,6 +441,33 @@ __global__ void calcExtrnElcAccCyl_102
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
 *	last edit: 9/9/2020  GridPos now float2,replaced float3 with float4
+
+* Description:
+*	Calculates electric potential from ions at points on grid in 
+* 	the xz-plane.  Also calculates the number density at each grid 
+*	point by counting the number of ions in a sphere of radius r_dens
+* 	centered at each grid point.
+*
+* Input:
+*	d_posIion: ion positions
+*	d_gridPos: the grid points in xz-plane
+*	d_ION_POTENTIAL_MULT
+*	d_INV_DEBYE
+*
+* Output (void):
+*	d_ionPotential: potential at each grid point
+*	d_ionDenisty: ion number density at each grid point
+*
+* Assumptions: 
+*   The number of grid points is a multiple of the block size?????
+*
+* Includes:
+*	cuda_runtime.h
+*	device_launch_parameters.h
+*
+*/
+__global__ void calcIonDensityPotential_102
+	(float2* d_gridPos,
 	 float4* d_posIon,
 	 float * const d_ION_POTENTIAL_MULT,
 	 float * const d_INV_DEBYE,
