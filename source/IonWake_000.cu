@@ -236,8 +236,8 @@ int main(int argc, char* argv[])
 	const int NUM_TIME_STEP 
 		= getParam_106<int>( paramFile, "NUM_TIME_STEP" );
 	const int  GEOMETRY = getParam_106<int>( paramFile, "GEOMETRY" );
-	const float RAD_SIM_DEBYE 
-		= getParam_106<float>( paramFile, "RAD_SIM_DEBYE" );
+	const float RAD_SPH_DEBYE 
+		= getParam_106<float>( paramFile, "RAD_SPH_DEBYE" );
 	const int   NUM_DIV_VEL = getParam_106<int>( paramFile, "NUM_DIV_VEL" );
 	const int   NUM_DIV_QTH = getParam_106<int>( paramFile, "NUM_DIV_QTH" );
   	const float RAD_CYL_DEBYE 
@@ -289,7 +289,7 @@ int main(int argc, char* argv[])
 		DEN_DUST * (4.0 / 3.0) * PI * RAD_DUST * RAD_DUST * RAD_DUST;
 
 	// radius of the spherical simulation volume (m)
-	const float RAD_SIM = RAD_SIM_DEBYE * DEBYE;
+	const float RAD_SPH = RAD_SPH_DEBYE * DEBYE;
 
 	// inverse debye (1/m)
 	float INV_DEBYE = 1.0 / DEBYE;
@@ -298,7 +298,7 @@ int main(int argc, char* argv[])
 	const float SOFT_RAD_SQRD = SOFT_RAD * SOFT_RAD;
 
 	// simulation radius squared (m^2)
-	const float RAD_SIM_SQRD = RAD_SIM * RAD_SIM;
+	const float RAD_SPH_SQRD = RAD_SPH * RAD_SPH;
 
 	// half of a time step (s)
 	const float HALF_TIME_STEP = ION_TIME_STEP / 2.0;
@@ -319,7 +319,7 @@ int main(int argc, char* argv[])
 	float temp_volume = 0;
 	if(GEOMETRY == 0) {
 		// volume of the simulation sphere (m^3)
-		temp_volume = (4.0 / 3.0) * PI * RAD_SIM * RAD_SIM * RAD_SIM;
+		temp_volume = (4.0 / 3.0) * PI * RAD_SPH * RAD_SPH * RAD_SPH;
 	} else {
 		// volume of the simulation cylinder (overwrites vol abv)
 		temp_volume = PI * RAD_CYL_SQRD * 2.0* HT_CYL;
@@ -355,7 +355,7 @@ int main(int argc, char* argv[])
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
 	float EXTERN_ELC_MULT =
-		((RAD_SIM / DEBYE) + 1.0) * exp(-RAD_SIM / DEBYE) *
+		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
 		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
 		(Q_DIV_M) / (PERM_FREE_SPACE);
 
@@ -473,7 +473,7 @@ int main(int argc, char* argv[])
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
 		<< "N_IONDT_PER_DUSTDT " << N_IONDT_PER_DUSTDT << '\n'
 		<< "GEOMETRY          " << GEOMETRY          << '\n'
-		<< "RAD_SIM_DEBYE     " << RAD_SIM_DEBYE     << '\n'
+		<< "RAD_SPH_DEBYE     " << RAD_SPH_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
 		<< "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
 		<< "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
@@ -506,7 +506,7 @@ int main(int argc, char* argv[])
 		debugFile << "-- Derived Parameters --"  << '\n'
 		<< "DEBYE         " << DEBYE         << '\n'
 		<< "DEBYE_I       " << DEBYE_I         << '\n'
-		<< "RAD_SIM       " << RAD_SIM       << '\n'
+		<< "RAD_SPH       " << RAD_SPH       << '\n'
 		<< "RAD_CYL       " << RAD_CYL     << '\n'
 		<< "HT_CYL        " << HT_CYL      << '\n'
 		<< "SIM_VOLUME    " << SIM_VOLUME    << '\n'
@@ -525,7 +525,7 @@ int main(int argc, char* argv[])
 		debugFile << "-- Further Derived Parameters --"  << '\n'
 		<< "INV_DEBYE         " << INV_DEBYE         << '\n'
 		<< "SOFT_RAD_SQRD     " << SOFT_RAD_SQRD     << '\n'
-		<< "RAD_SIM_SQRD      " << RAD_SIM_SQRD      << '\n'
+		<< "RAD_SPH_SQRD      " << RAD_SPH_SQRD      << '\n'
 		<< "RAD_CYL_SQRD      " << RAD_CYL_SQRD      << '\n'
 		<< "HALF_TIME_STEP    " << HALF_TIME_STEP    << '\n'
 		<< "ION_ION_ACC_MULT  " << ION_ION_ACC_MULT  << '\n'
@@ -578,7 +578,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << CHARGE_SINGLE_ION << " % CHARGE_SINGLE_ION" << '\n'
 	<< std::setw(14) << ION_TIME_STEP     << " % ION_TIME_STEP"     << '\n'
 	<< std::setw(14) << NUM_TIME_STEP     << " % NUM_TIME_STEP"     << '\n'
-	<< std::setw(14) << RAD_SIM_DEBYE     << " % RAD_SIM_DEBYE"     << '\n'
+	<< std::setw(14) << RAD_SPH_DEBYE     << " % RAD_SPH_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
 	<< std::setw(14) << RAD_CYL			  << " % RAD_CYL"	        << '\n'
@@ -586,7 +586,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
-	<< std::setw(14) << RAD_SIM           << " % RAD_SIM"           << '\n'
+	<< std::setw(14) << RAD_SPH           << " % RAD_SPH"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
 	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
 	<< std::setw(14) << P10X              << " % P10X"              << '\n'
@@ -617,7 +617,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << MASS_ION          << " % MASS_ION"          << '\n'
 	<< std::setw(14) << INV_DEBYE         << " % INV_DEBYE"         << '\n'
 	<< std::setw(14) << SOFT_RAD_SQRD     << " % SOFT_RAD_SQRD"     << '\n'
-	<< std::setw(14) << RAD_SIM_SQRD      << " % RAD_SIM_SQRD"      << '\n'
+	<< std::setw(14) << RAD_SPH_SQRD      << " % RAD_SPH_SQRD"      << '\n'
 	<< std::setw(14) << RAD_CYL_SQRD      << " % RAD_CYL_SQRD"      << '\n'
 	<< std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
 	<< std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
@@ -732,7 +732,7 @@ int main(int argc, char* argv[])
 				posDust[i].z*posDust[i].z;
 
 			// check if the grain is out of the simulation sphere
-			if ( tempDist > RAD_SIM_SQRD) {
+			if ( tempDist > RAD_SPH_SQRD) {
 				fprintf(stderr, "ERROR: Dust out of simulation\n");
 				EXIT_WITH_FATAL_ERROR;
 			}
@@ -943,7 +943,7 @@ int main(int argc, char* argv[])
 		
 		// if there is at least one value
 		if (NUM_PLASMA_TIME > 0) {
-			// amount of memory required for the plasma varibles;
+			// amount of memory required for the plasma variables;
 			memFloatPlasma  = NUM_PLASMA_TIME * sizeof(float);
 
 			// allocate memory for the plasma variables
@@ -1246,11 +1246,11 @@ int main(int argc, char* argv[])
 			if(GEOMETRY == 0) {
 				// give the ion a random position
 				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].x = randNum * RAD_SIM;
+				posIon[i].x = randNum * RAD_SPH;
 				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].y = randNum * RAD_SIM;
+				posIon[i].y = randNum * RAD_SPH;
 				randNum = (((rand() % (number*2)) - number) / (float)number);
-				posIon[i].z = randNum * RAD_SIM;
+				posIon[i].z = randNum * RAD_SPH;
 
 				// calculate the distance from the ion to the center of the
 				// simulation sphere
@@ -1260,7 +1260,7 @@ int main(int argc, char* argv[])
 
 				// while the ion is outside of the simulation sphere, give it
 				// a new random position.
-				while (dist > RAD_SIM * RAD_SIM) {
+				while (dist > RAD_SPH * RAD_SPH) {
 					randNum = (((rand() % (number*2)) - number) / (float)number);
 					posIon[i].x = randNum * RAD_CYL;
 					randNum = (((rand() % (number*2)) - number) / (float)number);
@@ -1402,8 +1402,8 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_RAD_DUST_SQRD(&RAD_DUST_SQRD, 1);
 	constCUDAvar<float> d_SOFT_RAD_SQRD(&SOFT_RAD_SQRD, 1);
 	constCUDAvar<float> d_M_FACTOR(&M_FACTOR, 1);
-	constCUDAvar<float> d_RAD_SIM(&RAD_SIM, 1);
-	constCUDAvar<float> d_RAD_SIM_SQRD(&RAD_SIM_SQRD, 1);
+	constCUDAvar<float> d_RAD_SPH(&RAD_SPH, 1);
+	constCUDAvar<float> d_RAD_SPH_SQRD(&RAD_SPH_SQRD, 1);
 	constCUDAvar<float> d_RAD_CYL(&RAD_CYL, 1);
 	constCUDAvar<float> d_RAD_CYL_SQRD(&RAD_CYL_SQRD, 1);
 	constCUDAvar<float> d_HT_CYL(&HT_CYL, 1);
@@ -1602,7 +1602,7 @@ int main(int argc, char* argv[])
 			d_velIon.getDevPtr(),
 			d_accIon.getDevPtr(),
 			randStates.getDevPtr(),
-			d_RAD_SIM.getDevPtr(),
+			d_RAD_SPH.getDevPtr(),
 			d_boundsIon.getDevPtr(),
 			d_GCOM.getDevPtr(),
 			d_QCOM.getDevPtr(),
@@ -1768,7 +1768,7 @@ int main(int argc, char* argv[])
 					d_boundsIon.getDevPtr(), // <-->
 					d_ION_TIME_STEP.getDevPtr(), 
 					GEOMETRY,
-					d_RAD_SIM_SQRD.getDevPtr(),
+					d_RAD_SPH_SQRD.getDevPtr(),
 					NULL,
 					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
@@ -1817,7 +1817,7 @@ int main(int argc, char* argv[])
 					d_velIon.getDevPtr(),
 					d_accIon.getDevPtr(),
 					randStates.getDevPtr(),
-					d_RAD_SIM.getDevPtr(),
+					d_RAD_SPH.getDevPtr(),
 					d_boundsIon.getDevPtr(),
 					d_GCOM.getDevPtr(),
 					d_QCOM.getDevPtr(),
@@ -2162,6 +2162,25 @@ int main(int argc, char* argv[])
 				2 * Q_DIV_M * COULOMB_CONST / RAD_DUST / vs_sq;
 			ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * DEN_FAR_PLASMA *
 				CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
+			EXTERN_ELC_MULT =
+          		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
+          		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
+          		(Q_DIV_M) / (PERM_FREE_SPACE);
+
+
+			// copy updated variables to the device
+			d_INV_DEBYE.hostToDev();
+			d_E_FIELD.hostToDev();
+			d_TEMP_ION.hostToDev();
+			d_CHARGE_ION.hostToDev();
+			d_DRIFT_VEL_ION.hostToDev();
+			d_SOUND_SPEED.hostToDev();
+			d_ION_ION_ACC_MULT.hostToDev();
+			d_ION_POTENTIAL_MULT.hostToDev();
+			d_RAD_COLL_MULT.hostToDev();
+			d_EXTERN_ELC_MULT.hostToDev();
+			d_TEMP_ELC.hostToDev();
+			d_MACH.hostToDev();
 
 			// recalculate coefficients for injection 
 			// recalculate the electric field due to outside ions
@@ -2690,9 +2709,9 @@ int main(int argc, char* argv[])
 	d_RAD_DUST.compare();
 	d_RAD_DUST_SQRD.compare();
 	d_SOFT_RAD_SQRD.compare();
-	d_RAD_SIM.compare();
+	d_RAD_SPH.compare();
 	d_M_FACTOR.compare();
-	d_RAD_SIM_SQRD.compare();
+	d_RAD_SPH_SQRD.compare();
 	d_RAD_CYL.compare();
 	d_RAD_CYL_SQRD.compare();
 	d_HT_CYL.compare();
