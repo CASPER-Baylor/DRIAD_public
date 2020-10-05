@@ -2183,6 +2183,37 @@ int main(int argc, char* argv[])
 			d_MACH.hostToDev();
 
 			// recalculate coefficients for injection 
+			// Here we assume that only cylindical BC are used
+			if(GEOMETRY == 0) {
+				debugFile << "spherical boundary conditions not supported" << std::endl;
+			} else if(GEOMETRY ==1) {
+        	injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+            	 d_posIon.getDevPtr(), // -->
+	          	 d_velIon.getDevPtr(), // -->
+   	 	      	 d_accIon.getDevPtr(), // -->
+   	        	 randStates.getDevPtr(),
+   	        	 d_RAD_CYL.getDevPtr(),
+   	        	 d_HT_CYL.getDevPtr(),
+   	        	 d_boundsIon.getDevPtr(), // <--
+   	        	 d_GCOM.getDevPtr(),
+   	        	 d_QCOM.getDevPtr(),
+   	        	 d_VCOM.getDevPtr(),
+   	        	 d_NUM_DIV_QTH.getDevPtr(),
+   	        	 d_NUM_DIV_VEL.getDevPtr(),
+   	        	 d_SOUND_SPEED.getDevPtr(),
+   	        	 d_TEMP_ION.getDevPtr(),
+   	        	 d_PI.getDevPtr(),
+   	        	 d_TEMP_ELC.getDevPtr(),
+   	        	 d_MACH.getDevPtr(),
+   	        	 d_MASS_SINGLE_ION.getDevPtr(),
+   	        	 d_BOLTZMANN.getDevPtr(),
+   	        	 d_CHARGE_ION.getDevPtr(),
+   	        	 xac); // <--
+
+        roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
+    		}
+
+
 			// recalculate the electric field due to outside ions
 
 			}

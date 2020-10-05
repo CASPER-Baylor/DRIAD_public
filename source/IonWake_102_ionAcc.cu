@@ -414,18 +414,18 @@ __global__ void calcExtrnElcAccCyl_102
 	float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
 
 	// calculate vertical component of the acceleration
-	float vertAcc = *d_p01z * z +
-			*d_p21z * rad * rad * z +
-			*d_p03z * z * zsq +
-			*d_p23z * rad * rad * z * zsq +
-			*d_p05z * z * zsq * zsq;
+	//float vertAcc = *d_p01z * z +
+	//		*d_p21z * rad * rad * z +
+	//		*d_p03z * z * zsq +
+	//		*d_p23z * rad * rad * z * zsq +
+	//		*d_p05z * z * zsq * zsq;
 
 	// multiply by the vector distance to the center of 
 	// the simulation radius and add it to the ion
 	// acceleration
 	d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
 	d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
-	d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
+	//d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
 
 	// add acceleration of ions by external electric field
 	d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_Esheath;
