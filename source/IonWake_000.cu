@@ -907,82 +907,82 @@ int main(int argc, char* argv[])
     /**********************/
 	
 
-	/****** Evolving Plasma Parameters ******/
-	
-	if( TIME_EVOL == 1) {
-	
-		// pointer for Ez, Er, Te, Ti, ne, ni, Mach
-		float* E_z = NULL;
-		float* E_r = NULL;
-		float* T_e = NULL;
-		float* T_i = NULL;
-		float* n_e = NULL;
-		float* n_i = NULL;
-		float* v_dr = NULL;
-		float* Mach = NULL;
-		
-		// counts the number of timesteps for the evolving params
-		int tempNumTimes = 0;
-		
-		// amount of memory required for the plasma values
-		int memFloatPlasma = 0;
-		
-		// temporary holder for lines in the file
-		std::string line;
-		
-		// skip the first line
-		std::getline(plasmaParamFile,line);
-		
-		// count the remaining lines in the file
-		while (std::getline(plasmaParamFile,line)) {
-			tempNumTimes++;
-		}
-		
-		// save the number of plasma timesteps
-		const int NUM_PLASMA_TIME = tempNumTimes;
-		
-		// if there is at least one value
-		if (NUM_PLASMA_TIME > 0) {
-			// amount of memory required for the plasma variables;
-			memFloatPlasma  = NUM_PLASMA_TIME * sizeof(float);
-
-			// allocate memory for the plasma variables
-			E_z = (float*)malloc(memFloatPlasma);
-			E_r = (float*)malloc(memFloatPlasma);
-			T_e = (float*)malloc(memFloatPlasma);
-			T_i = (float*)malloc(memFloatPlasma);
-			n_e = (float*)malloc(memFloatPlasma);
-			n_i = (float*)malloc(memFloatPlasma);
-			v_dr = (float*)malloc(memFloatPlasma);
-			Mach = (float*)malloc(memFloatPlasma);
-			
-			
-			// clear the end of file error flag
-			plasmaParamFile.clear();
-
-			// seek to the beginning  of the file
-			plasmaParamFile.seekg(0, std::ios::beg);
-
-			// skip the first line of the file
-			std::getline(plasmaParamFile, line);
-
-			// loop over the remaining lines in the file
-			// saving the dust positions
-			for (int i = 0; i < NUM_PLASMA_TIME; i++) {
-				// save the plasma variables
-				plasmaParamFile >> E_z[i];
-				plasmaParamFile >> E_r[i];
-				plasmaParamFile >> T_e[i];
-				plasmaParamFile >> T_i[i];
-				plasmaParamFile >> n_e[i];
-				plasmaParamFile >> n_i[i];
-				plasmaParamFile >> v_dr[i];
-				plasmaParamFile >> Mach[i];
-			}
-		}				
-	}
-	
-	debugFile << "Read in evolving plasma conditions" << std::endl;
+	///****** Evolving Plasma Parameters ******/
+//	
+//	if( TIME_EVOL == 1) {
+//	
+//		// pointer for Ez, Er, Te, Ti, ne, ni, Mach
+//		float* E_z = NULL;
+//		float* E_r = NULL;
+//		float* T_e = NULL;
+//		float* T_i = NULL;
+//		float* n_e = NULL;
+//		float* n_i = NULL;
+//		float* v_dr = NULL;
+//		float* Mach = NULL;
+//		
+//		// counts the number of timesteps for the evolving params
+//		int tempNumTimes = 0;
+//		
+//		// amount of memory required for the plasma values
+//		int memFloatPlasma = 0;
+//		
+//		// temporary holder for lines in the file
+//		std::string line;
+//		
+//		// skip the first line
+//		std::getline(plasmaParamFile,line);
+//		
+//		// count the remaining lines in the file
+//		while (std::getline(plasmaParamFile,line)) {
+//			tempNumTimes++;
+//		}
+//		
+//		// save the number of plasma timesteps
+//		const int NUM_PLASMA_TIME = tempNumTimes;
+//		
+//		// if there is at least one value
+//		if (NUM_PLASMA_TIME > 0) {
+//			// amount of memory required for the plasma variables;
+//			memFloatPlasma  = NUM_PLASMA_TIME * sizeof(float);
+//
+//			// allocate memory for the plasma variables
+//			E_z = (float*)malloc(memFloatPlasma);
+//			E_r = (float*)malloc(memFloatPlasma);
+//			T_e = (float*)malloc(memFloatPlasma);
+//			T_i = (float*)malloc(memFloatPlasma);
+//			n_e = (float*)malloc(memFloatPlasma);
+//			n_i = (float*)malloc(memFloatPlasma);
+//			v_dr = (float*)malloc(memFloatPlasma);
+//			Mach = (float*)malloc(memFloatPlasma);
+//			
+//			
+//			// clear the end of file error flag
+//			plasmaParamFile.clear();
+//
+//			// seek to the beginning  of the file
+//			plasmaParamFile.seekg(0, std::ios::beg);
+//
+//			// skip the first line of the file
+//			std::getline(plasmaParamFile, line);
+//
+//			// loop over the remaining lines in the file
+//			// saving the dust positions
+//			for (int i = 0; i < NUM_PLASMA_TIME; i++) {
+//				// save the plasma variables
+//				plasmaParamFile >> E_z[i];
+//				plasmaParamFile >> E_r[i];
+//				plasmaParamFile >> T_e[i];
+//				plasmaParamFile >> T_i[i];
+//				plasmaParamFile >> n_e[i];
+//				plasmaParamFile >> n_i[i];
+//				plasmaParamFile >> v_dr[i];
+//				plasmaParamFile >> Mach[i];
+//			}
+//		}				
+//	}
+//	
+//	debugFile << "Read in evolving plasma conditions" << std::endl;
 	
 	/****** Time Step Parameters ******/
 
