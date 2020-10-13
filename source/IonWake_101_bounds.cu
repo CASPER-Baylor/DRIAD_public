@@ -18,8 +18,11 @@
 *	resetIonBounds_101()
 *	initInjectIonSphere_101()
 *	initInjectIonCylinder_101()
-*   	invertFind_101()
+*   invertFind_101()
 *	init_101()
+*	boundaryEField_101()
+*	tileCalculation_101dev
+*	pointPointPotential_101dev()
 *
 */
 
@@ -1105,3 +1108,172 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 
 	return floatIndex;
 }	
+
+/*
+* Name: boundaryEField_101
+* Created: 10/10/20
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*
+* Description:
+*	Calculates the radial electric potential from ions outside the simulation boundary  
+*	Based on Fast N-body calculation, calculate_forces, Ch 31, GPU Gems
+*
+* Input:
+*	GRID_POS:positions in the r-z plane
+* 	GCYL_POS: positions within the cylindrical simulation region
+*	INV_DEBYE: 1/DEBYE, where DEBYE is electron Debye length
+*	DEN_ION: the number density of the ions
+*
+* Output (void):
+*	ionOutPotential: potential calculated at each point in GRID_POS due to ions
+*						contained within a box centered about GCYL_POS, summed 
+*						over all the GCYL_POS
+*
+*/
+
+__global__ void boundaryEField_101 
+	(float2* d_GRID_POS,
+	float4* d_GCYL_POS,
+	float* const d_INV_DEBYE,
+	float* const d_TABLE_POTENTIAL_MULT,
+	float* d_ionOutPotential) {
+	
+	// thread ID
+	int IDgrid = blockIdx.x * blockDim.x + threadIdx.x;
+
+	//initialize variables
+	//int i, tile;
+	float3 dist;
+	float distSquared, softdist;
+	float V = 0;
+	int tileThreadID;
+
+	// zero the potential at the Table lookup point
+    d_ionOutPotential[IDgrid] = 0;
+	
+	//allocated shared memory
+	extern __shared__ float4 sharedPos[];
+
+	// loop over all the 3D cylinder positions by using tiles, where each tile
+	// is a section of the GCYL_PTS loaded into shared memory. Each thread is
+	// responsible for loading one CYL_PT into the shared memory
+	for (int tileOffset = 0; tileOffset < 10752; tileOffset += blockDim.x){
+		// The index of the CYL_PT for the thread to load
+		tileThreadID = tileOffset + threadIdx.x;
+
+        // load in an cylinder grid position
+        sharedPos[threadIdx.x].x = d_GCYL_POS[tileThreadID].x;
+        sharedPos[threadIdx.x].y = d_GCYL_POS[tileThreadID].y;
+        sharedPos[threadIdx.x].z = d_GCYL_POS[tileThreadID].z;
+
+        // wait for all threads to load the current position
+        __syncthreads();
+
+        // loop over all of the CYL_PTS loaded in the tile
+        for (int h = 0; h < blockDim.x; h++) {
+
+            // calculate the distance between the cyl_pt in shared
+            // memory and the current grid point
+            dist.x = d_GRID_POS[IDgrid].x - sharedPos[h].x;
+            dist.y = 0 - sharedPos[h].y;
+            dist.z = d_GRID_POS[IDgrid].y - sharedPos[h].z;
+
+            // calculate the distance squared
+            distSquared = dist.x*dist.x + dist.y*dist.y + dist.z*dist.z;
+
+            // calculate the distance. Small offset prevents divide by zero.
+            softdist = __fsqrt_rn(distSquared+1e-14);
+
+            // Calculate the potential
+			//q_in_box = qi* ion_density * ddx*ddx*ddz;	
+			//k*qi*ddx*ddx*ddz in the w field of the GCYL_POS's float4 position.
+            //V += *d_DEN_FAR_PLASMA * sharedPos[h].w / softdist
+            V += *d_TABLE_POTENTIAL_MULT / softdist
+                * __expf(-softdist * *d_INV_DEBYE);
+
+        } // end loop over ion in tile
+
+        //wait for all threads to finish calculations
+        __syncthreads();
+    } //end loop over tiles
+
+    // save to global memory
+    d_ionOutPotential[IDgrid] += V;
+
+
+	//DEBUG
+	// N should be the number of cylinder points = 10752
+	// if p = 512, the size of a tile is p x p
+	// This loop will execute N/p = 21 times
+	//for (i = 0; tile = 0; i < 10752; i+= 512, tile++) {
+	//	int idx = tile * blockDim.x + threadIdx.x;
+	//	shPosition[threadIdx.x] = d_GCYL_POS[idx];
+	//	__syncthreads();
+	//	V = tile_calculation_101(gridPosition, *d_INV_DEBYE, *d_DEN_ION, V);
+	//	__syncthreads();
+	//	}
+	//	// Save the results in global memory
+	//	d_ionOutPotential[threadID] = V;
+}
+
+/*
+* Name:tile_calculation_101 
+* Created: 10/10/20
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*
+* Description:Evaluates potential from p GCYL_POS at p GRID_POS using
+*		a p x p tile.  
+*		Based on Fast N_body calculation, tile_calculation Ch 31 GPU Gems. 
+*/
+__device__ float tile_calculation_101(
+	float2 myPosition, 
+	float invdebye, 
+	float nq, 
+	float V) {
+
+	int i;
+	extern __shared__ float4 shPosition[];
+	for (i = 0; i < blockDim.x; i++) {
+	 //k*dx*dx*dz stored in the 4th position of shPosition
+     V = pointPointPotential_101(myPosition, shPosition[i], invdebye, nq, V);
+	 }
+	 return V; 
+} 
+	 
+/*
+* Name:pointPointPotential_101
+* Created: 10/10/20
+*
+* Editors
+*	Name: Lorin Matthews
+*	Contact: Lorin_Matthews@baylor.edu
+*
+* Description:Evaluates Yukawa potential at point bi from ions centered at bj 
+*		Based on Fast N_body calculation, bodyBodyInteraction Ch 31 GPU Gems. 
+*/
+ __device__ float pointPointPotential_101(
+	float2 bi, 
+	float4 bj, 
+	float invdebye, 
+	float ni, 
+	float vi) {
+
+	float3 r;
+	// r_ij  [3 FLOPS]
+	r.x = bj.x - bi.x;
+	r.y = bj.y - 0;
+	r.z = bj.z - bi.y;
+	// distSqr = dot(r_ij, r_ij) + EPS^2  [6 FLOPS]
+    float distSqr = r.x * r.x + r.y * r.y + r.z * r.z + 1e-13;
+	float dist = __fsqrt_rn(distSqr);
+	//q_in_box = qi* ion_density * ddx*ddx*ddz;	
+	//We store k*qi*ddx*ddx*ddz in the w field of the GCYL_POS's float4 position.
+    vi += ni * bj.w / dist * __expf(-dist*invdebye);
+	return vi; 
+} 

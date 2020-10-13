@@ -19,6 +19,9 @@
 *	initInjectIonCylinder_101()
 *   invertFind_101()
 *	init_101()
+*	boundaryEField_101()
+*	tile_calculation()
+*	pointPointPotential()
 *
 * Includes:
 *	checkIonDustBounds_101()
@@ -555,5 +558,77 @@ void initInjectIonCylinder_101(
 	*
 	*/	
 	__device__ float invertFind_101(float* const, int, float);
+
+
+/*
+ * Name: boundaryEField_101
+ * Created: 10/10/20
+ *
+ * Editors
+ *   Name: Lorin Matthews
+ *   Contact: Lorin_Matthews@baylor.edu
+ *
+ * Description:
+ *   Calculates the radial electric potential from ions outside the simulation boundary
+ *   Based on Fast N-body calculation, calculate_forces, Ch 31, GPU Gems
+ *
+ * Input:
+ *   GRID_POS:positions in the r-z plane
+ *   GCYL_POS: positions within the cylindrical simulation region
+ *   INV_DEBYE: 1/DEBYE, where DEBYE is electron Debye length
+ *   DEN_ION: the number density of the ions
+ *
+ * Output (void):
+ *  ionOutPotential: potential calculated at each point in GRID_POS due to ions
+ *                       contained within a box centered about GCYL_POS, summed
+ *                       over all the GCYL_POS
+ *
+ */
+
+__global__ void boundaryEField_101
+    (float2*,
+    float4*,
+    float* const,
+    float* const,
+    float*
+    );
 	
+
+/*
+ * Name:tile_calculation_101
+ * Created: 10/10/20
+ *
+ * Editors
+ *   Name: Lorin Matthews
+ *   Contact: Lorin_Matthews@baylor.edu
+ *
+ * Description:Evaluates potential from p GCYL_POS at p GRID_POS using
+ *       a p x p tile.
+ *       Based on Fast N_body calculation, tile_calculation Ch 31 GPU Gems.
+ */
+__device__ float tile_calculation_101(
+    float2 myPosition,
+    float invdebye,
+    float ni,
+    float V); 
+
+
+/*
+ * Name:pointPointPotential_101
+ * Created: 10/10/20
+ *
+ * Editors
+ *   Name: Lorin Matthews
+ *   Contact: Lorin_Matthews@baylor.edu
+ *
+ * Description:Evaluates Yukawa potential at point bi from ions centered at bj
+ *       Based on Fast N_body calculation, bodyBodyInteraction Ch 31 GPU Gems.
+ */
+ __device__ float pointPointPotential_101(
+    float2,
+    float4,
+    float,
+    float,
+    float);
+ 
 #endif // IONWAKE_101_BOUNDS

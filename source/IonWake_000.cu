@@ -183,6 +183,7 @@ int main(int argc, char* argv[])
 	// Number of threads per block
 	// has a limit of 1024 and should be a multiple of warp size
 	const unsigned int DIM_BLOCK = 1024;
+	const unsigned int DIM_BLOCK2 = 512;
 
 	// number of threads in a warp
 	const int WARP_SIZE = 32;
@@ -815,8 +816,8 @@ int main(int argc, char* argv[])
 	int blocksPerGridGrid = (NUM_GRID_PTS +1) / DIM_BLOCK;	
     /**********************/
 	
-    /******  Calculations on the Grid for Outside Ions  *******/
-	/** Actually integrate over the potential from ions
+    /******  Calculations for the Table Lookup for Outside Ions  *******/
+	/** Integrate over the potential from ions
 	 *	inside the cylinder -- these are "subtracted" from
 	 *	a constant potential to get potential inside cavity. **/
 
@@ -829,15 +830,11 @@ int main(int argc, char* argv[])
 	//This grid only covers half the xz-plane (r > 0)
 	memFloat2Grid = NUM_GRID_PTS/2 * sizeof(float2);
 	memFloatGrid  = NUM_GRID_PTS/2 * sizeof(float);
-	// amount of memory required for the positions within cylinder
-	int RESXc = 24;
-	int RESZc = 24;
-	int memFloat3DGrid = RESXc * RESXc * RESZc * sizeof(float4);
 
 	// allocate memory for the grid points and potential at those points 
 	GRID_POS = (float2*)malloc(memFloat2Grid);
-	GCYL_POS = (float4*)malloc(memFloat3DGrid);
 	ionOutPotential = (float*)malloc(memFloatGrid);
+
 	float dr = RAD_CYL/(RESX/2 - 1);
 	dz = 2.0*HT_CYL/(RESZ - 1);
 	
@@ -847,6 +844,7 @@ int main(int argc, char* argv[])
 		for (int x=0; x < RESX/2; x++) {
 			GRID_POS[RESX/2* z + x].x = dr * x;
 			GRID_POS[RESX/2* z + x].y = (-HT_CYL + dz * z);
+			ionOutPotential[RESX/2* z + x] = 0;
 		}
 	}
 	
@@ -857,6 +855,16 @@ int main(int argc, char* argv[])
 	}
 	ionPotOutsideFile << "" << std::endl;
 	
+	// amount of memory required for the positions within cylinder
+	int RESXc = 24;
+	int RESZc = 24;
+	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
+ 	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
+	int memFloat3DGrid = 10752 * sizeof(float4);
+
+	// allocate memory for the points in the cylinder
+	GCYL_POS = (float4*)malloc(memFloat3DGrid);
+
 	//Set up points within 3D cylinder
 	dx = 2.0*(RAD_CYL)/(RESXc);
 	dz = 2.0*HT_CYL/(RESZc);
@@ -866,8 +874,8 @@ int main(int argc, char* argv[])
 	int count = 0;
 
 	//Set up 3d positions of points inside the cylinder
-	// NUMBER OF POINTS WILL NOT BE A MULTIPLE OF 1024
-	// BUT RESZ is a multiple of 64
+	// NUMBER OF POINTS WILL IS A MULTIPLE OF 512
+	// RESZ is a multiple of 64
 	// Use float4 so that memory used is a multiple of 4
 	// The 4th memory position is used for ....???
 	//float dr_div_debye = dx/2*INV_DEBYE;
@@ -875,7 +883,8 @@ int main(int argc, char* argv[])
 	//					* (1-(1+dr_div_debye)*exp(-dr_div_debye));
 
 	//float ION_OUTSIDE_MULT = COULOMB_CONST * CHARGE_ION * 
-			//DEN_FAR_PLASMA * dr *dr *dz;
+	float kq_in_box = COULOMB_CONST * CHARGE_SINGLE_ION * dx *dx *dz;
+	float TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box;
 	for (int z =0; z < RESZc; z++) {
 		for (int y=0; y < RESXc; y++) {
 			for (int x=0; x < RESXc; x++) {
@@ -886,103 +895,29 @@ int main(int argc, char* argv[])
 					GCYL_POS[count].x = tempx;
 					GCYL_POS[count].y = tempy;
 					GCYL_POS[count].z = (-HT_CYL + dz/2.0 + dz * z);
-					GCYL_POS[count].w = 0;
+					GCYL_POS[count].w = kq_in_box;
 					count += 1;
 				}
 			}
 		}
 	}
 
-	debugFile <<  "Created cylinder positions " << std::endl;
-	debugFile << count  << std::endl ;
-
 	const int NUM_CYL_PTS = count;
-	// Need to get rid of the extra entries in gridPos2 -- allocated memory for
+	debugFile <<  "Created cylinder positions " << std::endl;
+	debugFile << NUM_CYL_PTS << std::endl ;
+	debugFile << "Expected number of cylinder positions = 10752" << std::endl;
+	debugFile << "kq_in_box "<< kq_in_box<< " dx, dz " << dx << ", " << dz << std::endl;
+
+	// Need to get rid of the extra entries in GCYL_PTS -- allocated memory for
 	// NUM_GRID_PTS, but only used NUM_CYL_PTS
-	
+	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
+ 	// Amount of memory allocated is 24^3 = 13824 pts. 	
 		
-	// number of blocks per grid for cyl points -- this is a multiple of 1024 (RESX/2*RESZ)
-	int blocksPerGridOut = (NUM_GRID_PTS/2 +1) / DIM_BLOCK;	
+	// number of blocks per grid for Table -- this is a multiple of 1024 (RESX/2*RESZ)
+	const int blocksPerTable= (NUM_GRID_PTS/2 +1) / DIM_BLOCK2;	
+	debugFile << " blocksPerTable " << blocksPerTable << std::endl << std::endl;
 	
     /**********************/
-	
-
-	///****** Evolving Plasma Parameters ******/
-//	
-//	if( TIME_EVOL == 1) {
-//	
-//		// pointer for Ez, Er, Te, Ti, ne, ni, Mach
-//		float* E_z = NULL;
-//		float* E_r = NULL;
-//		float* T_e = NULL;
-//		float* T_i = NULL;
-//		float* n_e = NULL;
-//		float* n_i = NULL;
-//		float* v_dr = NULL;
-//		float* Mach = NULL;
-//		
-//		// counts the number of timesteps for the evolving params
-//		int tempNumTimes = 0;
-//		
-//		// amount of memory required for the plasma values
-//		int memFloatPlasma = 0;
-//		
-//		// temporary holder for lines in the file
-//		std::string line;
-//		
-//		// skip the first line
-//		std::getline(plasmaParamFile,line);
-//		
-//		// count the remaining lines in the file
-//		while (std::getline(plasmaParamFile,line)) {
-//			tempNumTimes++;
-//		}
-//		
-//		// save the number of plasma timesteps
-//		const int NUM_PLASMA_TIME = tempNumTimes;
-//		
-//		// if there is at least one value
-//		if (NUM_PLASMA_TIME > 0) {
-//			// amount of memory required for the plasma variables;
-//			memFloatPlasma  = NUM_PLASMA_TIME * sizeof(float);
-//
-//			// allocate memory for the plasma variables
-//			E_z = (float*)malloc(memFloatPlasma);
-//			E_r = (float*)malloc(memFloatPlasma);
-//			T_e = (float*)malloc(memFloatPlasma);
-//			T_i = (float*)malloc(memFloatPlasma);
-//			n_e = (float*)malloc(memFloatPlasma);
-//			n_i = (float*)malloc(memFloatPlasma);
-//			v_dr = (float*)malloc(memFloatPlasma);
-//			Mach = (float*)malloc(memFloatPlasma);
-//			
-//			
-//			// clear the end of file error flag
-//			plasmaParamFile.clear();
-//
-//			// seek to the beginning  of the file
-//			plasmaParamFile.seekg(0, std::ios::beg);
-//
-//			// skip the first line of the file
-//			std::getline(plasmaParamFile, line);
-//
-//			// loop over the remaining lines in the file
-//			// saving the dust positions
-//			for (int i = 0; i < NUM_PLASMA_TIME; i++) {
-//				// save the plasma variables
-//				plasmaParamFile >> E_z[i];
-//				plasmaParamFile >> E_r[i];
-//				plasmaParamFile >> T_e[i];
-//				plasmaParamFile >> T_i[i];
-//				plasmaParamFile >> n_e[i];
-//				plasmaParamFile >> n_i[i];
-//				plasmaParamFile >> v_dr[i];
-//				plasmaParamFile >> Mach[i];
-//			}
-//		}				
-//	}
-//	
-//	debugFile << "Read in evolving plasma conditions" << std::endl;
 	
 	/****** Time Step Parameters ******/
 
@@ -1211,6 +1146,13 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	if(TIME_EVOL > 0) {
+		MACH = evolMach[0];
+		DRIFT_VEL_ION = evolVz[0];
+		TEMP_ELC = evolTe[0];
+		TEMP_ION = evolTi[0];
+	}	
+
 	// attempt to open input file for initial ion positions and velocities
 	fileName = inputDirName + "init-ions.txt";
 	std::ifstream ionInitFile(fileName.c_str());
@@ -1353,15 +1295,15 @@ int main(int argc, char* argv[])
 		<< '\n';
 
 		debugFile << "-- Initial Host Variables --" << std::endl;
-		debugFile << "First 20 ion positions: " << std::endl;
-		for (int i = 0; i < 20; i++) {
+		debugFile << "First 10 ion positions: " << std::endl;
+		for (int i = 0; i < 10; i++) {
 			debugFile << "X: " << posIon[i].x <<
 			" Y: " << posIon[i].y <<
 			" Z: " << posIon[i].z << std::endl;
 		}
 
-		debugFile << std::endl << "Last 20 ion positions: " << std::endl;
-		for (int i = 1; i <= 20; i++) {
+		debugFile << std::endl << "Last 10 ion positions: " << std::endl;
+		for (int i = 1; i <= 10; i++) {
 			int ID = NUM_ION - i;
 			debugFile << "X: "  << posIon[ID].x
 			<< " Y: " << posIon[ID].y
@@ -1369,15 +1311,15 @@ int main(int argc, char* argv[])
 			<< std::endl;
 		}
 
-		debugFile << std::endl << "First 20 ion velocities: " << std::endl;
-		for (int i = 0; i < 20; i++) {
+		debugFile << std::endl << "First 10 ion velocities: " << std::endl;
+		for (int i = 0; i < 10; i++) {
 			debugFile << "X: " << velIon[i].x <<
 			" Y: " << velIon[i].y <<
 			" Z: " << velIon[i].z << std::endl;
 		}
 
-		debugFile << std::endl << "Last 20 ion velocities: " << std::endl;
-		for (int i = 1; i <= 20; i++) {
+		debugFile << std::endl << "Last 10 ion velocities: " << std::endl;
+		for (int i = 1; i <= 10; i++) {
 			int ID = NUM_ION - i;
 			debugFile << "X: "  << velIon[ID].x
 			<< " Y: " << velIon[ID].y
@@ -1450,18 +1392,9 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_SIGMA_I_TOT(sigma_i_tot, I_CS_RANGES+1);
 	CUDAvar<int> d_collList(collList, NUM_ION);
 	CUDAvar<int> d_collision_counter(&collision_counter, 1);
-	CUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
-	CUDAvar<float> d_E_FIELD(&E_FIELD, 1);
-	CUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
-	CUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
-	CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
-	CUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
-	CUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
-	CUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
-	CUDAvar<float> d_RAD_COLL_MULT(&RAD_COLL_MULT, 1);
-	CUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
-	CUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
-	CUDAvar<float> d_MACH(&MACH, 1);
+	CUDAvar<float2> d_GRID_POS(GRID_POS, NUM_GRID_PTS/2);
+	CUDAvar<float4> d_GCYL_POS(GCYL_POS, NUM_CYL_PTS);
+	CUDAvar<float>	d_ionOutPotential(ionOutPotential, NUM_GRID_PTS/2);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	float hardDist = 0;
@@ -1492,6 +1425,62 @@ int main(int argc, char* argv[])
 	d_SIGMA_I_TOT.hostToDev();
 	d_collList.hostToDev();
 	d_collision_counter.hostToDev();
+	d_GRID_POS.hostToDev();
+	d_GCYL_POS.hostToDev();
+	d_ionOutPotential.hostToDev();
+
+	debugFile << "Calc'ing evolving params" << std::endl;
+
+	// Initialize evolving parameters for time-dependent plasma conditions
+	if(TIME_EVOL >0) {
+		counter = 0;
+		TEMP_ELC = evolTe[counter];
+		TEMP_ION = evolTi[counter];
+		DEN_FAR_PLASMA = evolni[counter];
+		MACH = evolMach[counter];
+		E_FIELD = evolEz[counter];
+		DRIFT_VEL_ION = evolVz[counter];
+
+		DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
+			(evolne[counter] * CHARGE_ELC * CHARGE_ELC));
+		INV_DEBYE = 1.0 / DEBYE;
+		SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
+		CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
+		MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
+		ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
+		ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+		SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
+		vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
+			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
+		RAD_COLL_MULT = 
+			2 * Q_DIV_M * COULOMB_CONST / RAD_DUST / vs_sq;
+		ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * evolne[counter]*
+			CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
+		EXTERN_ELC_MULT =
+       		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
+       		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
+       		(Q_DIV_M) / (PERM_FREE_SPACE);
+		TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box; 
+	}
+
+	//Create CUDA device pointers for the evolving parameters
+	CUDAvar<float> d_DEN_FAR_PLASMA(&DEN_FAR_PLASMA, 1);
+	CUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
+	CUDAvar<float> d_E_FIELD(&E_FIELD, 1);
+	CUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
+	CUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
+	CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
+	CUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
+	CUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
+	CUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
+	CUDAvar<float> d_RAD_COLL_MULT(&RAD_COLL_MULT, 1);
+	CUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
+	CUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
+	CUDAvar<float> d_MACH(&MACH, 1);
+	CUDAvar<float> d_TABLE_POTENTIAL_MULT(&TABLE_POTENTIAL_MULT, 1);
+
+	// copy evolving variables to the device
+	d_DEN_FAR_PLASMA.hostToDev();
 	d_INV_DEBYE.hostToDev();
 	d_E_FIELD.hostToDev();
 	d_TEMP_ION.hostToDev();
@@ -1504,10 +1493,34 @@ int main(int argc, char* argv[])
 	d_EXTERN_ELC_MULT.hostToDev();
 	d_TEMP_ELC.hostToDev();
 	d_MACH.hostToDev();
+	d_TABLE_POTENTIAL_MULT.hostToDev();
 
 	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", false);
 
-	//Set the potential and density on the grid to zero
+	//Set the radial electric field for boundary condition
+	boundaryEField_101<<<blocksPerTable, DIM_BLOCK2, sizeof(float4) * DIM_BLOCK2>>>
+		(d_GRID_POS.getDevPtr(),
+		d_GCYL_POS.getDevPtr(),
+		d_INV_DEBYE.getDevPtr(),
+		d_TABLE_POTENTIAL_MULT.getDevPtr(),
+		d_ionOutPotential.getDevPtr());
+
+	roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
+
+	debugFile << " calc'ed boundary condition " << std::endl;
+
+	//DEBUG Copy back the host, print out to check
+	d_ionOutPotential.devToHost();
+	
+	debugFile << "TABLE_POTENTIAL_MULT " << TABLE_POTENTIAL_MULT << std::endl;
+	//output potential at the grid positions such that matlab can read them in
+	for (int j =0; j< NUM_GRID_PTS/2; j++) {
+		ionPotOutsideFile << ionOutPotential[j] << std::endl;
+	}
+	ionPotOutsideFile << "" << std::endl;
+	
+	
+	//Set the potential and density of ions on the grid to zero
 	zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
 		(d_ionPotential.getDevPtr(),
 		 d_ionDensity.getDevPtr());
@@ -1528,13 +1541,6 @@ int main(int argc, char* argv[])
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
 
 	roadBlock_104(statusFile, __LINE__, __FILE__, "init_101", false);
-	
-	if(TIME_EVOL ==1) {
-		MACH = evolMach[0];
-		DRIFT_VEL_ION = evolVz[0];
-		TEMP_ELC = evolTe[0];
-		TEMP_ION = evolTi[0];
-	}	
 
 	// initialize variables needed for injecting ions with the Piel 2017 method
 	if(GEOMETRY == 0) {
@@ -1571,11 +1577,11 @@ int main(int argc, char* argv[])
 			d_GCOM.getDevPtr(),
 			debugMode,
 			debugFile);
+
 	}
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "Pause before timestep", false);	
 
-	
 	/*************************
 		Time Step
 	*************************/
@@ -1860,7 +1866,7 @@ int main(int argc, char* argv[])
 					d_CHARGE_ION.getDevPtr(),
 					xac); // <--
 		
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonCylinder", false);
 			}
 	
 			// Calculate the ion forces on the dust
@@ -1873,7 +1879,7 @@ int main(int argc, char* argv[])
 				d_INV_DEBYE.getDevPtr(),
 				d_DUST_ION_ACC_MULT.getDevPtr()); 
 	
-			roadBlock_104(  statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
 
 			// calc ion number density and ion potential
 			calcIonDensityPotential_102 
@@ -1885,7 +1891,7 @@ int main(int argc, char* argv[])
 				 d_NUM_ION.getDevPtr(),
 				 d_ionPotential.getDevPtr(),
 				 d_ionDensity.getDevPtr());
-			roadBlock_104(  statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region
