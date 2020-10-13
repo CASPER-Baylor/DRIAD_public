@@ -856,8 +856,8 @@ int main(int argc, char* argv[])
 	ionPotOutsideFile << "" << std::endl;
 	
 	// amount of memory required for the positions within cylinder
-	int RESXc = 36;
-	int RESZc = 36;
+	int RESXc = 20;
+	int RESZc = 64;
 	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
  	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
 	int memFloat3DGrid = RESXc * RESXc *RESZc * sizeof(float4);
@@ -878,7 +878,7 @@ int main(int argc, char* argv[])
 	// NUMBER OF POINTS WILL IS A MULTIPLE OF 512
 	// RESZ is a multiple of 64
 	// Use float4 so that memory used is a multiple of 4
-	// The 4th memory position is used for ....???
+	// The 4th memory position is used to tell if point is inside cylinder
 	//float dr_div_debye = dx/2*INV_DEBYE;
 	//float multiplier=CHARGE_SINGLE_ION*n_i*DEBYE*DEBYE/PERM_FREE_SPACE
 	//					* (1-(1+dr_div_debye)*exp(-dr_div_debye));
