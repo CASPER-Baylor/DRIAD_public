@@ -1137,6 +1137,7 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 __global__ void boundaryEField_101 
 	(float2* d_GRID_POS,
 	float4* d_GCYL_POS,
+	int* const d_NUM_CYL_PTS,
 	float* const d_INV_DEBYE,
 	float* const d_TABLE_POTENTIAL_MULT,
 	float* d_ionOutPotential) {
@@ -1160,7 +1161,7 @@ __global__ void boundaryEField_101
 	// loop over all the 3D cylinder positions by using tiles, where each tile
 	// is a section of the GCYL_PTS loaded into shared memory. Each thread is
 	// responsible for loading one CYL_PT into the shared memory
-	for (int tileOffset = 0; tileOffset < 10752; tileOffset += blockDim.x){
+	for (int tileOffset = 0; tileOffset < *d_NUM_CYL_PTS; tileOffset += blockDim.x){
 		// The index of the CYL_PT for the thread to load
 		tileThreadID = tileOffset + threadIdx.x;
 
@@ -1168,6 +1169,7 @@ __global__ void boundaryEField_101
         sharedPos[threadIdx.x].x = d_GCYL_POS[tileThreadID].x;
         sharedPos[threadIdx.x].y = d_GCYL_POS[tileThreadID].y;
         sharedPos[threadIdx.x].z = d_GCYL_POS[tileThreadID].z;
+        sharedPos[threadIdx.x].w = d_GCYL_POS[tileThreadID].w;
 
         // wait for all threads to load the current position
         __syncthreads();
@@ -1191,7 +1193,7 @@ __global__ void boundaryEField_101
 			//q_in_box = qi* ion_density * ddx*ddx*ddz;	
 			//k*qi*ddx*ddx*ddz in the w field of the GCYL_POS's float4 position.
             //V += *d_DEN_FAR_PLASMA * sharedPos[h].w / softdist
-            V += *d_TABLE_POTENTIAL_MULT / softdist
+            V += *d_TABLE_POTENTIAL_MULT *sharedPos[h].w / softdist
                 * __expf(-softdist * *d_INV_DEBYE);
 
         } // end loop over ion in tile

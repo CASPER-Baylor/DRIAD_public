@@ -856,18 +856,19 @@ int main(int argc, char* argv[])
 	ionPotOutsideFile << "" << std::endl;
 	
 	// amount of memory required for the positions within cylinder
-	int RESXc = 24;
-	int RESZc = 24;
+	int RESXc = 36;
+	int RESZc = 36;
 	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
  	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
-	int memFloat3DGrid = 10752 * sizeof(float4);
+	int memFloat3DGrid = RESXc * RESXc *RESZc * sizeof(float4);
 
 	// allocate memory for the points in the cylinder
 	GCYL_POS = (float4*)malloc(memFloat3DGrid);
 
-	//Set up points within 3D cylinder
-	dx = 2.0*(RAD_CYL)/(RESXc);
-	dz = 2.0*HT_CYL/(RESZc);
+	//Set up points within 3D cylinder -- bring in edges slightly
+	// so that points don't overlap with GRID_POS
+	dx = 2.0*(RAD_CYL-1e-5)/(RESXc);
+	dz = 2.0*(HT_CYL-1e-5)/(RESZc);
 
 	float tempx;
 	float tempy;
@@ -888,21 +889,25 @@ int main(int argc, char* argv[])
 	for (int z =0; z < RESZc; z++) {
 		for (int y=0; y < RESXc; y++) {
 			for (int x=0; x < RESXc; x++) {
-				tempx = (-(RAD_CYL) + dx/2.0 + dx * x);
-				tempy = (-(RAD_CYL) + dx/2.0 + dx * y);
+				tempx = -(RAD_CYL-1e-5) + dx/2.0 + dx * x;
+				tempy = -(RAD_CYL-1e-5) + dx/2.0 + dx * y;
 				//only save points inside cylinder
 				if(tempx*tempx+tempy*tempy < RAD_CYL*RAD_CYL){
-					GCYL_POS[count].x = tempx;
-					GCYL_POS[count].y = tempy;
-					GCYL_POS[count].z = (-HT_CYL + dz/2.0 + dz * z);
-					GCYL_POS[count].w = kq_in_box;
+					GCYL_POS[count].w = 1;
 					count += 1;
 				}
+				else {
+					GCYL_POS[count].w = 0;
+				}
+					GCYL_POS[count].x = tempx;
+					GCYL_POS[count].y = tempy;
+					GCYL_POS[count].z = -(HT_CYL-1e-5) + dz/2.0 + dz * z;
 			}
 		}
 	}
 
-	const int NUM_CYL_PTS = count;
+	//const int NUM_CYL_PTS = count;
+	const int NUM_CYL_PTS = RESXc * RESXc *RESZc;
 	debugFile <<  "Created cylinder positions " << std::endl;
 	debugFile << NUM_CYL_PTS << std::endl ;
 	debugFile << "Expected number of cylinder positions = 10752" << std::endl;
@@ -1369,6 +1374,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<int> d_MAX_DEPTH(&MAX_DEPTH, 1);
 	constCUDAvar<int> d_I_CS_RANGES(&I_CS_RANGES, 1);
 	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
+	constCUDAvar<int> d_NUM_CYL_PTS(&NUM_CYL_PTS, 1);
 
 	// create device pointers
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1428,6 +1434,7 @@ int main(int argc, char* argv[])
 	d_GRID_POS.hostToDev();
 	d_GCYL_POS.hostToDev();
 	d_ionOutPotential.hostToDev();
+
 
 	debugFile << "Calc'ing evolving params" << std::endl;
 
@@ -1501,6 +1508,7 @@ int main(int argc, char* argv[])
 	boundaryEField_101<<<blocksPerTable, DIM_BLOCK2, sizeof(float4) * DIM_BLOCK2>>>
 		(d_GRID_POS.getDevPtr(),
 		d_GCYL_POS.getDevPtr(),
+		d_NUM_CYL_PTS.getDevPtr(),
 		d_INV_DEBYE.getDevPtr(),
 		d_TABLE_POTENTIAL_MULT.getDevPtr(),
 		d_ionOutPotential.getDevPtr());

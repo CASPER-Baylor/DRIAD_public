@@ -588,6 +588,7 @@ void initInjectIonCylinder_101(
 __global__ void boundaryEField_101
     (float2*,
     float4*,
+	int* const,
     float* const,
     float* const,
     float*
