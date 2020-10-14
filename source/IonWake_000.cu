@@ -835,16 +835,17 @@ int main(int argc, char* argv[])
 	GRID_POS = (float2*)malloc(memFloat2Grid);
 	ionOutPotential = (float*)malloc(memFloatGrid);
 
-	float dr = RAD_CYL/(RESX/2 - 1);
+	int NUMR = RESX/2;
+	float dr = RAD_CYL/(NUMR - 1);
 	dz = 2.0*HT_CYL/(RESZ - 1);
 	
 	//Set up grid for calculating outside ion potential
 	// using cylindrical symmetry, NUM_R = RESX/2
 	for (int z =0; z < RESZ; z++) {
-		for (int x=0; x < RESX/2; x++) {
-			GRID_POS[RESX/2* z + x].x = dr * x;
-			GRID_POS[RESX/2* z + x].y = (-HT_CYL + dz * z);
-			ionOutPotential[RESX/2* z + x] = 0;
+		for (int x=0; x < NUMR; x++) {
+			GRID_POS[NUMR* z + x].x = dr * x;
+			GRID_POS[NUMR* z + x].y = (-HT_CYL + dz * z);
+			ionOutPotential[NUMR* z + x] = 0;
 		}
 	}
 	
@@ -868,7 +869,7 @@ int main(int argc, char* argv[])
 	//Set up points within 3D cylinder -- bring in edges slightly
 	// so that points don't overlap with GRID_POS
 	dx = 2.0*(RAD_CYL-1e-5)/(RESXc);
-	dz = 2.0*(HT_CYL-1e-5)/(RESZc);
+	float dz2 = 2.0*(HT_CYL-1e-5)/(RESZc);
 
 	float tempx;
 	float tempy;
@@ -884,7 +885,7 @@ int main(int argc, char* argv[])
 	//					* (1-(1+dr_div_debye)*exp(-dr_div_debye));
 
 	//float ION_OUTSIDE_MULT = COULOMB_CONST * CHARGE_ION * 
-	float kq_in_box = COULOMB_CONST * CHARGE_SINGLE_ION * dx *dx *dz;
+	float kq_in_box = COULOMB_CONST * CHARGE_SINGLE_ION * dx *dx *dz2;
 	float TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box;
 	for (int z =0; z < RESZc; z++) {
 		for (int y=0; y < RESXc; y++) {
@@ -901,7 +902,7 @@ int main(int argc, char* argv[])
 				}
 					GCYL_POS[count].x = tempx;
 					GCYL_POS[count].y = tempy;
-					GCYL_POS[count].z = -(HT_CYL-1e-5) + dz/2.0 + dz * z;
+					GCYL_POS[count].z = -(HT_CYL-1e-5) + dz2/2.0 + dz2 * z;
 			}
 		}
 	}
@@ -909,9 +910,7 @@ int main(int argc, char* argv[])
 	//const int NUM_CYL_PTS = count;
 	const int NUM_CYL_PTS = RESXc * RESXc *RESZc;
 	debugFile <<  "Created cylinder positions " << std::endl;
-	debugFile << NUM_CYL_PTS << std::endl ;
-	debugFile << "Expected number of cylinder positions = 10752" << std::endl;
-	debugFile << "kq_in_box "<< kq_in_box<< " dx, dz " << dx << ", " << dz << std::endl;
+	debugFile << NUM_CYL_PTS << std::endl << std::endl;
 
 	// Need to get rid of the extra entries in GCYL_PTS -- allocated memory for
 	// NUM_GRID_PTS, but only used NUM_CYL_PTS
@@ -1375,6 +1374,9 @@ int main(int argc, char* argv[])
 	constCUDAvar<int> d_I_CS_RANGES(&I_CS_RANGES, 1);
 	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
 	constCUDAvar<int> d_NUM_CYL_PTS(&NUM_CYL_PTS, 1);
+	constCUDAvar<int> d_NUMR(&NUMR, 1);
+	constCUDAvar<float> d_dr(&dr, 1);
+	constCUDAvar<float> d_dz(&dz, 1);
 
 	// create device pointers
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1706,14 +1708,11 @@ int main(int argc, char* argv[])
 			d_accIon.getDevPtr(), // {{{
 			d_posIon.getDevPtr(), 
 			d_Q_DIV_M.getDevPtr(),
-			d_P10X.getDevPtr(),
-			d_P20X.getDevPtr(),
-			d_P30X.getDevPtr(),
-			d_P01Z.getDevPtr(),
-			d_P21Z.getDevPtr(),
-			d_P03Z.getDevPtr(),
-			d_P23Z.getDevPtr(),
-			d_P05Z.getDevPtr(),
+			d_HT_CYL.getDevPtr(),
+			d_ionOutPotential.getDevPtr(),
+			d_NUMR.getDevPtr(),
+			d_dz.getDevPtr(),
+			d_dr.getDevPtr(),
 			d_E_FIELD.getDevPtr(),
 			E_direction);
 
@@ -1936,19 +1935,30 @@ int main(int argc, char* argv[])
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
-				calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-					d_accIon.getDevPtr(), // {{{
-					d_posIon.getDevPtr(), // <--
-					d_Q_DIV_M.getDevPtr(),
-					d_P10X.getDevPtr(),
-					d_P20X.getDevPtr(),
-					d_P30X.getDevPtr(),
-					d_P01Z.getDevPtr(),
-					d_P21Z.getDevPtr(),
-					d_P03Z.getDevPtr(),
-					d_P23Z.getDevPtr(),
-					d_P05Z.getDevPtr(),
-					d_E_FIELD.getDevPtr(),
+		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_accIon.getDevPtr(), // {{{
+			d_posIon.getDevPtr(), 
+			d_Q_DIV_M.getDevPtr(),
+			d_HT_CYL.getDevPtr(),
+			d_ionOutPotential.getDevPtr(),
+			d_NUMR.getDevPtr(),
+			d_dz.getDevPtr(),
+			d_dr.getDevPtr(),
+			d_E_FIELD.getDevPtr(),
+			E_direction);
+		//		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		//			d_accIon.getDevPtr(), // {{{
+		//			d_posIon.getDevPtr(), // <--
+		//			d_Q_DIV_M.getDevPtr(),
+		//			d_P10X.getDevPtr(),
+		//			d_P20X.getDevPtr(),
+		//			d_P30X.getDevPtr(),
+		//			d_P01Z.getDevPtr(),
+		//			d_P21Z.getDevPtr(),
+		//			d_P03Z.getDevPtr(),
+		//			d_P23Z.getDevPtr(),
+		//			d_P05Z.getDevPtr(),
+		//			d_E_FIELD.getDevPtr(),
 					E_direction);
 
 				roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);

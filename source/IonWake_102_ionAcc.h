@@ -188,7 +188,7 @@
 /*
 * Name: calcExtrnElcAccCyl_102
 * Created: 11/18/2017
-* last edit: 11/18/2017
+* last edit: 10/13/2020
 *
 * Editors
 *       Name: Lorin Matthews
@@ -197,20 +197,20 @@
 *
 * Description:
 *       calculates the acceleration on the ions due to the electric field created
-*   by the ions outside of a simulation cylinder.
+*   by the ions outside of a simulation cylinder. This is implemented using a table
+*   lookup for the potential calculated for ions outside the cylinder. 
 *
 * Input:
 *       d_accIon: ion accelerations
 *       d_posIon: ion positions and charges
 *       d_Q_DIV_M:  charge to mass ratio
-*       d_p10x: coefficient for radial E field
-*       d_p12x: coefficient for radial E field
-*       d_p14x: coefficient for radial E field
-*       d_p01z: coefficient for vertical E field
-*       d_p21z: coefficient for vertical E field
-*       d_p03z: coefficient for vertical E field
-*       d_p23z: coefficient for vertical E field
-*       d_p05z: coefficient for vertical E field
+* 		d_HT_CYL: half the cylinder height
+* 		d_ionOutPotential; potential of ions outside the simulation cylinder
+* 		d_NUMR: number of grid points in r-direction
+* 		d_dz: increment in z between grid points
+* 		d_dr: increment in r between grid points
+* 		d_Esheath: DC electric field in plasma column
+* 		E_dir: direction of electric field (and ion flow)
 *
 * Output (void):
 *       d_accIon: the acceleration due to the outside electric
@@ -236,8 +236,11 @@ __global__ void calcExtrnElcAccCyl_102
        (float4*,
         float4*,
         float*,
-        float*, float*,float* ,
-        float*, float*,float*, float*,float*,
+		float* const,
+		float*,
+		int*,
+		float*,
+		float*,
 		float*, int);
 
 /*

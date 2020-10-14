@@ -334,29 +334,27 @@ __global__ void calcExtrnElcAcc_102
 /*
 * Name: calcExtrnElcAccCyl_102
 * Created: 11/18/2017
-* last edit: 11/18/2017
+* last edit: 10/13/2020
 *
 * Editors
 *	Name: Lorin Matthews
 *	Contact: Lorin_Matthews@baylor.edu
-*	last edit: 11/18/2017
+*	last edit: 10/13/2020
 *
 * Description:
 *	calculates the acceleration on the ions due to the electric field created 
-*   by the ions outside of a simulation cylinder.
+*   by the ions outside of a simulation cylinder. implemented using a table lookup
+*	from the potential of ions from outside the cylinder.
 *
 * Input:
 *	d_accIon: ion accelerations
 *	d_posIon: ion positions and charges
 *	d_Q_DIV_M:  charge to mass ratio
-*	d_p10x: coefficient for radial E field
-*	d_p20x: coefficient for radial E field
-*	d_p30x: coefficient for radial E field
-*	d_p01z: coefficient for vertical E field
-*	d_p21z: coefficient for vertical E field
-*	d_p03z: coefficient for vertical E field
-*	d_p23z: coefficient for vertical E field
-*	d_p05z: coefficient for vertical E field
+*   d_HT_CYL: half the cylinder height
+*	d_ionOutPotential: potential of ions outside the simulation cylinder
+*   d_NUMR: number of grid points in r-direction
+*   d_dz: increment in z between grid points
+*   d_dr: increment in r between grid points
 *	d_Esheath: sheath/DC electric field (z-direction)
 *	E_dir: direction of polarity-switched DC field
 *
@@ -383,19 +381,21 @@ __global__ void calcExtrnElcAccCyl_102
 	(float4* d_accIon, 
     float4* d_posIon, 
 	float* d_Q_DIV_M,
-	float* d_p10x, 
-	float* d_p20x,
-	float* d_p30x,
-	float* d_p01z, 
-	float* d_p21z,
-	float* d_p03z, 
-	float* d_p23z,
-	float* d_p05z,
+	float* const d_HT_CYL,
+	float* d_ionOutPotential, 
+	int* d_NUMR,
+	float* d_dz, 
+    float* d_dr,
 	float* d_Esheath,
 	int E_dir) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
+
+	//local variables
+	float temp, x1, frac_r, z1, frac_z; 
+	int pt0, pt1, pt2, pt3, pt4, pt5, pt6, pt7;
+	float Ex;
 
 	// get the radius of the ion from the center axis of the
 	// simulation cylinder. The center is assumed to be (0,0,z)
@@ -405,26 +405,101 @@ __global__ void calcExtrnElcAccCyl_102
 
 	// get the z position of the ion
 	float z = d_posIon[ID].z;
-	float zsq = z * z;
 
+	//find the column index of xg to left of r
+	temp = rad / *d_dr;
+	x1 = static_cast<int>(temp);
+	//fractional remainder
+	frac_r = temp-x1;	
+	
+	// Add HT_CYL to pos.z to make it a positive distance.
+	// Find the row index of zg below z. 
+	temp = (z+ *d_HT_CYL) / *d_dz;
+	//integer part -- tells how many rows up
+	z1 = static_cast<int>(temp);
+	//fractional remainder
+	frac_z = temp-z1;
+	
+	//Find the four grid points surrounding the ion position. Will also
+	//need the grid points to the left and right of these.
+	//First, the gridpoints on the row below pos_Ion
+	pt1 = x1 + z1 * *d_NUMR; //pt below and to the left
+	pt2 = pt1 + 1;
+	pt0 = pt1 - 1;
+	pt3 = pt1 + 2;
+	//Next, the grid points on the row above pos_Ion
+	pt4 = pt0 + *d_NUMR;
+	pt5 = pt1 + *d_NUMR;
+	pt6 = pt2 + *d_NUMR;
+	pt7 = pt3 + *d_NUMR;
+	
+	// Calculate Ex at the posIon by taking the -gradient of the potential
+	// known on the grid points.  
+	//Treat special cases for positions which are on edges of grid.
+	if( x1 == 0) { 
+		// on the left edge
+		Ex = (((d_ionOutPotential[pt7] + 
+			2 * d_ionOutPotential[pt6] - 
+			3 * d_ionOutPotential[pt5]) * frac_z) +
+		  (d_ionOutPotential[pt2] + 
+			2 * d_ionOutPotential[pt1] - 
+			3 * d_ionOutPotential[pt0]) * (*d_dz - frac_z))/(2 * *d_dr);		
+	}
+	else if ( x1 == (*d_NUMR -1)) {
+		// on the right edge
+		Ex = (((2 * d_ionOutPotential[pt6] - 
+			d_ionOutPotential[pt5] - 
+			d_ionOutPotential[pt7]) * frac_z) +
+		  (2 * d_ionOutPotential[pt2] - 
+			d_ionOutPotential[pt3] - 
+			d_ionOutPotential[pt1]) * (*d_dz - frac_z))/(2 * *d_dr);
+	}
+	else {
+		// in the middle of the grid
+		//Determine the electric field at the four points
+		//surrounding ionPos.
+		//Ex1 = -(*d_ionOutPotential[pt2] - *d_ionOutPotential[pt0]) / (2 * *d_dr);
+		//Ex2 = -(*d_ionOutPotential[pt3] - *d_ionOutPotential[pt1]) / (2 * *d_dr);
+		//Ex3 = -(*d_ionOutPotential[pt6] - *d_ionOutPotential[pt4]) / (2 * *d_dr);
+		//Ex4 = -(*d_ionOutPotential[pt7] - *d_ionOutPotential[pt5]) / (2 * *d_dr);
+	
+		// Use an areal-weighting scheme to perform
+		// the 2D table lookup.
+		Ex = ((d_ionOutPotential[pt0] - 
+				d_ionOutPotential[pt2]) * (*d_dr-frac_r)*(*d_dz - frac_z) +
+			  (d_ionOutPotential[pt1] - 
+				d_ionOutPotential[pt3]) * frac_r * (*d_dz - frac_z) +
+			  (d_ionOutPotential[pt4] - 
+				d_ionOutPotential[pt6]) * (*d_dr - frac_r) * frac_z +
+			  (d_ionOutPotential[pt5] - 
+				d_ionOutPotential[pt7]) * frac_r * frac_z)/ (2 * *d_dr);
+	}
+
+	// multiply by the vector distance to the center of 
+	// the simulation radius and add it to the ion
+	// acceleration
+	d_accIon[ID].x += Ex * *d_Q_DIV_M * d_posIon[ID].x / rad ;
+	d_accIon[ID].y += Ex * *d_Q_DIV_M * d_posIon[ID].y / rad;
+
+	//float zsq = z * z;
 	// calculate the radial component of the acceleration
 	// Since this has to be turned into vector components, it
 	// is divided by rad.
 	//float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
-	float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
-
+	//float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
+	//
 	// calculate vertical component of the acceleration
 	//float vertAcc = *d_p01z * z +
 	//		*d_p21z * rad * rad * z +
 	//		*d_p03z * z * zsq +
 	//		*d_p23z * rad * rad * z * zsq +
 	//		*d_p05z * z * zsq * zsq;
-
+	//
 	// multiply by the vector distance to the center of 
 	// the simulation radius and add it to the ion
 	// acceleration
-	d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
-	d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
+	//d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
+	//d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
 	//d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
 
 	// add acceleration of ions by external electric field
