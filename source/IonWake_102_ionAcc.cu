@@ -96,10 +96,11 @@ __global__ void calcIonIonAcc_102
 		// for the current tile
 		tileThreadID = tileOffset + threadIdx.x; 
 
-		// load in an ion position
+		// load in an ion position and charge
 		sharedPos[threadIdx.x].x = d_posIon[tileThreadID].x;
 		sharedPos[threadIdx.x].y = d_posIon[tileThreadID].y;
 		sharedPos[threadIdx.x].z = d_posIon[tileThreadID].z;
+		sharedPos[threadIdx.x].w = d_posIon[tileThreadID].w;
 		
 		// wait for all threads to load the current position
 		__syncthreads();
@@ -130,8 +131,9 @@ __global__ void calcIonIonAcc_102
 			// calculate the soft distance
 			softDist = __fsqrt_rn(distSquared + *d_SOFT_RAD_SQRD);
 
-			// calculate a scaler intermediate
-			linForce = *d_ION_ION_ACC_MULT*(1.0 + (hardDist**d_INV_DEBYE))
+			// calculate a scalar intermediate
+			linForce = *d_ION_ION_ACC_MULT* sharedPos[IDcrntIon].w * 
+				(1.0 + (hardDist**d_INV_DEBYE))
 				*__expf(-hardDist**d_INV_DEBYE) / (softDist*softDist*softDist);
 
 			// add the acceleration to the current ion's acceleration
@@ -526,7 +528,8 @@ __global__ void calcExtrnElcAccCyl_102
 * Input:
 *	d_posIion: ion positions
 *	d_gridPos: the grid points in xz-plane
-*	d_ION_POTENTIAL_MULT
+*	//d_ION_POTENTIAL_MULT
+*	d_COULOMB_CONST
 *	d_INV_DEBYE
 *
 * Output (void):
@@ -544,7 +547,7 @@ __global__ void calcExtrnElcAccCyl_102
 __global__ void calcIonDensityPotential_102
 	(float2* d_gridPos,
 	 float4* d_posIon,
-	 float * const d_ION_POTENTIAL_MULT,
+	 float * const d_COULOMB_CONST,
 	 float * const d_INV_DEBYE,
 	 int * const d_NUM_ION,
 	 float * d_ionPotential,
@@ -584,6 +587,7 @@ __global__ void calcIonDensityPotential_102
 		sharedPos[threadIdx.x].x = d_posIon[tileThreadID].x;
 		sharedPos[threadIdx.x].y = d_posIon[tileThreadID].y;
 		sharedPos[threadIdx.x].z = d_posIon[tileThreadID].z;
+		sharedPos[threadIdx.x].w = d_posIon[tileThreadID].w;
 		
 		// wait for all threads to load the current position
 		__syncthreads();
@@ -605,11 +609,15 @@ __global__ void calcIonDensityPotential_102
 			hardDist = __fsqrt_rn(distSquared);
 			
 			// Calculate the potential
-			potCrntGrid += *d_ION_POTENTIAL_MULT / hardDist
+			potCrntGrid += *d_COULOMB_CONST * sharedPos[h].w / hardDist
 				* __expf(-hardDist * *d_INV_DEBYE);
 			
 			if(hardDist <= r_dens){
-				densCrntGrid += 1;
+			// Update density.  sharedPos[h].w is the total charge on 
+			// this super-ion=SUPER_ION_MULT*CHARGE_SINGLE_ION. The density 
+			// is SUPER_ION_MULT*DEN_FAR_PLASMA. Need to divide by 
+			// CHARGE_SINGLE_ION before printing.  
+				densCrntGrid += sharedPos[h].w ;
 			} 
 
 		} // end loop over ion in tile

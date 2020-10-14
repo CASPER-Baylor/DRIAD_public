@@ -28,7 +28,7 @@
 *	d_NUM_ION: the number of ions
 *
 * Output (void):
-*	d_accDustIon: the acceleration on each dust partice from each ion 
+*	d_accDustIon: the acceleration on each dust particle from each ion 
 *		(has length NUM_DUST * NUM_ION)
 *	
 * Assumptions:
@@ -73,7 +73,7 @@ __global__ void calcDustIonAcc_103(
 		sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
 		// calculate a scalar intermediate
-		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w / 
+		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w * d_posIon.w / 
 			(sDist * sDist * sDist)
 			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 

@@ -338,20 +338,19 @@ int main(int argc, char* argv[])
 	const float Q_DIV_M = CHARGE_ION / MASS_ION;										 
 
 	// a constant multiplier for acceleration due to Ion Ion forces
-	float ION_ION_ACC_MULT =
-		(CHARGE_ION * CHARGE_ION) / (4.0 * PI * PERM_FREE_SPACE * MASS_ION);
+	float ION_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
 
-	// a constant multiplier for acceleration due to Ion Dust forces
+	// a constant multiplier for acceleration of Ions due to Dust forces
 	const float ION_DUST_ACC_MULT = COULOMB_CONST * Q_DIV_M;
 
-	// a constant multiplier for accelerations due to Dust Ion forces
-	const float DUST_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
+	// a constant multiplier for acceleration of Dust due to Ion forces
+	const float DUST_ION_ACC_MULT = COULOMB_CONST / MASS_DUST;
 	
 	// a constant muliplier for accleration due to Dust Dust forces
 	const float DUST_DUST_ACC_MULT = COULOMB_CONST / MASS_DUST;
 
 	// a constant multiplier for ion potential 
-	float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+	//float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
 	
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
@@ -533,7 +532,7 @@ int main(int argc, char* argv[])
 		<< "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
 		<< "DUST_ION_ACC_MULT " << DUST_ION_ACC_MULT << '\n'
 		<< "DUST_DUST_ACC_MULT " << DUST_DUST_ACC_MULT << '\n'
-		<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
+		//<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
 		<< "RAD_COLL_MULT     " << RAD_COLL_MULT	 << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
@@ -623,7 +622,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
 	<< std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
 	<< std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
-	<< std::setw(14) << ION_POTENTIAL_MULT << " % ION_POTENTIAL_MULT" << '\n'
+	//<< std::setw(14) << ION_POTENTIAL_MULT << " % ION_POTENTIAL_MULT" << '\n'
 	<< std::setw(14) << RAD_COLL_MULT 	  << " % RAD_COLL_MULT" 	<< '\n'
 	<< std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
 	<< std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
@@ -1340,6 +1339,8 @@ int main(int argc, char* argv[])
 	roadBlock_104(statusFile, __LINE__, __FILE__, "before variables", false);
 
 	// create constant device variables
+	constCUDAvar<float> d_COULOMB_CONST(&COULOMB_CONST, 1);
+	constCUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
 	constCUDAvar<int> d_NUM_DIV_QTH(&NUM_DIV_QTH, 1);
 	constCUDAvar<int> d_NUM_DIV_VEL(&NUM_DIV_VEL, 1);
 	constCUDAvar<int> d_NUM_ION(&NUM_ION, 1);
@@ -1456,8 +1457,8 @@ int main(int argc, char* argv[])
 		SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
 		CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 		MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
-		ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
-		ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+		//ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
+		//ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
 		SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
 		vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
 			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
@@ -1481,7 +1482,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
 	CUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
 	CUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
-	CUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
+	//CUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
 	CUDAvar<float> d_RAD_COLL_MULT(&RAD_COLL_MULT, 1);
 	CUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	CUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
@@ -1497,7 +1498,7 @@ int main(int argc, char* argv[])
 	d_DRIFT_VEL_ION.hostToDev();
 	d_SOUND_SPEED.hostToDev();
 	d_ION_ION_ACC_MULT.hostToDev();
-	d_ION_POTENTIAL_MULT.hostToDev();
+	//d_ION_POTENTIAL_MULT.hostToDev();
 	d_RAD_COLL_MULT.hostToDev();
 	d_EXTERN_ELC_MULT.hostToDev();
 	d_TEMP_ELC.hostToDev();
@@ -1893,7 +1894,7 @@ int main(int argc, char* argv[])
 				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
 				d_gridPos.getDevPtr(), // {{{
 				 d_posIon.getDevPtr(),
-				 d_ION_POTENTIAL_MULT.getDevPtr(),
+				 d_COULOMB_CONST.getDevPtr(),
 				 d_INV_DEBYE.getDevPtr(),
 				 d_NUM_ION.getDevPtr(),
 				 d_ionPotential.getDevPtr(),
@@ -1959,7 +1960,7 @@ int main(int argc, char* argv[])
 		//			d_P23Z.getDevPtr(),
 		//			d_P05Z.getDevPtr(),
 		//			d_E_FIELD.getDevPtr(),
-					E_direction);
+	    //			E_direction);
 
 				roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
 			}
@@ -2177,8 +2178,6 @@ int main(int argc, char* argv[])
 			SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
 			CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 			MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
-			ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
-			ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
 			SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
 			vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
 				+ DRIFT_VEL_ION * DRIFT_VEL_ION;
@@ -2199,8 +2198,7 @@ int main(int argc, char* argv[])
 			d_CHARGE_ION.hostToDev();
 			d_DRIFT_VEL_ION.hostToDev();
 			d_SOUND_SPEED.hostToDev();
-			d_ION_ION_ACC_MULT.hostToDev();
-			d_ION_POTENTIAL_MULT.hostToDev();
+			d_DEN_FAR_PLASMA.hostToDev();
 			d_RAD_COLL_MULT.hostToDev();
 			d_EXTERN_ELC_MULT.hostToDev();
 			d_TEMP_ELC.hostToDev();
@@ -2528,8 +2526,12 @@ int main(int argc, char* argv[])
 			roadBlock_104(  statusFile, __LINE__, __FILE__, 
 				"Copy d_ionDensity and d_ionPotential to Host", false);
 			// print the data to the ionDensOutFile
+			//Average the accumulated values over previous time steps by dividing
+			// by N and N_IONDT_PER_DUSTDT.  Remember that density was calculated
+			// by summing the charge on superion, so must divide by
+			// the charge on a single ion to get total number of ions.
 			for(int j = 0; j < NUM_GRID_PTS; j++){
-				ionDensOutFile << ionDensity[j]/N/N_IONDT_PER_DUSTDT;
+				ionDensOutFile << ionDensity[j]/N/N_IONDT_PER_DUSTDT/CHARGE_SINGLE_ION;
 				ionDensOutFile << ", " << ionPotential[j]/N/N_IONDT_PER_DUSTDT;
 				ionDensOutFile << std::endl;
 			}
@@ -2757,6 +2759,8 @@ int main(int argc, char* argv[])
 	/****** Check Device "Constants" ******/
 	// {{{
 	
+	d_COULOMB_CONST.compare();
+	d_ION_ION_ACC_MULT.compare();
 	d_NUM_DIV_QTH.compare();
 	d_NUM_DIV_VEL.compare();
 	d_NUM_ION.compare();
