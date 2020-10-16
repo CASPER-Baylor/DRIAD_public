@@ -196,9 +196,12 @@
 *       last edit: 11/18/2017
 *
 * Description:
-*       calculates the acceleration on the ions due to the electric field created
+*       Calculates the acceleration on the ions due to the electric field created
 *   by the ions outside of a simulation cylinder. This is implemented using a table
-*   lookup for the potential calculated for ions outside the cylinder. 
+*   lookup for the potential calculated for ions outside the cylinder. Note that the 
+*   electric field is the gradient of the potential.  However, the potential of a 
+*   cylindrical cavity is the negative of the potential of the cylinder of ions,
+*   which is what is calculated by boundaryEField. The two negatives cancel. 
 *
 * Input:
 *       d_accIon: ion accelerations
@@ -238,6 +241,7 @@ __global__ void calcExtrnElcAccCyl_102
         float*,
 		float* const,
 		float*,
+		int*,
 		int*,
 		float*,
 		float*,

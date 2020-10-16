@@ -335,7 +335,7 @@ int main(int argc, char* argv[])
 
 	// mass of a super ion (Kg)
 	float MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
-	const float Q_DIV_M = CHARGE_ION / MASS_ION;										 
+	const float Q_DIV_M = CHARGE_ION / MASS_ION;									 
 
 	// a constant multiplier for acceleration due to Ion Ion forces
 	float ION_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
@@ -349,9 +349,6 @@ int main(int argc, char* argv[])
 	// a constant muliplier for accleration due to Dust Dust forces
 	const float DUST_DUST_ACC_MULT = COULOMB_CONST / MASS_DUST;
 
-	// a constant multiplier for ion potential 
-	//float ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
-	
 	// a constant multiplier for acceleration due to the
 	// electric field due to plasma outside of the simulation
 	float EXTERN_ELC_MULT =
@@ -532,7 +529,6 @@ int main(int argc, char* argv[])
 		<< "ION_DUST_ACC_MULT " << ION_DUST_ACC_MULT << '\n'
 		<< "DUST_ION_ACC_MULT " << DUST_ION_ACC_MULT << '\n'
 		<< "DUST_DUST_ACC_MULT " << DUST_DUST_ACC_MULT << '\n'
-		//<< "ION_POTENTIAL_MULT " << ION_POTENTIAL_MULT << '\n'
 		<< "RAD_COLL_MULT     " << RAD_COLL_MULT	 << '\n'
 		<< "RAD_DUST_SQRD     " << RAD_DUST_SQRD     << '\n'
 		<< "EXTERN_ELC_MULT   " << EXTERN_ELC_MULT   << '\n'
@@ -622,7 +618,6 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
 	<< std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
 	<< std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
-	//<< std::setw(14) << ION_POTENTIAL_MULT << " % ION_POTENTIAL_MULT" << '\n'
 	<< std::setw(14) << RAD_COLL_MULT 	  << " % RAD_COLL_MULT" 	<< '\n'
 	<< std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
 	<< std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
@@ -856,8 +851,8 @@ int main(int argc, char* argv[])
 	ionPotOutsideFile << "" << std::endl;
 	
 	// amount of memory required for the positions within cylinder
-	int RESXc = 20;
-	int RESZc = 64;
+	int RESXc = 24;
+	int RESZc = 32;
 	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
  	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
 	int memFloat3DGrid = RESXc * RESXc *RESZc * sizeof(float4);
@@ -1376,6 +1371,7 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_TOT_ION_COLL_FREQ(&totIonCollFreq, 1);
 	constCUDAvar<int> d_NUM_CYL_PTS(&NUM_CYL_PTS, 1);
 	constCUDAvar<int> d_NUMR(&NUMR, 1);
+	constCUDAvar<int> d_RESZ(&RESZ, 1);
 	constCUDAvar<float> d_dr(&dr, 1);
 	constCUDAvar<float> d_dz(&dz, 1);
 
@@ -1457,8 +1453,7 @@ int main(int argc, char* argv[])
 		SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
 		CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 		MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
-		//ION_ION_ACC_MULT = COULOMB_CONST *CHARGE_ION * Q_DIV_M;
-		//ION_POTENTIAL_MULT = COULOMB_CONST * CHARGE_ION;
+		ION_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
 		SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
 		vs_sq = 8 * BOLTZMANN * TEMP_ION / PI / MASS_SINGLE_ION 
 			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
@@ -1481,8 +1476,6 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
 	CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
 	CUDAvar<float> d_SOUND_SPEED(&SOUND_SPEED, 1);
-	CUDAvar<float> d_ION_ION_ACC_MULT(&ION_ION_ACC_MULT, 1);
-	//CUDAvar<float> d_ION_POTENTIAL_MULT(&ION_POTENTIAL_MULT, 1);
 	CUDAvar<float> d_RAD_COLL_MULT(&RAD_COLL_MULT, 1);
 	CUDAvar<float> d_EXTERN_ELC_MULT(&EXTERN_ELC_MULT, 1);
 	CUDAvar<float> d_TEMP_ELC(&TEMP_ELC, 1);
@@ -1497,8 +1490,6 @@ int main(int argc, char* argv[])
 	d_CHARGE_ION.hostToDev();
 	d_DRIFT_VEL_ION.hostToDev();
 	d_SOUND_SPEED.hostToDev();
-	d_ION_ION_ACC_MULT.hostToDev();
-	//d_ION_POTENTIAL_MULT.hostToDev();
 	d_RAD_COLL_MULT.hostToDev();
 	d_EXTERN_ELC_MULT.hostToDev();
 	d_TEMP_ELC.hostToDev();
@@ -1682,7 +1673,7 @@ int main(int argc, char* argv[])
 		d_ION_ION_ACC_MULT.getDevPtr(),
 		d_INV_DEBYE.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102 line 1675", false);
 
 	if (xac == 0) {
 		E_direction = -1;
@@ -1701,7 +1692,7 @@ int main(int argc, char* argv[])
 			d_EXTERN_ELC_MULT.getDevPtr(),
 			d_INV_DEBYE.getDevPtr());
 
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1694", false);
 	} else if(GEOMETRY == 1) {
 		// calculate the forces from ions outside simulation region
 		// and external electric field 
@@ -1712,12 +1703,13 @@ int main(int argc, char* argv[])
 			d_HT_CYL.getDevPtr(),
 			d_ionOutPotential.getDevPtr(),
 			d_NUMR.getDevPtr(),
+			d_RESZ.getDevPtr(),
 			d_dz.getDevPtr(),
 			d_dr.getDevPtr(),
 			d_E_FIELD.getDevPtr(),
 			E_direction);
 
-		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102 line 1710", false);
 	}
 
 	//Any other external forces acting on ions would be calc'd here
@@ -1741,7 +1733,7 @@ int main(int argc, char* argv[])
 		d_ION_DUST_ACC_MULT.getDevPtr(),
 		d_minDistDust.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", false);
 	
 	/****** Time Step Loop ******/
 
@@ -1899,7 +1891,7 @@ int main(int argc, char* argv[])
 				 d_NUM_ION.getDevPtr(),
 				 d_ionPotential.getDevPtr(),
 				 d_ionDensity.getDevPtr());
-			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential line 1892", false);
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region
@@ -1913,8 +1905,16 @@ int main(int argc, char* argv[])
 				d_ION_ION_ACC_MULT.getDevPtr(),
 				d_INV_DEBYE.getDevPtr());
 	
-			roadBlock_104( statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", false);
+			roadBlock_104( statusFile, __LINE__, __FILE__, 
+				"calcIonIonAcc_102 line 1906", false);
 			// }}}	
+
+			// copy ion accelerations to host
+			d_accIon.devToHost();
+			// print the acc of specified ion to the trace file
+			traceFile << accIon[ionTraceIndex].x;
+			traceFile << ", " << accIon[ionTraceIndex].y;
+			traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 
 			if (xac ==0) {
 				E_direction = -1;
@@ -1932,7 +1932,7 @@ int main(int argc, char* argv[])
 					d_EXTERN_ELC_MULT.getDevPtr(),
 					d_INV_DEBYE.getDevPtr());
 	
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1925", false);
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
@@ -1943,26 +1943,14 @@ int main(int argc, char* argv[])
 			d_HT_CYL.getDevPtr(),
 			d_ionOutPotential.getDevPtr(),
 			d_NUMR.getDevPtr(),
+			d_RESZ.getDevPtr(),
 			d_dz.getDevPtr(),
 			d_dr.getDevPtr(),
 			d_E_FIELD.getDevPtr(),
 			E_direction);
-		//		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-		//			d_accIon.getDevPtr(), // {{{
-		//			d_posIon.getDevPtr(), // <--
-		//			d_Q_DIV_M.getDevPtr(),
-		//			d_P10X.getDevPtr(),
-		//			d_P20X.getDevPtr(),
-		//			d_P30X.getDevPtr(),
-		//			d_P01Z.getDevPtr(),
-		//			d_P21Z.getDevPtr(),
-		//			d_P03Z.getDevPtr(),
-		//			d_P23Z.getDevPtr(),
-		//			d_P05Z.getDevPtr(),
-		//			d_E_FIELD.getDevPtr(),
-	    //			E_direction);
 
-				roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", false);
+			roadBlock_104( statusFile, __LINE__, __FILE__, 
+				"calcExtrnElcAccCyl_102 line 1955", false);
 			}
 
 		//Any other external forces acting on ions would be calc'd here
@@ -2233,13 +2221,20 @@ int main(int argc, char* argv[])
    	        	 xac); // <--
 
         roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
-    		}
+			
+			//recalculate the E field from ions outside boundary
+			boundaryEField_101<<<blocksPerTable, DIM_BLOCK2, sizeof(float4) * DIM_BLOCK2>>>
+				(d_GRID_POS.getDevPtr(),
+				d_GCYL_POS.getDevPtr(),
+				d_NUM_CYL_PTS.getDevPtr(),
+				d_INV_DEBYE.getDevPtr(),
+				d_TABLE_POTENTIAL_MULT.getDevPtr(),
+				d_ionOutPotential.getDevPtr());
 
-
-			// recalculate the electric field due to outside ions
-
+			roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
+    		} // *** end if on GEOMETRY ***//
 			}
-		}
+		} //*** end if TIME_EVOL ***//
 	} // ***** end of ion loop *****// 
 
 					

@@ -132,7 +132,7 @@ __global__ void calcIonIonAcc_102
 			softDist = __fsqrt_rn(distSquared + *d_SOFT_RAD_SQRD);
 
 			// calculate a scalar intermediate
-			linForce = *d_ION_ION_ACC_MULT* sharedPos[IDcrntIon].w * 
+			linForce = *d_ION_ION_ACC_MULT * sharedPos[h].w * 
 				(1.0 + (hardDist**d_INV_DEBYE))
 				*__expf(-hardDist**d_INV_DEBYE) / (softDist*softDist*softDist);
 
@@ -346,7 +346,11 @@ __global__ void calcExtrnElcAcc_102
 * Description:
 *	calculates the acceleration on the ions due to the electric field created 
 *   by the ions outside of a simulation cylinder. implemented using a table lookup
-*	from the potential of ions from outside the cylinder.
+*	from the potential of ions from outside the cylinder.  Note that the
+*   electric field is the gradient of the potential.  However, the potential of a
+*   cylindrical cavity is the negative of the potential of the cylinder of ions,
+*   which is what is calculated by boundaryEField. The two negatives cancel.
+
 *
 * Input:
 *	d_accIon: ion accelerations
@@ -386,6 +390,7 @@ __global__ void calcExtrnElcAccCyl_102
 	float* const d_HT_CYL,
 	float* d_ionOutPotential, 
 	int* d_NUMR,
+	int* d_RESZ,
 	float* d_dz, 
     float* d_dr,
 	float* d_Esheath,
@@ -396,8 +401,8 @@ __global__ void calcExtrnElcAccCyl_102
 
 	//local variables
 	float temp, x1, frac_r, z1, frac_z; 
-	int pt0, pt1, pt2, pt3, pt4, pt5, pt6, pt7;
-	float Ex;
+	int pt0, pt1, pt2, pt3, pt4, pt5, pt6, pt7, ptA, ptB, ptC, ptD;
+	float Ex, Ez;
 
 	// get the radius of the ion from the center axis of the
 	// simulation cylinder. The center is assumed to be (0,0,z)
@@ -423,38 +428,40 @@ __global__ void calcExtrnElcAccCyl_102
 	frac_z = temp-z1;
 	
 	//Find the four grid points surrounding the ion position. Will also
-	//need the grid points to the left and right of these.
+	//need the grid points to the left and right of these for Ex and 
+	// the points above and below these for Ez.
 	//First, the gridpoints on the row below pos_Ion
 	pt1 = x1 + z1 * *d_NUMR; //pt below and to the left
-	pt2 = pt1 + 1;
-	pt0 = pt1 - 1;
-	pt3 = pt1 + 2;
+	pt2 = pt1 + 1; // pt below and to the right
+	pt0 = pt1 - 1; // pt to the left of pt1
+	pt3 = pt1 + 2; // pt to the right of pt2
 	//Next, the grid points on the row above pos_Ion
 	pt4 = pt0 + *d_NUMR;
 	pt5 = pt1 + *d_NUMR;
 	pt6 = pt2 + *d_NUMR;
 	pt7 = pt3 + *d_NUMR;
+	//Points above 5 & 6 and below 1 & 2
+	ptA = pt5 + *d_NUMR;
+	ptB = pt6 + *d_NUMR;
+	ptC = pt1 - *d_NUMR;
+	ptD = pt2 - *d_NUMR;
 	
-	// Calculate Ex at the posIon by taking the -gradient of the potential
+	// Calculate Ex at the posIon by taking the gradient of the potential
 	// known on the grid points.  
 	//Treat special cases for positions which are on edges of grid.
 	if( x1 == 0) { 
 		// on the left edge
-		Ex = (((d_ionOutPotential[pt7] + 
-			2 * d_ionOutPotential[pt6] - 
-			3 * d_ionOutPotential[pt5]) * frac_z) +
-		  (d_ionOutPotential[pt2] + 
-			2 * d_ionOutPotential[pt1] - 
-			3 * d_ionOutPotential[pt0]) * (*d_dz - frac_z))/(2 * *d_dr);		
+		Ex = ((d_ionOutPotential[pt2] - 
+				d_ionOutPotential[pt1]) *(1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[pt5])  * frac_z)/ (*d_dr);
 	}
 	else if ( x1 == (*d_NUMR -1)) {
 		// on the right edge
-		Ex = (((2 * d_ionOutPotential[pt6] - 
-			d_ionOutPotential[pt5] - 
-			d_ionOutPotential[pt7]) * frac_z) +
-		  (2 * d_ionOutPotential[pt2] - 
-			d_ionOutPotential[pt3] - 
-			d_ionOutPotential[pt1]) * (*d_dz - frac_z))/(2 * *d_dr);
+		Ex = ((d_ionOutPotential[pt2] - 
+				d_ionOutPotential[pt1]) *(1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[pt5])  * frac_z)/ (*d_dr);
 	}
 	else {
 		// in the middle of the grid
@@ -467,42 +474,62 @@ __global__ void calcExtrnElcAccCyl_102
 	
 		// Use an areal-weighting scheme to perform
 		// the 2D table lookup.
-		Ex = ((d_ionOutPotential[pt0] - 
-				d_ionOutPotential[pt2]) * (*d_dr-frac_r)*(*d_dz - frac_z) +
-			  (d_ionOutPotential[pt1] - 
-				d_ionOutPotential[pt3]) * frac_r * (*d_dz - frac_z) +
-			  (d_ionOutPotential[pt4] - 
-				d_ionOutPotential[pt6]) * (*d_dr - frac_r) * frac_z +
-			  (d_ionOutPotential[pt5] - 
-				d_ionOutPotential[pt7]) * frac_r * frac_z)/ (2 * *d_dr);
+		Ex = ((d_ionOutPotential[pt2] - 
+				d_ionOutPotential[pt0]) * (1.0-frac_r)*(1.0 - frac_z) +
+			  (d_ionOutPotential[pt3] - 
+				d_ionOutPotential[pt1]) * frac_r * (1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[pt4]) * (1.0 - frac_r) * frac_z +
+			  (d_ionOutPotential[pt7] - 
+				d_ionOutPotential[pt5]) * frac_r * frac_z)/ (2.0 * *d_dr);
+	}
+
+	// Calculate Ez at the posIon by taking the gradient of the potential
+	// known on the grid points.  
+	//Treat special cases for positions which are on edges of grid.
+	if( z1 == 0) { 
+		// on the top edge
+		Ez = ((d_ionOutPotential[pt5] - 
+				d_ionOutPotential[pt1]) * (1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[pt2])  * frac_z)/ (*d_dz);
+	}
+	else if ( z1 == (*d_RESZ -2)) {
+		// on the bottom edge
+		Ez = ((d_ionOutPotential[pt5] - 
+				d_ionOutPotential[pt1]) * (1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[pt2])  * frac_z)/ (*d_dz);
+	}
+	else {
+		// in the middle of the grid
+		//Determine the electric field at the four points
+		//surrounding ionPos.
+		//Ez1 = -(*d_ionOutPotential[pt5] - *d_ionOutPotential[ptC]) / (2 * *d_dz);
+		//Ez2 = -(*d_ionOutPotential[pt6] - *d_ionOutPotential[ptD]) / (2 * *d_dz);
+		//Ez3 = -(*d_ionOutPotential[ptA] - *d_ionOutPotential[pt1]) / (2 * *d_dz);
+		//Ez4 = -(*d_ionOutPotential[ptB] - *d_ionOutPotential[pt2]) / (2 * *d_dz);
+	
+		// Use an areal-weighting scheme to perform
+		// the 2D table lookup.
+		Ez = ((d_ionOutPotential[pt5] - 
+				d_ionOutPotential[ptC]) * (1.0-frac_r)*(1.0 - frac_z) +
+			  (d_ionOutPotential[pt6] - 
+				d_ionOutPotential[ptD]) * frac_r * (1.0 - frac_z) +
+			  (d_ionOutPotential[ptA] - 
+				d_ionOutPotential[pt1]) * (1.0 - frac_r) * frac_z +
+			  (d_ionOutPotential[ptB] - 
+				d_ionOutPotential[pt2]) * frac_r * frac_z)/ (2.0 * *d_dz);
 	}
 
 	// multiply by the vector distance to the center of 
-	// the simulation radius and add it to the ion
+	// the simulation axis and add it to the ion
 	// acceleration
 	d_accIon[ID].x += Ex * *d_Q_DIV_M * d_posIon[ID].x / rad ;
 	d_accIon[ID].y += Ex * *d_Q_DIV_M * d_posIon[ID].y / rad;
 
-	//float zsq = z * z;
-	// calculate the radial component of the acceleration
-	// Since this has to be turned into vector components, it
-	// is divided by rad.
-	//float radAcc = *d_p10x + *d_p12x * zsq + *d_p14x * zsq * zsq;
-	//float radAcc = *d_p10x + *d_p20x * rad + *d_p30x * rad * rad;
-	//
-	// calculate vertical component of the acceleration
-	//float vertAcc = *d_p01z * z +
-	//		*d_p21z * rad * rad * z +
-	//		*d_p03z * z * zsq +
-	//		*d_p23z * rad * rad * z * zsq +
-	//		*d_p05z * z * zsq * zsq;
-	//
-	// multiply by the vector distance to the center of 
-	// the simulation radius and add it to the ion
-	// acceleration
-	//d_accIon[ID].x += d_posIon[ID].x * radAcc * *d_Q_DIV_M;
-	//d_accIon[ID].y += d_posIon[ID].y * radAcc * *d_Q_DIV_M;
-	//d_accIon[ID].z += vertAcc * *d_Q_DIV_M;
+	// add in acceleration by Ez
+	d_accIon[ID].z += Ez * *d_Q_DIV_M;
 
 	// add acceleration of ions by external electric field
 	d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_Esheath;

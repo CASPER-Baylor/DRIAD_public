@@ -60,6 +60,7 @@ __global__ void calcDustIonAcc_103(
 
 	float4 posIon = d_posIon[threadID];
 	int index = threadID;
+	//float qIon = d_posIon[threadID].w;
 
 	// loop over all of the dust particles
 	for(int i = 0; i < *d_NUM_DUST; i++) {
@@ -73,7 +74,7 @@ __global__ void calcDustIonAcc_103(
 		sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
 
 		// calculate a scalar intermediate
-		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w * d_posIon.w / 
+		linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w * posIon.w / 
 			(sDist * sDist * sDist)
 			*(1 + sDist* *d_INV_DEBYE) * __expf(-sDist* *d_INV_DEBYE);
 
