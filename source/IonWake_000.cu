@@ -244,14 +244,6 @@ int main(int argc, char* argv[])
   	const float RAD_CYL_DEBYE 
 		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
 	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
-	const float P10X = getParam_106<float>( paramFile, "P10X" );
-	const float P20X = getParam_106<float>( paramFile, "P20X" );
-	const float P30X = getParam_106<float>( paramFile, "P30X" );
-	const float P01Z = getParam_106<float>( paramFile, "P01Z" );
-	const float P21Z = getParam_106<float>( paramFile, "P21Z" );
-	const float P03Z = getParam_106<float>( paramFile, "P03Z" );
-	const float P23Z = getParam_106<float>( paramFile, "P23Z" );
-	const float P05Z = getParam_106<float>( paramFile, "P05Z" );
 	const float PRESSURE = getParam_106<float>( paramFile, "PRESSURE" );
 	const float FREQ = getParam_106<float>( paramFile, "FREQ" );
 	float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
@@ -475,14 +467,6 @@ int main(int argc, char* argv[])
 		<< "NUM_DIV_QTH       " << NUM_DIV_QTH       << '\n'
 		<< "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE     << '\n'
 		<< "HT_CYL_DEBYE      " << HT_CYL_DEBYE      << '\n'
-		<< "P10X              " << P10X	             << '\n'
-		<< "P20X              " << P20X  	         << '\n'
-		<< "P30X              " << P30X	             << '\n'
-		<< "P01Z              " << P01Z	             << '\n'
-		<< "P21Z              " << P21Z	             << '\n'
-		<< "P03Z              " << P03Z	             << '\n'
-		<< "P23Z              " << P23Z	             << '\n'
-		<< "P05Z              " << P05Z	             << '\n'
 		<< "E_FIELD           " << E_FIELD	         << '\n'
 		<< "FREQ              " << FREQ	             << '\n'
 		<< "OMEGA1			  " << OMEGA1			 << '\n'
@@ -585,14 +569,6 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RAD_SPH           << " % RAD_SPH"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
 	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
-	<< std::setw(14) << P10X              << " % P10X"              << '\n'
-	<< std::setw(14) << P20X              << " % P20X"              << '\n'
-	<< std::setw(14) << P30X              << " % P30X"              << '\n'
-	<< std::setw(14) << P01Z              << " % P01Z"              << '\n'
-	<< std::setw(14) << P21Z              << " % P21Z"              << '\n'
-	<< std::setw(14) << P03Z              << " % P03Z"              << '\n'
-	<< std::setw(14) << P23Z              << " % P23Z"              << '\n'
-	<< std::setw(14) << P05Z              << " % P05Z"              << '\n'
 	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
@@ -1349,14 +1325,6 @@ int main(int argc, char* argv[])
 	constCUDAvar<float> d_RAD_CYL(&RAD_CYL, 1);
 	constCUDAvar<float> d_RAD_CYL_SQRD(&RAD_CYL_SQRD, 1);
 	constCUDAvar<float> d_HT_CYL(&HT_CYL, 1);
-	constCUDAvar<float> d_P10X(&P10X, 1);
-	constCUDAvar<float> d_P20X(&P20X, 1);
-	constCUDAvar<float> d_P30X(&P30X, 1);
-	constCUDAvar<float> d_P01Z(&P01Z, 1);
-	constCUDAvar<float> d_P21Z(&P21Z, 1);
-	constCUDAvar<float> d_P03Z(&P03Z, 1);
-	constCUDAvar<float> d_P23Z(&P23Z, 1);
-	constCUDAvar<float> d_P05Z(&P05Z, 1);
 	constCUDAvar<float> d_ION_TIME_STEP(&ION_TIME_STEP, 1);
 	constCUDAvar<float> d_HALF_TIME_STEP(&HALF_TIME_STEP, 1);
 	constCUDAvar<float> d_Q_DIV_M(&Q_DIV_M, 1);
@@ -1910,11 +1878,11 @@ int main(int argc, char* argv[])
 			// }}}	
 
 			// copy ion accelerations to host
-			d_accIon.devToHost();
+			//d_accIon.devToHost();
 			// print the acc of specified ion to the trace file
-			traceFile << accIon[ionTraceIndex].x;
-			traceFile << ", " << accIon[ionTraceIndex].y;
-			traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
+			//traceFile << accIon[ionTraceIndex].x;
+			//traceFile << ", " << accIon[ionTraceIndex].y;
+			//traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 
 			if (xac ==0) {
 				E_direction = -1;
@@ -2774,14 +2742,6 @@ int main(int argc, char* argv[])
 	d_PI.compare();
 	d_MASS_SINGLE_ION.compare();
 	d_BOLTZMANN.compare();
-	d_P10X.compare();
-	d_P20X.compare();
-	d_P30X.compare();
-	d_P01Z.compare();
-	d_P21Z.compare();
-	d_P03Z.compare();
-	d_P23Z.compare();
-	d_P05Z.compare();
 	d_Q_DIV_M.compare();
 	d_MAX_DEPTH.compare();
 	d_I_CS_RANGES.compare();
