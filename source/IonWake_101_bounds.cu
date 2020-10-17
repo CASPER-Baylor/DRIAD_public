@@ -1128,7 +1128,7 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 *	DEN_ION: the number density of the ions
 *
 * Output (void):
-*	ionOutPotential: potential calculated at each point in GRID_POS due to ions
+*	Vout: potential calculated at each point in GRID_POS due to ions
 *						contained within a box centered about GCYL_POS, summed 
 *						over all the GCYL_POS
 *
@@ -1140,7 +1140,7 @@ __global__ void boundaryEField_101
 	int* const d_NUM_CYL_PTS,
 	float* const d_INV_DEBYE,
 	float* const d_TABLE_POTENTIAL_MULT,
-	float* d_ionOutPotential) {
+	float* d_Vout) {
 	
 	// thread ID
 	int IDgrid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1153,7 +1153,7 @@ __global__ void boundaryEField_101
 	int tileThreadID;
 
 	// zero the potential at the Table lookup point
-    d_ionOutPotential[IDgrid] = 0;
+    d_Vout[IDgrid] = 0;
 	
 	//allocated shared memory
 	extern __shared__ float4 sharedPos[];
@@ -1203,7 +1203,7 @@ __global__ void boundaryEField_101
     } //end loop over tiles
 
     // save to global memory
-    d_ionOutPotential[IDgrid] += V;
+    d_Vout[IDgrid] += V;
 
 
 	//DEBUG
@@ -1218,7 +1218,7 @@ __global__ void boundaryEField_101
 	//	__syncthreads();
 	//	}
 	//	// Save the results in global memory
-	//	d_ionOutPotential[threadID] = V;
+	//	d_Vout[threadID] = V;
 }
 
 /*

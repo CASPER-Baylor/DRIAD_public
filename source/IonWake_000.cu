@@ -818,7 +818,7 @@ int main(int argc, char* argv[])
 	// pointer for grid positions, potential of outside ions 
 	float2* GRID_POS = NULL;
 	float4* GCYL_POS = NULL;
-	float* ionOutPotential = NULL;
+	float* Vout = NULL;
 
 	// amount of memory required for the grid variables
 	//This grid only covers half the xz-plane (r > 0)
@@ -827,7 +827,7 @@ int main(int argc, char* argv[])
 
 	// allocate memory for the grid points and potential at those points 
 	GRID_POS = (float2*)malloc(memFloat2Grid);
-	ionOutPotential = (float*)malloc(memFloatGrid);
+	Vout = (float*)malloc(memFloatGrid);
 
 	int NUMR = RESX/2;
 	float dr = RAD_CYL/(NUMR - 1);
@@ -839,7 +839,7 @@ int main(int argc, char* argv[])
 		for (int x=0; x < NUMR; x++) {
 			GRID_POS[NUMR* z + x].x = dr * x;
 			GRID_POS[NUMR* z + x].y = (-HT_CYL + dz * z);
-			ionOutPotential[NUMR* z + x] = 0;
+			Vout[NUMR* z + x] = 0;
 		}
 	}
 	
@@ -1399,7 +1399,7 @@ int main(int argc, char* argv[])
 	CUDAvar<int> d_collision_counter(&collision_counter, 1);
 	CUDAvar<float2> d_GRID_POS(GRID_POS, NUM_GRID_PTS/2);
 	CUDAvar<float4> d_GCYL_POS(GCYL_POS, NUM_CYL_PTS);
-	CUDAvar<float>	d_ionOutPotential(ionOutPotential, NUM_GRID_PTS/2);
+	CUDAvar<float>	d_Vout(Vout, NUM_GRID_PTS/2);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	float hardDist = 0;
@@ -1432,7 +1432,7 @@ int main(int argc, char* argv[])
 	d_collision_counter.hostToDev();
 	d_GRID_POS.hostToDev();
 	d_GCYL_POS.hostToDev();
-	d_ionOutPotential.hostToDev();
+	d_Vout.hostToDev();
 
 
 	debugFile << "Calc'ing evolving params" << std::endl;
@@ -1505,19 +1505,19 @@ int main(int argc, char* argv[])
 		d_NUM_CYL_PTS.getDevPtr(),
 		d_INV_DEBYE.getDevPtr(),
 		d_TABLE_POTENTIAL_MULT.getDevPtr(),
-		d_ionOutPotential.getDevPtr());
+		d_Vout.getDevPtr());
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
 
 	debugFile << " calc'ed boundary condition " << std::endl;
 
 	//DEBUG Copy back the host, print out to check
-	d_ionOutPotential.devToHost();
+	d_Vout.devToHost();
 	
 	debugFile << "TABLE_POTENTIAL_MULT " << TABLE_POTENTIAL_MULT << std::endl;
 	//output potential at the grid positions such that matlab can read them in
 	for (int j =0; j< NUM_GRID_PTS/2; j++) {
-		ionPotOutsideFile << ionOutPotential[j] << std::endl;
+		ionPotOutsideFile << Vout[j] << std::endl;
 	}
 	ionPotOutsideFile << "" << std::endl;
 	
@@ -1701,7 +1701,7 @@ int main(int argc, char* argv[])
 			d_posIon.getDevPtr(), 
 			d_Q_DIV_M.getDevPtr(),
 			d_HT_CYL.getDevPtr(),
-			d_ionOutPotential.getDevPtr(),
+			d_Vout.getDevPtr(),
 			d_NUMR.getDevPtr(),
 			d_RESZ.getDevPtr(),
 			d_dz.getDevPtr(),
@@ -1941,7 +1941,7 @@ int main(int argc, char* argv[])
 			d_posIon.getDevPtr(), 
 			d_Q_DIV_M.getDevPtr(),
 			d_HT_CYL.getDevPtr(),
-			d_ionOutPotential.getDevPtr(),
+			d_Vout.getDevPtr(),
 			d_NUMR.getDevPtr(),
 			d_RESZ.getDevPtr(),
 			d_dz.getDevPtr(),
@@ -2229,7 +2229,7 @@ int main(int argc, char* argv[])
 				d_NUM_CYL_PTS.getDevPtr(),
 				d_INV_DEBYE.getDevPtr(),
 				d_TABLE_POTENTIAL_MULT.getDevPtr(),
-				d_ionOutPotential.getDevPtr());
+				d_Vout.getDevPtr());
 
 			roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
     		} // *** end if on GEOMETRY ***//
