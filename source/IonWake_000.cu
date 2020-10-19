@@ -827,8 +827,8 @@ int main(int argc, char* argv[])
 	ionPotOutsideFile << "" << std::endl;
 	
 	// amount of memory required for the positions within cylinder
-	int RESXc = 24;
-	int RESZc = 32;
+	int RESXc = RESX;
+	int RESZc = RESZ;
 	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
  	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
 	int memFloat3DGrid = RESXc * RESXc *RESZc * sizeof(float4);
@@ -838,8 +838,8 @@ int main(int argc, char* argv[])
 
 	//Set up points within 3D cylinder -- bring in edges slightly
 	// so that points don't overlap with GRID_POS
-	dx = 2.0*(RAD_CYL-1e-5)/(RESXc);
-	float dz2 = 2.0*(HT_CYL-1e-5)/(RESZc);
+	dx = 2.0*(RAD_CYL)/(RESXc);
+	float dz2 = 2.0*(HT_CYL)/(RESZc);
 
 	float tempx;
 	float tempy;
@@ -860,8 +860,8 @@ int main(int argc, char* argv[])
 	for (int z =0; z < RESZc; z++) {
 		for (int y=0; y < RESXc; y++) {
 			for (int x=0; x < RESXc; x++) {
-				tempx = -(RAD_CYL-1e-5) + dx/2.0 + dx * x;
-				tempy = -(RAD_CYL-1e-5) + dx/2.0 + dx * y;
+				tempx = -(RAD_CYL) + dx/2.0 + dx * x;
+				tempy = -(RAD_CYL) + dx/2.0 + dx * y;
 				//only save points inside cylinder
 				if(tempx*tempx+tempy*tempy < RAD_CYL*RAD_CYL){
 					GCYL_POS[count].w = 1;
@@ -872,7 +872,7 @@ int main(int argc, char* argv[])
 				}
 					GCYL_POS[count].x = tempx;
 					GCYL_POS[count].y = tempy;
-					GCYL_POS[count].z = -(HT_CYL-1e-5) + dz2/2.0 + dz2 * z;
+					GCYL_POS[count].z = -(HT_CYL) + dz2/2.0 + dz2 * z;
 			}
 		}
 	}
