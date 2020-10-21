@@ -214,7 +214,7 @@ __global__ void injectIonSphere_101(
 		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);
                         
-		float driftVelIon = (*d_SOUND_SPEED) * (*d_MACH); 
+		float driftVelIon = (*d_SOUND_SPEED) * abs(*d_MACH); 
         
 		float normDriftVel = driftVelIon / velScale;
 		
@@ -298,6 +298,10 @@ __global__ void injectIonSphere_101(
       	d_posIon[IDion].z = *d_RAD_SIM * rfrac * cosTheta;
       	d_posIon[IDion].y = *d_RAD_SIM * rfrac * sinTheta * sinPhi;
       	d_posIon[IDion].x = *d_RAD_SIM * rfrac * sinTheta * cosPhi;
+		
+		// Adjust the z-velocity by the direction of the ion drift (time_evol)
+		int flow_direction = abs(*d_MACH)/(*d_MACH);
+		d_velIon[IDion].z *= flow_direction;
 		
 		// polarity switching
 		if(xac ==1) {
