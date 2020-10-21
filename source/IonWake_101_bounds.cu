@@ -353,6 +353,7 @@ __global__ void injectIonSphere_101(
 *   d_MASS_SINGLE_ION: the mass of a single ion
 *	d_BOLTZMANN: the boltzmann constant 
 *   d_CHARGE_ION: the charge on a super-ion
+*	plasma_counter: index of the evolving plasma parameters
 *	xac: 0 or 1 for polarity switching
 *
 * Output (void):
@@ -395,6 +396,7 @@ __global__ void injectIonCylinder_101(
 	float* const d_MASS_SINGLE_ION,
 	float* const d_BOLTZMANN,
 	float* const d_CHARGE_ION,
+	int plasma_counter,
 	int xac){
 	
 	// thread ID 
@@ -404,7 +406,6 @@ __global__ void injectIonCylinder_101(
 	if (d_boundsIon[IDion] != 0) {
 	
 		float randNum,
-        	QIndex,
             lowerFloatGIndex,
             radVel,
             part_radVel,
@@ -416,9 +417,14 @@ __global__ void injectIonCylinder_101(
             phiVel,
             cosTheta;
 			  
-		int tempIndex,
+        int QIndex,
+			tempIndex,
 			tempIndex1;
 	
+		int pageq = plasma_counter * *d_NUM_DIV_QTH;
+		int pagev = plasma_counter * *d_NUM_DIV_VEL;
+		int pagevq = plasma_counter * *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
+ 
 		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);
                         
@@ -430,9 +436,9 @@ __global__ void injectIonCylinder_101(
 		randNum = curand_uniform(&randStates[IDion]);
 		
 		// find the index of randNum in d_Qcom 
-		if (randNum < d_QCOM[0]) {
+		if (randNum < d_QCOM[pageq + 0]) {
 			QIndex = 0;
-		} else if(randNum < d_QCOM[1]) {
+		} else if(randNum < d_QCOM[pageq + 1]) {
 			QIndex = 1;
 		} else {
 			QIndex = 2;
@@ -442,13 +448,15 @@ __global__ void injectIonCylinder_101(
 		randNum = curand_uniform(&randStates[IDion]);
 		
 		// Pick normal velocity from cumulative G.
-		tempIndex = static_cast<int>(QIndex) * *d_NUM_DIV_VEL;
+		tempIndex = static_cast<int>(pagevq + QIndex * *d_NUM_DIV_VEL);
 		lowerFloatGIndex = invertFind_101(
 			&d_GCOM[tempIndex],
 			*d_NUM_DIV_VEL,
 			randNum);
 				
 		/*
+		* This is interpolation is not needed for cylinder, where there
+		* are exactly three angles.
 		* tempIndex = static_cast<int>(QIndex + 1) * *d_NUM_DIV_VEL;
 		* upperFloatGIndex = invertFind_101(
 		* &d_GCOM[tempIndex],
@@ -461,7 +469,7 @@ __global__ void injectIonCylinder_101(
 		* ( 1 - partQIndex ) * lowerFloatGIndex;
 		*/
 
-		radVel = lowerFloatGIndex; //This may not be right
+		radVel = lowerFloatGIndex - pagevq; 
 		
         // integer part of radVel 
 		tempIndex = static_cast<int>(radVel); 
@@ -472,8 +480,8 @@ __global__ void injectIonCylinder_101(
         tempIndex1 = tempIndex + 1;
 		
         // interpolate the value of radVel from Vcom 
-        radVel = part_radVel * d_VCOM[tempIndex1] + 
-        	(1.0-part_radVel) * d_VCOM[tempIndex];
+        radVel = part_radVel * d_VCOM[pagev + tempIndex1] + 
+        	(1.0-part_radVel) * d_VCOM[pagev + tempIndex];
 		
 		
 		// cos(theta), where theta is the angle of the velocity 
@@ -855,21 +863,23 @@ void initInjectIonSphere_101(
 *	in fortran
 * 
 * Input:
-*	d_GCOM: a matrix used to insert ions 
-*	d_QCOM: a matrix used to insert ions
-*       d_VCOM: a matrix used to insert ions 
-*	NUM_DIV_QTH: the length of d_QCOM
-*	NUM_DIV_VEL: the number of division in d_GCOM allong one axis
-*	RAD_CYL: the radius of the top
-*	HT_CYL: (half) height of the cylinder
-*   TEMP_ION: the ion temperature 
-*   PI: pi
-*   TEMP_ELC: the electron temperature 
-*   MACH: the mach number 
-*   MASS_SINGLE_ION: the mass of a single ion
-*	BOLTZMANN: the boltzmann constant 
-*   DRIFT_VEL_ION: the drift velocity of the ions 
-*   fileName: an output file for debugging 
+*       NUM_DIV_QTH: the length of d_QCOM
+*       NUM_DIV_VEL: the number of division in d_GCOM allong one axis
+*       TIME_EVOL: 0 if static plasma, otherwise number of conditions
+*       RAD_CYL: the radius of the top
+*       HT_CYL: (half) height of the cylinder
+*       evolTe: electron temperature
+*       evolTi: ion temperature
+*       evolVz: ion drift speed
+*       evolMach: ion Mach number
+*       MASS_SINGLE_ION: the mass of a single ion
+*       BOLTZMANN: the boltzmann constant
+*       PI: pi
+*       d_GCOM: a matrix used to insert ions
+*       d_QCOM: a matrix used to insert ions
+*       d_VCOM: a matrix used to insert ions
+*       debugMode: 0 or 1 for debug output
+*       fileName: an output file for debugging
 *
 * Output (void):
 *	d_QCOM: cumulative distribution in cosine angles Qth
@@ -894,12 +904,13 @@ void initInjectIonSphere_101(
 void initInjectIonCylinder_101(
 		const int NUM_DIV_QTH,
 		const int NUM_DIV_VEL,
+		const int TIME_EVOL,
 		const float RAD_CYL,
 		const float HT_CYL,
-		const float TEMP_ELC,
-		const float TEMP_ION,
-		const float DRIFT_VEL_ION,
-		const float MACH,
+		float* evolTe,
+		float* evolTi,
+		float* evolVz,
+		float* evolMach,
 		const float MASS_SINGLE_ION,
 		const float BOLTZMANN,
 		const float PI,
@@ -909,21 +920,32 @@ void initInjectIonCylinder_101(
 		const bool debugMode,
 		std::ostream& fileName){ 
 	
-	// allocate memory to create the matrices on the host
-	float* Qcom = new float[NUM_DIV_QTH];
-	float* Vcom = new float[NUM_DIV_VEL];
-	float* Gcom = new float[NUM_DIV_QTH * NUM_DIV_VEL];
+	fileName << "Inside initInjectIonCylinder_101" << std::endl;
+
+	// Set number of pages based on the number of steps
+	// used in the evolving plasma conditions
+	int pages, pagenum;
+	if (TIME_EVOL == 0) {pages = 1;}
+	else {pages = TIME_EVOL;}
+
+	fileName << "Number of pages for evolving conditions " << pages << std::endl;
+
+	// pointers to the matrices on the host
+	float* Qcom = NULL;
+	float* Vcom = NULL;
+	float* Gcom = NULL;
+	// amount of memory required for each variable
+	int numq = NUM_DIV_QTH * pages * sizeof(float);
+	int numv = NUM_DIV_VEL * pages * sizeof(float);
+	int numg = NUM_DIV_QTH * NUM_DIV_VEL * pages * sizeof(float);
+	// allocate the memory for each variable
+	Qcom = (float*)malloc(numq); 
+	Vcom = (float*)malloc(numv); 
+	Gcom = (float*)malloc(numg); 
 	
 	// useful variables 
 	float const1 = 1/sqrt(2.0 * PI);
 	float const2 = 1/sqrt(2.0);
-	
-	// normalized ion temperature 
-	float normTempIon = 3.0 * BOLTZMANN * TEMP_ION / MASS_SINGLE_ION;
-	
-	// range of velocities (times (Ti/m_i)^1/2) permitted for injection
-	float vspread = 5.0 +  (DRIFT_VEL_ION/ sqrt(normTempIon));
-	
 	
 	// variables used in the loop over the angles
 	float Qth,
@@ -942,7 +964,16 @@ void initInjectIonCylinder_101(
 	area[0] = PI * RAD_CYL * RAD_CYL;
 	area[1] = 4.0 * PI * RAD_CYL * HT_CYL; //Since we are using half-height
 	area[2] = PI * RAD_CYL * RAD_CYL;
+	fileName << area[0] << ", " << area[1] << ", " << area[2] << std::endl;
 
+	for(int p = 0; p < pages; p++) {
+	// normalized ion temperature 
+	float normTempIon = 3.0 * BOLTZMANN * evolTi[p]/ MASS_SINGLE_ION;
+	
+	// range of velocities (times (Ti/m_i)^1/2) permitted for injection
+	float vspread = 5.0 +  (abs(evolVz[p])/ sqrt(normTempIon));
+	//fileName << evolVz[p] << ", " << normTempIon << ", " << vspread << std::endl;
+	
 	// loop over the angles
 	for (int i = 0; i < NUM_DIV_QTH; i++)
 	{
@@ -950,97 +981,101 @@ void initInjectIonCylinder_101(
 		Qth = costheta[i];
 
 		// scale drift velocity to the ion temperature
-		vdr = DRIFT_VEL_ION * Qth /sqrt(normTempIon);
+		vdr = abs(evolVz[p]) * Qth /sqrt(normTempIon);
 		
 		// dqn is really Gamma(infinity)
 		dqn = (const1 * exp((-0.5) * vdr * vdr) )
 				+ ((0.5) * vdr * erfcf( (-1.0) * const2 * vdr));
 
+	fileName << "vdrift " << vdr << ", " << "dqn " << dqn << ", ";
 		
 		if (i == 0){
-		     Qcom[i] = dqn * area[i];
+		     Qcom[p*NUM_DIV_QTH + i] = dqn * area[i];
 		     }
 		else {
-			Qcom[i] = Qcom[i-1] + dqn * area[i];
+			Qcom[p*NUM_DIV_QTH + i] = Qcom[p*NUM_DIV_QTH + i-1] + dqn * area[i];
 		}
 	
+	fileName << "Q i "  << Qcom[p*NUM_DIV_QTH + i] << std::endl;
 		
+		pagenum = p * NUM_DIV_VEL * NUM_DIV_QTH;
 		// at this angle, now do
 		for (int j = 0; j < NUM_DIV_VEL; j++) {
 			
 		//construct cumulative distribution of radial velocity on mesh Vcom
-			Vcom[j] = vspread  * j / (NUM_DIV_VEL - 1); 
+			Vcom[p*NUM_DIV_VEL + j] = vspread  * j / (NUM_DIV_VEL - 1); 
 
 			// temporary value
-			temp = Vcom[j]-vdr;
+			temp = Vcom[p*NUM_DIV_VEL + j]-vdr;
 			
 			//cumulative distribution is Gcom
-			Gcom[i * NUM_DIV_VEL + j] = 
+			Gcom[pagenum + i * NUM_DIV_VEL + j] = 
 				(
 				dqn - 
 				const1 * exp(-0.5 * temp * temp) - 
 				 0.5 * vdr * erfcf( const2 * temp ) 
 				) / dqn;
-		}
+		}//end loop over j = velocities
 
-		Gcom[i * NUM_DIV_VEL] = 0; 
-		Gcom[i * NUM_DIV_VEL + (NUM_DIV_VEL - 1)] = 1;
-	}
-	
+		Gcom[pagenum + i * NUM_DIV_VEL] = 0; 
+		Gcom[pagenum + i * NUM_DIV_VEL + (NUM_DIV_VEL - 1)] = 1;
+	} //end loop over i = angles q
 	
 	for (int i = 0; i < NUM_DIV_QTH; i++){
-		Qcom[i] = Qcom[i] / Qcom[NUM_DIV_QTH - 1];
+		Qcom[p*NUM_DIV_QTH + i] = 
+		  Qcom[p*NUM_DIV_QTH + i] / Qcom[p*NUM_DIV_QTH + NUM_DIV_QTH - 1];
 	}	
 	
+	} //end loop over pages
+
 	// variable to hold cuda status 
 	cudaError_t cudaStatus;
 	
 	// copy Gcom to the device
 	cudaStatus = cudaMemcpy(d_GCOM, Gcom,
-		sizeof(float) * NUM_DIV_QTH * NUM_DIV_VEL, cudaMemcpyHostToDevice);
+		sizeof(float) * NUM_DIV_QTH * NUM_DIV_VEL * pages, cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed: d_GCOM\n");
 	}
 	
 	// copy Vcom to the device
 	cudaStatus = cudaMemcpy(d_VCOM, Vcom,
-		sizeof(float) * NUM_DIV_VEL, cudaMemcpyHostToDevice);
+		sizeof(float) * NUM_DIV_VEL * pages, cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed: d_VCOM\n");
 	}
 	
 	// copy Qcom to the device
 	cudaStatus = cudaMemcpy(d_QCOM, Qcom,
-		sizeof(float) * NUM_DIV_QTH, cudaMemcpyHostToDevice);
+		sizeof(float) * NUM_DIV_QTH * pages, cudaMemcpyHostToDevice);
 	if (cudaStatus != cudaSuccess) {
 		fprintf(stderr, "cudaMemcpy failed: d_QCOM\n");
 	}
 	
 	if (debugMode){
 		
-		fileName << "--- Qcom ---" << std::endl;
-		for (int i = 0; i < NUM_DIV_QTH; i++){
-			fileName << Qcom[i] << ";..." << std::endl;		
+		fileName << "--- 1st Qcom, Last Qcom ---" << std::endl;
+		for (int p = 0; p < pages; p++) {
+			fileName << Qcom[p*NUM_DIV_QTH + 0] << ", ";		
+			fileName << Qcom[p*NUM_DIV_QTH + 1] << ", ";		
+			fileName << Qcom[p*NUM_DIV_QTH + 2] << std::endl;		
 		}
 		fileName << std::endl;
 		
-		fileName << "--- Vcom ---" << std::endl;
+		fileName << "--- 1st Vcom, Last Vcom  ---" << std::endl;
 		for (int i = 0; i < NUM_DIV_VEL; i++){
-			fileName << Vcom[i] << std::endl;
+			fileName << Vcom[i] << ", ";
+			fileName << Vcom[(pages-1)*NUM_DIV_VEL + i] << std::endl;
 		}
 		fileName << std::endl;
 		
-		fileName << "--- Gcom ---" << std::endl;
+		fileName << "--- 1st Gcom, Last Gcom ---" << std::endl;
 		for (int i = 0; i < NUM_DIV_QTH; i++){
 			for (int j = 0; j < NUM_DIV_VEL; j++){
 				
-				fileName << Gcom[i * NUM_DIV_VEL + j];
-				
-				if ((j+1) < NUM_DIV_VEL){
-					fileName << ",";
-				}
-				
-				fileName << "  ";
+				fileName << Gcom[i * NUM_DIV_VEL + j] << ", ";
+				fileName << Gcom[(pages-1)*NUM_DIV_VEL*NUM_DIV_QTH + i*NUM_DIV_VEL + j];
+				fileName << std::endl;
 			}
 			fileName << std::endl;
 		}

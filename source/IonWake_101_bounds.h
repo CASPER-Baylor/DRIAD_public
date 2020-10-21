@@ -285,8 +285,9 @@
 *   d_TEMP_ELC: the electron temperature
 *   d_MACH: the mach number
 *   d_MASS_SINGLE_ION: the mass of a single ion
-*       d_BOLTZMANN: the boltzmann constant
-*	d_CHARGE_ION; charge on the superion
+*   d_BOLTZMANN: the boltzmann constant
+*	d_CHARGE_ION: charge on the superion
+*	plasma_counter: index of evolving plasma parameters
 *   xac: 0 or 1 for polarity switching of E field
 *
 * Output (void):
@@ -329,6 +330,7 @@ __global__ void injectIonCylinder_101(
                 float* const ,
                 float* const ,
                 float* const ,
+				int,
 				int );	
 		
 	/*
@@ -467,21 +469,23 @@ __global__ void injectIonCylinder_101(
 *       in fortran
 *
 * Input:
+*       NUM_DIV_QTH: the length of d_QCOM
+*       NUM_DIV_VEL: the number of division in d_GCOM allong one axis
+*       TIME_EVOL: 0 if static plasma, otherwise number of conditions
+*       RAD_CYL: the radius of the top
+*       HT_CYL: (half) height of the cylinder
+*   	evolTe: electron temperature
+*   	evolTi: ion temperature
+*   	evolVz: ion drift speed
+*   	evolMach: ion Mach number
+*   	MASS_SINGLE_ION: the mass of a single ion
+*       BOLTZMANN: the boltzmann constant
+*   	PI: pi
 *       d_GCOM: a matrix used to insert ions
 *       d_QCOM: a matrix used to insert ions
 *       d_VCOM: a matrix used to insert ions
-*       NUM_DIV_QTH: the length of d_QCOM
-*       NUM_DIV_VEL: the number of division in d_GCOM allong one axis
-*       RAD_CYL: the radius of the top
-*       HT_CYL: (half) height of the cylinder
-*   TEMP_ION: the ion temperature
-*   PI: pi
-*   TEMP_ELC: the electron temperature
-*   MACH: the mach number
-*   MASS_SINGLE_ION: the mass of a single ion
-*       BOLTZMANN: the boltzmann constant
-*   DRIFT_VEL_ION: the drift velocity of the ions
-*   fileName: an output file for debugging
+*       debugMode: 0 or 1 for debug output
+*   	fileName: an output file for debugging
 *
 * Output (void):
 *       d_QCOM: cumulative distribution in cosine angles Qth
@@ -506,12 +510,13 @@ __global__ void injectIonCylinder_101(
 void initInjectIonCylinder_101(
                 const int ,
                 const int ,
+                const int ,
                 const float ,
                 const float ,
-                const float ,
-                const float ,
-                const float ,
-                const float ,
+                float* ,
+                float* ,
+                float* ,
+                float* ,
                 const float ,
                 const float ,
                 const float ,

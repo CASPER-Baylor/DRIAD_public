@@ -1068,17 +1068,21 @@ int main(int argc, char* argv[])
 	}
 
 // allocate memory for the evolving time parameters 
-		float* evolEz = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolEr = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolTe = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolTi = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolne = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolni = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolVz = (float*)malloc(TIME_EVOL * sizeof(float));
-		float* evolMach = (float*)malloc(TIME_EVOL * sizeof(float));
+	int num_pts; 
+	if(TIME_EVOL > 0) {num_pts = TIME_EVOL;}
+	else {num_pts = 1;}
 
-		// index for advancing to next evolving time
-		int counter = 1;
+	float* evolEz = (float*)malloc(num_pts * sizeof(float));
+	float* evolEr = (float*)malloc(num_pts * sizeof(float));
+	float* evolTe = (float*)malloc(num_pts * sizeof(float));
+	float* evolTi = (float*)malloc(num_pts * sizeof(float));
+	float* evolne = (float*)malloc(num_pts * sizeof(float));
+	float* evolni = (float*)malloc(num_pts * sizeof(float));
+	float* evolVz = (float*)malloc(num_pts * sizeof(float));
+	float* evolMach = (float*)malloc(num_pts * sizeof(float));
+
+	// index for advancing to next evolving time
+	int plasma_counter = 0;
 
 	// input file for evolving plasma conditions 
 	if( TIME_EVOL > 0 ) {
@@ -1126,6 +1130,18 @@ int main(int argc, char* argv[])
 		TEMP_ELC = evolTe[0];
 		TEMP_ION = evolTi[0];
 	}	
+	else { //TIME_EVOL == 0
+		//copy the values set in the param file to the evolving variables
+		// for use in the injection of ions
+		evolEz[0] = E_FIELD;
+		evolEr[0] = 0;
+		evolTe[0] = TEMP_ELC;
+		evolTi[0] = TEMP_ION;
+		evolne[0] = DEN_FAR_PLASMA;
+		evolni[0] = DEN_FAR_PLASMA;
+		evolVz[0] = DRIFT_VEL_ION;
+		evolMach[0] = MACH;
+	}
 
 	// attempt to open input file for initial ion positions and velocities
 	fileName = inputDirName + "init-ions.txt";
@@ -1347,9 +1363,9 @@ int main(int argc, char* argv[])
 	CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
 	CUDAvar<int> d_m(m, NUM_ION);
 	CUDAvar<int> d_timeStepFactor(timeStepFactor, NUM_ION);
-	CUDAvar<float> d_QCOM(NUM_DIV_QTH);
-	CUDAvar<float> d_VCOM(NUM_DIV_VEL);
-	CUDAvar<float> d_GCOM(NUM_DIV_QTH * NUM_DIV_VEL);
+	CUDAvar<float> d_QCOM(NUM_DIV_QTH*num_pts);
+	CUDAvar<float> d_VCOM(NUM_DIV_VEL*num_pts);
+	CUDAvar<float> d_GCOM(NUM_DIV_QTH * NUM_DIV_VEL * num_pts);
 	CUDAvar<float4> d_posIon(posIon, NUM_ION);
 	CUDAvar<float4> d_velIon(velIon, NUM_ION);
 	CUDAvar<float4> d_accIon(accIon, NUM_ION);
@@ -1407,18 +1423,17 @@ int main(int argc, char* argv[])
 
 	// Initialize evolving parameters for time-dependent plasma conditions
 	if(TIME_EVOL >0) {
-		counter = 0;
-		TEMP_ELC = evolTe[counter];
-		TEMP_ION = evolTi[counter];
-		DEN_FAR_PLASMA = evolni[counter];
-		MACH = evolMach[counter];
-		E_FIELD = evolEz[counter];
-		DRIFT_VEL_ION = evolVz[counter];
+		TEMP_ELC = evolTe[plasma_counter];
+		TEMP_ION = evolTi[plasma_counter];
+		DEN_FAR_PLASMA = evolni[plasma_counter];
+		MACH = evolMach[plasma_counter];
+		E_FIELD = evolEz[plasma_counter];
+		DRIFT_VEL_ION = evolVz[plasma_counter];
 
 		DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
-			(evolne[counter] * CHARGE_ELC * CHARGE_ELC));
+			(evolne[plasma_counter] * CHARGE_ELC * CHARGE_ELC));
 		INV_DEBYE = 1.0 / DEBYE;
-		SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
+		SUPER_ION_MULT = SIM_VOLUME * evolni[plasma_counter] / NUM_ION;
 		CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 		MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
 		ION_ION_ACC_MULT = COULOMB_CONST * Q_DIV_M;
@@ -1427,7 +1442,7 @@ int main(int argc, char* argv[])
 			+ DRIFT_VEL_ION * DRIFT_VEL_ION;
 		RAD_COLL_MULT = 
 			2 * Q_DIV_M * COULOMB_CONST / RAD_DUST / vs_sq;
-		ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * evolne[counter]*
+		ELC_CURRENT_0 = 4.0 * PI * RAD_DUST_SQRD * evolne[plasma_counter]*
 			CHARGE_ELC * sqrt((BOLTZMANN * TEMP_ELC)/(2.0 * PI * ELC_MASS));
 		EXTERN_ELC_MULT =
        		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
@@ -1533,12 +1548,13 @@ int main(int argc, char* argv[])
 		initInjectIonCylinder_101(
 			NUM_DIV_QTH,
 			NUM_DIV_VEL,
+			TIME_EVOL,
 			RAD_CYL,
 			HT_CYL,
-			TEMP_ELC,
-			TEMP_ION,
-			DRIFT_VEL_ION,
-			MACH,
+			evolTe,
+			evolTi,
+			evolVz,	
+			evolMach,
 			MASS_SINGLE_ION,
 			BOLTZMANN,
 			PI,
@@ -1619,6 +1635,7 @@ int main(int argc, char* argv[])
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_CHARGE_ION.getDevPtr(),
+			plasma_counter,
 			xac); // <--
 
 		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
@@ -1832,6 +1849,7 @@ int main(int argc, char* argv[])
 					d_MASS_SINGLE_ION.getDevPtr(),
 					d_BOLTZMANN.getDevPtr(),
 					d_CHARGE_ION.getDevPtr(),
+					plasma_counter,
 					xac); // <--
 		
 			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonCylinder", false);
@@ -2077,6 +2095,7 @@ int main(int argc, char* argv[])
 			collList[dum] = unset_value;
 		}
 		// }}}
+		//debugFile << "number of ions to collide" << n_coll << std::endl;
 
 		//copy collision list to device
 		d_collList.hostToDev();
@@ -2120,18 +2139,18 @@ int main(int argc, char* argv[])
 		if(TIME_EVOL >0) {
 			//advance values every 10th ion time step
 			if( i % 10 == 0) {
-			counter = (counter+1) % TIME_EVOL;
-			TEMP_ELC = evolTe[counter];
-			TEMP_ION = evolTi[counter];
-			DEN_FAR_PLASMA = evolne[counter];
-			MACH = evolMach[counter];
-			E_FIELD = evolEz[counter];
-			DRIFT_VEL_ION = evolVz[counter];
+			plasma_counter = (plasma_counter+1) % TIME_EVOL;
+			TEMP_ELC = evolTe[plasma_counter];
+			TEMP_ION = evolTi[plasma_counter];
+			DEN_FAR_PLASMA = evolne[plasma_counter];
+			MACH = evolMach[plasma_counter];
+			E_FIELD = evolEz[plasma_counter];
+			DRIFT_VEL_ION = evolVz[plasma_counter];
 
 			DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 				(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
 			INV_DEBYE = 1.0 / DEBYE;
-			SUPER_ION_MULT = SIM_VOLUME * evolni[counter] / NUM_ION;
+			SUPER_ION_MULT = SIM_VOLUME * evolni[plasma_counter] / NUM_ION;
 			CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
 			MASS_ION = MASS_SINGLE_ION * SUPER_ION_MULT;
 			SOUND_SPEED = sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
@@ -2186,6 +2205,7 @@ int main(int argc, char* argv[])
    	        	 d_MASS_SINGLE_ION.getDevPtr(),
    	        	 d_BOLTZMANN.getDevPtr(),
    	        	 d_CHARGE_ION.getDevPtr(),
+				 plasma_counter,
    	        	 xac); // <--
 
         roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
