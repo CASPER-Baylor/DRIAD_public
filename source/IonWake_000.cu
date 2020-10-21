@@ -2084,14 +2084,14 @@ int main(int argc, char* argv[])
 
 		// prepare list of ions to collide:
 		// {{{
-		for(int j=0; j < n_coll; j++){
-			collID[j] = 0;
+		for(int coll=0; coll < n_coll; coll++){
+			collID[coll] = 0;
 			do{
 				dum  = (int)(rand() % NUM_ION);
 				exist = false;
-				for(int q=0;q<=j-1;q++) if (collID[q]==dum) exist = true;
+				for(int q=0;q<=coll-1;q++) if (collID[q]==dum) exist = true;
 			} while(exist);
-			collID[j] = dum;
+			collID[coll] = dum;
 			collList[dum] = unset_value;
 		}
 		// }}}
@@ -2138,7 +2138,8 @@ int main(int argc, char* argv[])
 		// Recalculate evolving parameters for time-dependent plasma conditions
 		if(TIME_EVOL >0) {
 			//advance values every 10th ion time step
-			if( i % 10 == 0) {
+			if( j % 10 == 0) {
+			plasma_counter = plasma_counter +1;
 			plasma_counter = (plasma_counter+1) % TIME_EVOL;
 			TEMP_ELC = evolTe[plasma_counter];
 			TEMP_ION = evolTi[plasma_counter];
@@ -2165,7 +2166,6 @@ int main(int argc, char* argv[])
           		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
           		(Q_DIV_M) / (PERM_FREE_SPACE);
 
-
 			// copy updated variables to the device
 			d_INV_DEBYE.hostToDev();
 			d_E_FIELD.hostToDev();
@@ -2179,38 +2179,11 @@ int main(int argc, char* argv[])
 			d_TEMP_ELC.hostToDev();
 			d_MACH.hostToDev();
 
-			// recalculate coefficients for injection 
+			//recalculate the E field from ions outside boundary
 			// Here we assume that only cylindical BC are used
 			if(GEOMETRY == 0) {
 				debugFile << "spherical boundary conditions not supported" << std::endl;
 			} else if(GEOMETRY ==1) {
-        	injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
-            	 d_posIon.getDevPtr(), // -->
-	          	 d_velIon.getDevPtr(), // -->
-   	 	      	 d_accIon.getDevPtr(), // -->
-   	        	 randStates.getDevPtr(),
-   	        	 d_RAD_CYL.getDevPtr(),
-   	        	 d_HT_CYL.getDevPtr(),
-   	        	 d_boundsIon.getDevPtr(), // <--
-   	        	 d_GCOM.getDevPtr(),
-   	        	 d_QCOM.getDevPtr(),
-   	        	 d_VCOM.getDevPtr(),
-   	        	 d_NUM_DIV_QTH.getDevPtr(),
-   	        	 d_NUM_DIV_VEL.getDevPtr(),
-   	        	 d_SOUND_SPEED.getDevPtr(),
-   	        	 d_TEMP_ION.getDevPtr(),
-   	        	 d_PI.getDevPtr(),
-   	        	 d_TEMP_ELC.getDevPtr(),
-   	        	 d_MACH.getDevPtr(),
-   	        	 d_MASS_SINGLE_ION.getDevPtr(),
-   	        	 d_BOLTZMANN.getDevPtr(),
-   	        	 d_CHARGE_ION.getDevPtr(),
-				 plasma_counter,
-   	        	 xac); // <--
-
-        roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
-			
-			//recalculate the E field from ions outside boundary
 			boundaryEField_101<<<blocksPerTable, DIM_BLOCK2, sizeof(float4) * DIM_BLOCK2>>>
 				(d_GRID_POS.getDevPtr(),
 				d_GCYL_POS.getDevPtr(),
