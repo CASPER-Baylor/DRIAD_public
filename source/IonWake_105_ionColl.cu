@@ -129,7 +129,7 @@ void setIonCrossSection_105
 	}
 	
 	// Interpolate for fine divisions in energy scale
-    for (int i=0;i<=I_CS_RANGES;i++){
+    for (int i=0;i<I_CS_RANGES;i++){
          if (i>0) en = depsilon_i*i; else en = depsilon_i;
          if (en<en_v[0]) {
 			sigma_i1[i] = 0; 
@@ -156,7 +156,7 @@ void setIonCrossSection_105
  
 	//  Sum the backscattering and isotropic scattering to get total  
 	// ion impact cross section: 
-  	for(int i=0;i<=I_CS_RANGES;i++){
+  	for(int i=0;i<I_CS_RANGES;i++){
     	sigma_i_tot[i] = sigma_i1[i] + sigma_i2[i];
     	sigma_i_tot[i] *= NUM_DEN_GAS;
   	}  
@@ -164,7 +164,7 @@ void setIonCrossSection_105
 	//Upper limit for collision frequency  
   	double   e,v,nu,nu_max;
   	nu_max = 0;
-  	for(int i=1;i<=I_CS_RANGES;i++){
+  	for(int i=1;i<I_CS_RANGES;i++){
     	e  = i*depsilon_i*ev_to_j;
     	v  = sqrt(e/MASS_SINGLE_ION);     
     	nu = v*sigma_i_tot[i];
@@ -174,13 +174,13 @@ void setIonCrossSection_105
   	tot_ion_coll_freq = nu_max; 
 
 	if (debugMode) {
-		fileName << "--- 1st 20 Interpolated Cross Sections ---" << std::endl;
-		for (int i = 0; i < 20; i++) {
+		fileName << "--- 1st 10 Interpolated Cross Sections ---" << std::endl;
+		for (int i = 0; i < 10; i++) {
 			fileName << sigma_i1[i] << ", " << sigma_i2[i] << ", "
 				<< sigma_i_tot[i] << std::endl;
 		}
-		fileName << "--- Last 20 Interpolated Cross Sections ---" << std::endl;
-		for (int i = (I_CS_RANGES - 20); i < I_CS_RANGES; i++) {
+		fileName << "--- Last 10 Interpolated Cross Sections ---" << std::endl;
+		for (int i = (I_CS_RANGES - 10); i < I_CS_RANGES; i++) {
 			fileName << i << "  " << sigma_i1[i] << ", " << sigma_i2[i] << ", "
 				<< sigma_i_tot[i] << std::endl;
 		}
@@ -229,7 +229,7 @@ __global__ void ionCollisions_105
 	float* sigma_i_tot,
 	float4* velIon,
 	curandState_t* const randStates,
-	int* d_collision_counter) {
+	int* d_collision_counter) { 
 			
 	// thread ID
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
@@ -284,7 +284,9 @@ __global__ void ionCollisions_105
       eps_rel = *d_MASS_SINGLE_ION * g * g /4.0/ev_to_j;  
       index = (int)(eps_rel/depsilon_i +0.5);
 
-      if (index >= *i_cs_ranges) {index = *i_cs_ranges -1;}
+      if (index >= *i_cs_ranges) {
+		index = *i_cs_ranges -1;
+	  }
       real_coll_freq = sigma_i_tot[index]*g;
 
 
