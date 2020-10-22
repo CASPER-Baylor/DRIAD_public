@@ -266,6 +266,88 @@ int main(int argc, char* argv[])
 	const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
 	const int	TIME_EVOL = getParam_106<int>( paramFile, "TIME_EVOL" );	
 	
+	/*****  Read in evolving plasma parameters **********/
+	/* These will overwrite paramters set in params.txt */
+
+	// allocate memory for the evolving time parameters 
+	int num_pts; 
+	if(TIME_EVOL > 0) {num_pts = TIME_EVOL;}
+	else {num_pts = 1;}
+
+	float* evolEz = (float*)malloc(num_pts * sizeof(float));
+	float* evolEr = (float*)malloc(num_pts * sizeof(float));
+	float* evolTe = (float*)malloc(num_pts * sizeof(float));
+	float* evolTi = (float*)malloc(num_pts * sizeof(float));
+	float* evolne = (float*)malloc(num_pts * sizeof(float));
+	float* evolni = (float*)malloc(num_pts * sizeof(float));
+	float* evolVz = (float*)malloc(num_pts * sizeof(float));
+	float* evolMach = (float*)malloc(num_pts * sizeof(float));
+
+	// index for advancing to next evolving time
+	int plasma_counter = 0;
+
+	// temporary holder for lines in the file
+	std::string line;
+
+	// input file for evolving plasma conditions 
+	if( TIME_EVOL > 0 ) {
+
+		fileName = inputDirName + "plasma_params.txt";
+		std::ifstream plasmaEvolFile(fileName.c_str());
+		// check if the file opened
+		bool plasma_cond_file = plasmaEvolFile.is_open();
+
+		if( plasma_cond_file ) { // read in evolving plasma params from file 
+			// seek to the beginning  of the file
+			plasmaEvolFile.seekg(0, std::ios::beg);
+
+			// skip the first line of the file
+			std::getline(plasmaEvolFile, line);
+
+			for( int i=0; i<TIME_EVOL; i++ ) {
+				plasmaEvolFile >> evolEz[i];
+				plasmaEvolFile >> evolEr[i];
+				plasmaEvolFile >> evolTe[i];
+				plasmaEvolFile >> evolTi[i];
+				plasmaEvolFile >> evolne[i];
+				plasmaEvolFile >> evolni[i];
+				plasmaEvolFile >> evolVz[i];
+				plasmaEvolFile >> evolMach[i];
+			}
+			plasmaEvolFile.close();
+		}
+		if (debugMode) {
+			debugFile << "-- First and last plasma params from file --" << '\n'
+			<< evolEz[0] << ", " << evolEr[0] << ", " 
+			<< evolTe[0] << ", " << evolTi[0] << ", " 
+			<< evolne[0] << ", " << evolni[0] << ", " 
+			<< evolVz[0] << ", " << evolMach[0] << '\n' 
+			<< evolEz[TIME_EVOL -1] << ", " << evolEr[TIME_EVOL-1] << ", " 
+			<< evolTe[TIME_EVOL -1] << ", " << evolTi[TIME_EVOL-1] << ", " 
+			<< evolne[TIME_EVOL -1] << ", " << evolni[TIME_EVOL-1] << ", " 
+			<< evolVz[TIME_EVOL -1] << ", "<<evolMach[TIME_EVOL-1] << '\n' << std::endl;
+		}
+	}
+
+	if(TIME_EVOL > 0) {
+		MACH = evolMach[0];
+		DEN_FAR_PLASMA = evolne[0];
+		TEMP_ELC = evolTe[0];
+		TEMP_ION = evolTi[0];
+		E_FIELD = evolEz[0];
+	}	
+	else { //TIME_EVOL == 0
+		//copy the values set in the param file to the evolving variables
+		// for use in the injection of ions
+		evolEz[0] = E_FIELD;
+		evolEr[0] = 0;
+		evolTe[0] = TEMP_ELC;
+		evolTi[0] = TEMP_ION;
+		evolne[0] = DEN_FAR_PLASMA;
+		evolni[0] = DEN_FAR_PLASMA;
+		evolVz[0] = MACH*sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
+		evolMach[0] = MACH;
+	}
 
 	// debye length (m)
 	float DEBYE =
@@ -625,9 +707,6 @@ int main(int argc, char* argv[])
 	int memFloat3Dust = 0;
 	int memFloat4Dust = 0;
 	int memFloatDust = 0;
-
-	// temporary holder for lines in the file
-	std::string line;
 
 	// skip the first line
 	std::getline(dustParamFile, line);
@@ -1067,81 +1146,6 @@ int main(int argc, char* argv[])
 		momIonDust[i].z = 0;
 	}
 
-// allocate memory for the evolving time parameters 
-	int num_pts; 
-	if(TIME_EVOL > 0) {num_pts = TIME_EVOL;}
-	else {num_pts = 1;}
-
-	float* evolEz = (float*)malloc(num_pts * sizeof(float));
-	float* evolEr = (float*)malloc(num_pts * sizeof(float));
-	float* evolTe = (float*)malloc(num_pts * sizeof(float));
-	float* evolTi = (float*)malloc(num_pts * sizeof(float));
-	float* evolne = (float*)malloc(num_pts * sizeof(float));
-	float* evolni = (float*)malloc(num_pts * sizeof(float));
-	float* evolVz = (float*)malloc(num_pts * sizeof(float));
-	float* evolMach = (float*)malloc(num_pts * sizeof(float));
-
-	// index for advancing to next evolving time
-	int plasma_counter = 0;
-
-	// input file for evolving plasma conditions 
-	if( TIME_EVOL > 0 ) {
-
-		fileName = inputDirName + "plasma_params.txt";
-		std::ifstream plasmaEvolFile(fileName.c_str());
-		// check if the file opened
-		bool plasma_cond_file = plasmaEvolFile.is_open();
-
-		if( plasma_cond_file ) { // read in evolving plasma params from file 
-			// seek to the beginning  of the file
-			plasmaEvolFile.seekg(0, std::ios::beg);
-
-			// skip the first line of the file
-			std::getline(plasmaEvolFile, line);
-
-			for( int i=0; i<TIME_EVOL; i++ ) {
-				plasmaEvolFile >> evolEz[i];
-				plasmaEvolFile >> evolEr[i];
-				plasmaEvolFile >> evolTe[i];
-				plasmaEvolFile >> evolTi[i];
-				plasmaEvolFile >> evolne[i];
-				plasmaEvolFile >> evolni[i];
-				plasmaEvolFile >> evolVz[i];
-				plasmaEvolFile >> evolMach[i];
-			}
-			plasmaEvolFile.close();
-		}
-		if (debugMode) {
-			debugFile << "-- First and last plasma params from file --" << '\n'
-			<< evolEz[0] << ", " << evolEr[0] << ", " 
-			<< evolTe[0] << ", " << evolTi[0] << ", " 
-			<< evolne[0] << ", " << evolni[0] << ", " 
-			<< evolVz[0] << ", " << evolMach[0] << '\n' 
-			<< evolEz[TIME_EVOL -1] << ", " << evolEr[TIME_EVOL-1] << ", " 
-			<< evolTe[TIME_EVOL -1] << ", " << evolTi[TIME_EVOL-1] << ", " 
-			<< evolne[TIME_EVOL -1] << ", " << evolni[TIME_EVOL-1] << ", " 
-			<< evolVz[TIME_EVOL -1] << ", "<<evolMach[TIME_EVOL-1] << '\n' << std::endl;
-		}
-	}
-
-	if(TIME_EVOL > 0) {
-		MACH = evolMach[0];
-		DRIFT_VEL_ION = evolVz[0];
-		TEMP_ELC = evolTe[0];
-		TEMP_ION = evolTi[0];
-	}	
-	else { //TIME_EVOL == 0
-		//copy the values set in the param file to the evolving variables
-		// for use in the injection of ions
-		evolEz[0] = E_FIELD;
-		evolEr[0] = 0;
-		evolTe[0] = TEMP_ELC;
-		evolTi[0] = TEMP_ION;
-		evolne[0] = DEN_FAR_PLASMA;
-		evolni[0] = DEN_FAR_PLASMA;
-		evolVz[0] = DRIFT_VEL_ION;
-		evolMach[0] = MACH;
-	}
 
 	// attempt to open input file for initial ion positions and velocities
 	fileName = inputDirName + "init-ions.txt";
@@ -2139,8 +2143,11 @@ int main(int argc, char* argv[])
 		if(TIME_EVOL >0) {
 			//advance values every 10th ion time step
 			if( j % 10 == 0) {
+			// Update the plasma-counter and reset to zero if it has reached
+			// the end of the values stored in the file
 			plasma_counter = plasma_counter +1;
-			plasma_counter = (plasma_counter+1) % TIME_EVOL;
+			if(plasma_counter == TIME_EVOL) { plasma_counter = 0;}
+
 			TEMP_ELC = evolTe[plasma_counter];
 			TEMP_ION = evolTi[plasma_counter];
 			DEN_FAR_PLASMA = evolne[plasma_counter];
@@ -2193,6 +2200,16 @@ int main(int argc, char* argv[])
 				d_Vout.getDevPtr());
 
 			roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
+			// copy the outside potential to the host
+			d_Vout.devToHost();
+	
+			//output potential at the grid positions such that matlab can read them in
+			for (int q =0; q< NUM_GRID_PTS/2; q++) {
+				ionPotOutsideFile << Vout[q] << std::endl;
+			}
+			ionPotOutsideFile << "" << std::endl;
+			
+
     		} // *** end if on GEOMETRY ***//
 			}
 		} //*** end if TIME_EVOL ***//

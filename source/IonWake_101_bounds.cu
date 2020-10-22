@@ -452,42 +452,41 @@ __global__ void injectIonCylinder_101(
 		randNum = curand_uniform(&randStates[IDion]);
 		
 		// Pick normal velocity from cumulative G.
-		tempIndex = static_cast<int>(pagevq + QIndex * *d_NUM_DIV_VEL);
+		tempIndex = static_cast<int>(QIndex * *d_NUM_DIV_VEL);
 		lowerFloatGIndex = invertFind_101(
-			&d_GCOM[tempIndex],
+			&d_GCOM[pagevq + tempIndex],
 			*d_NUM_DIV_VEL,
 			randNum);
 				
-		/*
-		* This is interpolation is not needed for cylinder, where there
-		* are exactly three angles.
-		* tempIndex = static_cast<int>(QIndex + 1) * *d_NUM_DIV_VEL;
-		* upperFloatGIndex = invertFind_101(
-		* &d_GCOM[tempIndex],
-		* *d_NUM_DIV_VEL,
-		* randNum);
-		*		
-		* // interpolate between upperFloatGIndex and lowerFloatGIndex to get 
-		* // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
-		* radVel = (partQIndex * upperFloatGIndex) + 
-		* ( 1 - partQIndex ) * lowerFloatGIndex;
-		*/
-
+		
+		 //This interpolation is not needed for cylinder, where there
+		 //are exactly three angles.
+		 /*tempIndex = static_cast<int>(pagevq + QIndex + 1) * *d_NUM_DIV_VEL;
+		 * upperFloatGIndex = invertFind_101(
+		 * &d_GCOM[tempIndex],
+		 * *d_NUM_DIV_VEL,
+		 * randNum);
+		 * 	
+		 * // interpolate between upperFloatGIndex and lowerFloatGIndex to get 
+		 * // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
+		 * radVel = (partQIndex * upperFloatGIndex) + 
+		 * ( 1 - partQIndex ) * lowerFloatGIndex;
+		 */
+		
 		radVel = lowerFloatGIndex - pagevq; 
 		
-        // integer part of radVel 
+         // integer part of radVel 
 		tempIndex = static_cast<int>(radVel); 
         
-		// fractional part of radvel
+		 // fractional part of radvel
 		part_radVel = radVel - tempIndex; 
-        
+         
         tempIndex1 = tempIndex + 1;
-		
-        // interpolate the value of radVel from Vcom 
+	 		
+         // interpolate the value of radVel from Vcom 
         radVel = part_radVel * d_VCOM[pagev + tempIndex1] + 
         	(1.0-part_radVel) * d_VCOM[pagev + tempIndex];
-		
-		
+
 		// cos(theta), where theta is the angle of the velocity 
 		// from the z-axis
 		cosTheta = 1.0 - (2.0 * QIndex)/(*d_NUM_DIV_QTH - 1);
@@ -991,7 +990,7 @@ void initInjectIonCylinder_101(
 		dqn = (const1 * exp((-0.5) * vdr * vdr) )
 				+ ((0.5) * vdr * erfcf( (-1.0) * const2 * vdr));
 
-	fileName << "vdrift " << vdr << ", " << "dqn " << dqn << ", ";
+	//fileName << "vdrift " << vdr << ", " << "dqn " << dqn << ", ";
 		
 		if (i == 0){
 		     Qcom[p*NUM_DIV_QTH + i] = dqn * area[i];
@@ -1229,8 +1228,10 @@ __global__ void boundaryEField_101
             softdist = __fsqrt_rn(distSquared+1e-14);
 
             // Calculate the potential
-			//q_in_box = qi* ion_density * ddx*ddx*ddz;	
-			//k*qi*ddx*ddx*ddz in the w field of the GCYL_POS's float4 position.
+			// TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box
+			//kq_in_box = COULOMB_CONST * qi* ddx*ddx*ddz;	
+			//the w field of the GCYL_POS's float4 position tags whether the point
+			// is inside (1) or outside (0) the cylinder.
             //V += *d_DEN_FAR_PLASMA * sharedPos[h].w / softdist
             V += *d_TABLE_POTENTIAL_MULT *sharedPos[h].w / softdist
                 * __expf(-softdist * *d_INV_DEBYE);
