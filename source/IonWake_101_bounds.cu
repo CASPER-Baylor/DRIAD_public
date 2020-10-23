@@ -999,7 +999,7 @@ void initInjectIonCylinder_101(
 			Qcom[p*NUM_DIV_QTH + i] = Qcom[p*NUM_DIV_QTH + i-1] + dqn * area[i];
 		}
 	
-	fileName << "Q i "  << Qcom[p*NUM_DIV_QTH + i] << std::endl;
+	//fileName << "Q i "  << Qcom[p*NUM_DIV_QTH + i] << std::endl;
 		
 		pagenum = p * NUM_DIV_VEL * NUM_DIV_QTH;
 		// at this angle, now do
@@ -1074,6 +1074,7 @@ void initInjectIonCylinder_101(
 		
 		fileName << "--- 1st Gcom, Last Gcom ---" << std::endl;
 		for (int i = 0; i < NUM_DIV_QTH; i++){
+			fileName << "Q index" << i << std::endl;
 			for (int j = 0; j < NUM_DIV_VEL; j++){
 				
 				fileName << Gcom[i * NUM_DIV_VEL + j] << ", ";
@@ -1082,6 +1083,7 @@ void initInjectIonCylinder_101(
 			}
 			fileName << std::endl;
 		}
+		fileName << "End initInjectIonCyl " << std::endl;
 	} 
 	
 	// free host memory
@@ -1157,12 +1159,14 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 *
 * Description:
 *	Calculates the radial electric potential from ions outside the simulation boundary  
-*	Based on Fast N-body calculation, calculate_forces, Ch 31, GPU Gems
 *
-* Input:
+Input:
 *	GRID_POS:positions in the r-z plane
 * 	GCYL_POS: positions within the cylindrical simulation region
+*	NUM_CYL_PTS: the number of points in 3D cylinder
+*	NUM_GRID_PTS2: number of points in xz-plane for lookup table
 *	INV_DEBYE: 1/DEBYE, where DEBYE is electron Debye length
+*	plasma_counter: index to track evolving plasma conditions
 *	DEN_ION: the number density of the ions
 *
 * Output (void):
@@ -1176,23 +1180,29 @@ __global__ void boundaryEField_101
 	(float2* d_GRID_POS,
 	float4* d_GCYL_POS,
 	int* const d_NUM_CYL_PTS,
+	int* const d_NUM_GRID_PTS2,
 	float* const d_INV_DEBYE,
 	float* const d_TABLE_POTENTIAL_MULT,
-	float* d_Vout) {
+	float* d_Vout,
+	int plasma_counter) {
 	
 	// thread ID
 	int IDgrid = blockIdx.x * blockDim.x + threadIdx.x;
 
 	//initialize variables
 	//int i, tile;
+	int page;
 	float3 dist;
 	float distSquared, softdist;
 	float V = 0;
 	int tileThreadID;
 
-	// zero the potential at the Table lookup point
-    d_Vout[IDgrid] = 0;
+    // determine the offset for table lookup based on the plasma condition
+    page = plasma_counter * *d_NUM_GRID_PTS2;
 	
+	// zero the potential at the Table lookup point
+    d_Vout[page + IDgrid] = 0;
+
 	//allocated shared memory
 	extern __shared__ float4 sharedPos[];
 
@@ -1243,22 +1253,7 @@ __global__ void boundaryEField_101
     } //end loop over tiles
 
     // save to global memory
-    d_Vout[IDgrid] += V;
-
-
-	//DEBUG
-	// N should be the number of cylinder points = 10752
-	// if p = 512, the size of a tile is p x p
-	// This loop will execute N/p = 21 times
-	//for (i = 0; tile = 0; i < 10752; i+= 512, tile++) {
-	//	int idx = tile * blockDim.x + threadIdx.x;
-	//	shPosition[threadIdx.x] = d_GCYL_POS[idx];
-	//	__syncthreads();
-	//	V = tile_calculation_101(gridPosition, *d_INV_DEBYE, *d_DEN_ION, V);
-	//	__syncthreads();
-	//	}
-	//	// Save the results in global memory
-	//	d_Vout[threadID] = V;
+    d_Vout[page + IDgrid] += V;
 }
 
 /*

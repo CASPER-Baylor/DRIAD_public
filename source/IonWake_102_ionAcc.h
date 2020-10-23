@@ -214,6 +214,8 @@
 * 		d_dr: increment in r between grid points
 * 		d_Esheath: DC electric field in plasma column
 * 		E_dir: direction of electric field (and ion flow)
+* 		plasma_counter: index for evolving plasma conditions
+*
 *
 * Output (void):
 *       d_accIon: the acceleration due to the outside electric
@@ -245,7 +247,7 @@ __global__ void calcExtrnElcAccCyl_102
 		int*,
 		float*,
 		float*,
-		float*, int);
+		float*, int, int);
 
 /*
  *  Name: calcIonDensityPotential_102

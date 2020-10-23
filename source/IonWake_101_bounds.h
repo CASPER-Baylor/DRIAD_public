@@ -575,14 +575,12 @@ void initInjectIonCylinder_101(
  *
  * Description:
  *   Calculates the radial electric potential from ions outside the simulation boundary
- *   Based on Fast N-body calculation, calculate_forces, Ch 31, GPU Gems
  *
  * Input:
  *   GRID_POS:positions in the r-z plane
  *   GCYL_POS: positions within the cylindrical simulation region
  *   INV_DEBYE: 1/DEBYE, where DEBYE is electron Debye length
  *   DEN_ION: the number density of the ions
- *
  * Output (void):
  *  ionOutPotential: potential calculated at each point in GRID_POS due to ions
  *                       contained within a box centered about GCYL_POS, summed
@@ -594,11 +592,11 @@ __global__ void boundaryEField_101
     (float2*,
     float4*,
 	int* const,
+	int* const,
     float* const,
     float* const,
-    float*
-    );
-	
+    float*,
+    int);
 
 /*
  * Name:tile_calculation_101

@@ -363,6 +363,7 @@ __global__ void calcExtrnElcAcc_102
 *   d_dr: increment in r between grid points
 *	d_Esheath: sheath/DC electric field (z-direction)
 *	E_dir: direction of polarity-switched DC field
+*	plasma_counter: index for evolving plasma conditions
 *
 * Output (void):
 *	d_accIon: the acceleration due to the outside electric 
@@ -394,15 +395,20 @@ __global__ void calcExtrnElcAccCyl_102
 	float* d_dz, 
     float* d_dr,
 	float* d_Esheath,
-	int E_dir) {
+	int E_dir,
+	int plasma_counter) {
 
 	// the thread ID
 	int ID = blockIdx.x * blockDim.x + threadIdx.x;
 
 	//local variables
 	float temp, x1, frac_r, z1, frac_z; 
+	int page;
 	int pt0, pt1, pt2, pt3, pt4, pt5, pt6, pt7, ptA, ptB, ptC, ptD;
 	float Ex, Ez;
+
+	// determine the offset for table lookup based on the plasma condition
+	page = plasma_counter * *d_NUMR * *d_RESZ;
 
 	// get the radius of the ion from the center axis of the
 	// simulation cylinder. The center is assumed to be (0,0,z)
@@ -451,17 +457,17 @@ __global__ void calcExtrnElcAccCyl_102
 	//Treat special cases for positions which are on edges of grid.
 	if( x1 == 0) { 
 		// on the left edge
-		Ex = ((d_Vout[pt2] - 
-				d_Vout[pt1]) *(1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[pt5])  * frac_z)/ (*d_dr);
+		Ex = ((d_Vout[page + pt2] - 
+				d_Vout[page + pt1]) *(1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + pt5])  * frac_z)/ (*d_dr);
 	}
 	else if ( x1 == (*d_NUMR -2)) {
 		// on the right edge
-		Ex = ((d_Vout[pt2] - 
-				d_Vout[pt1]) *(1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[pt5])  * frac_z)/ (*d_dr);
+		Ex = ((d_Vout[page + pt2] - 
+				d_Vout[page + pt1]) *(1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + pt5])  * frac_z)/ (*d_dr);
 	}
 	else {
 		// in the middle of the grid
@@ -474,14 +480,14 @@ __global__ void calcExtrnElcAccCyl_102
 	
 		// Use an areal-weighting scheme to perform
 		// the 2D table lookup.
-		Ex = ((d_Vout[pt2] - 
-				d_Vout[pt0]) * (1.0-frac_r)*(1.0 - frac_z) +
-			  (d_Vout[pt3] - 
-				d_Vout[pt1]) * frac_r * (1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[pt4]) * (1.0 - frac_r) * frac_z +
-			  (d_Vout[pt7] - 
-				d_Vout[pt5]) * frac_r * frac_z)/ (2.0 * *d_dr);
+		Ex = ((d_Vout[page + pt2] - 
+				d_Vout[page + pt0]) * (1.0-frac_r)*(1.0 - frac_z) +
+			  (d_Vout[page + pt3] - 
+				d_Vout[page + pt1]) * frac_r * (1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + pt4]) * (1.0 - frac_r) * frac_z +
+			  (d_Vout[page + pt7] - 
+				d_Vout[page + pt5]) * frac_r * frac_z)/ (2.0 * *d_dr);
 	}
 
 	// Calculate Ez at the posIon by taking the gradient of the potential
@@ -489,37 +495,37 @@ __global__ void calcExtrnElcAccCyl_102
 	//Treat special cases for positions which are on edges of grid.
 	if( z1 == 0) { 
 		// on the top edge
-		Ez = ((d_Vout[pt5] - 
-				d_Vout[pt1]) * (1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[pt2])  * frac_z)/ (*d_dz);
+		Ez = ((d_Vout[page + pt5] - 
+				d_Vout[page + pt1]) * (1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + pt2])  * frac_z)/ (*d_dz);
 	}
 	else if ( z1 == (*d_RESZ -2)) {
 		// on the bottom edge
-		Ez = ((d_Vout[pt5] - 
-				d_Vout[pt1]) * (1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[pt2])  * frac_z)/ (*d_dz);
+		Ez = ((d_Vout[page + pt5] - 
+				d_Vout[page + pt1]) * (1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + pt2])  * frac_z)/ (*d_dz);
 	}
 	else {
 		// in the middle of the grid
 		//Determine the electric field at the four points
 		//surrounding ionPos.
-		//Ez1 = -(*d_Vout[pt5] - *d_Vout[ptC]) / (2 * *d_dz);
-		//Ez2 = -(*d_Vout[pt6] - *d_Vout[ptD]) / (2 * *d_dz);
-		//Ez3 = -(*d_Vout[ptA] - *d_Vout[pt1]) / (2 * *d_dz);
-		//Ez4 = -(*d_Vout[ptB] - *d_Vout[pt2]) / (2 * *d_dz);
+		//Ez1 = -(*d_Vout[page + pt5] - *d_Vout[page + ptC]) / (2 * *d_dz);
+		//Ez2 = -(*d_Vout[page + pt6] - *d_Vout[page + ptD]) / (2 * *d_dz);
+		//Ez3 = -(*d_Vout[page + ptA] - *d_Vout[page + pt1]) / (2 * *d_dz);
+		//Ez4 = -(*d_Vout[page + ptB] - *d_Vout[page + pt2]) / (2 * *d_dz);
 	
 		// Use an areal-weighting scheme to perform
 		// the 2D table lookup.
-		Ez = ((d_Vout[pt5] - 
-				d_Vout[ptC]) * (1.0-frac_r)*(1.0 - frac_z) +
-			  (d_Vout[pt6] - 
-				d_Vout[ptD]) * frac_r * (1.0 - frac_z) +
-			  (d_Vout[ptA] - 
-				d_Vout[pt1]) * (1.0 - frac_r) * frac_z +
-			  (d_Vout[ptB] - 
-				d_Vout[pt2]) * frac_r * frac_z)/ (2.0 * *d_dz);
+		Ez = ((d_Vout[page + pt5] - 
+				d_Vout[page + ptC]) * (1.0-frac_r)*(1.0 - frac_z) +
+			  (d_Vout[page + pt6] - 
+				d_Vout[page + ptD]) * frac_r * (1.0 - frac_z) +
+			  (d_Vout[page + ptA] - 
+				d_Vout[page + pt1]) * (1.0 - frac_r) * frac_z +
+			  (d_Vout[page + ptB] - 
+				d_Vout[page + pt2]) * frac_r * frac_z)/ (2.0 * *d_dz);
 	}
 
 	// multiply by the vector distance to the center of 
