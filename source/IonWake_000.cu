@@ -2207,32 +2207,9 @@ int main(int argc, char* argv[])
 			d_TEMP_ELC.hostToDev();
 			d_MACH.hostToDev();
 
-			//recalculate the E field from ions outside boundary
-			// Here we assume that only cylindical BC are used
-//			if(GEOMETRY == 0) {
-//				debugFile << "spherical boundary conditions not supported" << std::endl;
-//			} else if(GEOMETRY ==1) {
-			//boundaryEField_101<<<blocksPerTable, DIM_BLOCK2, sizeof(float4) * DIM_BLOCK2>>>
-			//	(d_GRID_POS.getDevPtr(),
-			//	d_GCYL_POS.getDevPtr(),
-			//	d_NUM_CYL_PTS.getDevPtr(),
-			//	d_INV_DEBYE.getDevPtr(),
-			//	d_TABLE_POTENTIAL_MULT.getDevPtr(),
-			//	d_Vout.getDevPtr());
-//
-//			roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
-//			// copy the outside potential to the host
-//			d_Vout.devToHost();
-//	
-//			//output potential at the grid positions such that matlab can read them in
-//			for (int q =0; q< NUM_GRID_PTS2; q++) {
-//				ionPotOutsideFile << Vout[q] << std::endl;
-//			}
-//			ionPotOutsideFile << "" << std::endl;
-//
- //   		} // *** end if on GEOMETRY ***//
 			}
 		} //*** end if TIME_EVOL ***//
+
 	} // ***** end of ion loop *****// 
 
 					

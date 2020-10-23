@@ -452,7 +452,7 @@ __global__ void injectIonCylinder_101(
 		randNum = curand_uniform(&randStates[IDion]);
 		
 		// Pick normal velocity from cumulative G.
-		tempIndex = static_cast<int>(QIndex * *d_NUM_DIV_VEL);
+		tempIndex = static_cast<int>(QIndex) * *d_NUM_DIV_VEL;
 		lowerFloatGIndex = invertFind_101(
 			&d_GCOM[pagevq + tempIndex],
 			*d_NUM_DIV_VEL,
@@ -473,7 +473,8 @@ __global__ void injectIonCylinder_101(
 		 * ( 1 - partQIndex ) * lowerFloatGIndex;
 		 */
 		
-		radVel = lowerFloatGIndex - pagevq; 
+		// This is a number that ranges from 0 to d_NUM_DIV_VEL
+		radVel = lowerFloatGIndex; 
 		
          // integer part of radVel 
 		tempIndex = static_cast<int>(radVel); 
