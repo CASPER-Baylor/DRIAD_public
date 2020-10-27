@@ -282,10 +282,13 @@ __global__ void ionCollisions_105
       g = sqrt(gx*gx + gy*gy + gz*gz);
 	  //energy = 0.5*reduced_mass*v^2
       eps_rel = *d_MASS_SINGLE_ION * g * g /4.0/ev_to_j;  
-      index = (int)(eps_rel/depsilon_i +0.5);
+      index = static_cast <int>(eps_rel/depsilon_i +0.5);
 
       if (index >= *i_cs_ranges) {
 		index = *i_cs_ranges -1;
+	  }
+      if (index < 0) {
+		index = 0;
 	  }
       real_coll_freq = sigma_i_tot[index]*g;
 
@@ -316,10 +319,15 @@ __global__ void ionCollisions_105
 		vx_i += 0.5*(gx*(1.0-ck)+hx*sk);
 		vy_i += 0.5*(gy*(1.0-ck)+hy*sk);  
 		vz_i += 0.5*(gz*(1.0-ck)+hz*sk);
+		if( isnan(vx_i)  || (isnan(vy_i) || isnan (vz_i))) {
+		 return;
+		}
+		else {
 		velIon[threadID].x = vx_i;
 		velIon[threadID].y = vy_i;
 		velIon[threadID].z = vz_i;
 		++*d_collision_counter;
+		}
       }  
  
     }

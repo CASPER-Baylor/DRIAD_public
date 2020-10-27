@@ -6,6 +6,6 @@
 
 using namespace std;
 
-void roadBlock_104(ofstream&, int, string, string, bool);
+void roadBlock_104(ofstream&, int, string, string, bool&);
 
 #endif 

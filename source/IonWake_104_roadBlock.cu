@@ -28,7 +28,7 @@
 *
 */
 
-void roadBlock_104(ofstream& statusFile, int line, string file, string name, bool print) {
+void roadBlock_104(ofstream& statusFile, int line, string file, string name, bool& print) {
         cudaError_t cudaStatus;
 
         if (print) {
@@ -59,6 +59,9 @@ void roadBlock_104(ofstream& statusFile, int line, string file, string name, boo
                 fprintf(stderr, "Error code : %s\n\n",cudaGetErrorString(cudaStatus));
 
                 // terminate the program
-    		exit(-1);   
+	    		//exit(-1);   
+		
+				// don't terminate the program -- return a value that says to print vel
+				print = 1;
 	 }
 }

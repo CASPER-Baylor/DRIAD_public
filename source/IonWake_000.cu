@@ -1333,7 +1333,8 @@ int main(int argc, char* argv[])
 
 	/****** Initialize Device Variables ******/
 	
-	roadBlock_104(statusFile, __LINE__, __FILE__, "before variables", false);
+	bool print = false;
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before variables", print);
 
 	// create constant device variables
 	constCUDAvar<float> d_COULOMB_CONST(&COULOMB_CONST, 1);
@@ -1488,7 +1489,7 @@ int main(int argc, char* argv[])
 	d_TEMP_ELC.hostToDev();
 	d_MACH.hostToDev();
 
-	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", print);
 
 	for (int p = 0; p < num_pts; p++) {
 	
@@ -1509,7 +1510,7 @@ int main(int argc, char* argv[])
 			d_TABLE_POTENTIAL_MULT.getDevPtr(),
 			d_Vout.getDevPtr(), p);
 
-		roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", false);	
+		roadBlock_104( statusFile, __LINE__, __FILE__, "boundaryEField_101", print);	
 	}
 	
 	//Reset the DEBYE length to first condition -- 
@@ -1534,7 +1535,7 @@ int main(int argc, char* argv[])
 		(d_ionPotential.getDevPtr(),
 		 d_ionDensity.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", print);
 
 	// zero the ionDustAcc
 	zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>>
@@ -1542,14 +1543,14 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_NUM_ION.getDevPtr());
 
-   	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", false);
+   	roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroDustIonAcc", print);
 
-	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "before init_101", print);
 
 	// generate all of the random states on the GPU
 	init_101 <<< DIM_BLOCK * blocksPerGridIon, 1 >>> (time(0), randStates.getDevPtr());
 
-	roadBlock_104(statusFile, __LINE__, __FILE__, "init_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "init_101", print);
 
 	// initialize variables needed for injecting ions with the Piel 2017 method
 	if(GEOMETRY == 0) {
@@ -1590,7 +1591,7 @@ int main(int argc, char* argv[])
 
 	}
 
-	roadBlock_104( statusFile, __LINE__, __FILE__, "Pause before timestep", false);	
+	roadBlock_104( statusFile, __LINE__, __FILE__, "Pause before timestep", print);	
 
 	/*************************
 		Time Step
@@ -1606,7 +1607,7 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_posDust.getDevPtr()); 
 
-	roadBlock_104(statusFile, __LINE__, __FILE__, "checkIonBounds_101", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "checkIonBounds_101", print);
 
 	//polarity switching of electric field
 	int xac = 0;
@@ -1635,7 +1636,7 @@ int main(int argc, char* argv[])
 			d_CHARGE_ION.getDevPtr(),
 			xac);
 
-		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 
 	} else if(GEOMETRY == 1) {
 		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -1662,14 +1663,14 @@ int main(int argc, char* argv[])
 			plasma_counter,
 			xac); // <--
 
-		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", print);
 	}
 
 	// reset the ion bounds flag to 0
 	resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
 		d_boundsIon.getDevPtr());
 
-	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
+	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 
 	//Calculate ion-ion forces
 	//Ions inside the simulation region
@@ -1682,7 +1683,7 @@ int main(int argc, char* argv[])
 		d_ION_ION_ACC_MULT.getDevPtr(),
 		d_INV_DEBYE.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102 line 1675", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102 line 1675", print);
 
 	if (xac == 0) {
 		E_direction = -1;
@@ -1701,7 +1702,7 @@ int main(int argc, char* argv[])
 			d_EXTERN_ELC_MULT.getDevPtr(),
 			d_INV_DEBYE.getDevPtr());
 
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1694", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1694", print);
 	} else if(GEOMETRY == 1) {
 		// calculate the forces from ions outside simulation region
 		// and external electric field 
@@ -1719,7 +1720,7 @@ int main(int argc, char* argv[])
 			E_direction,
 			plasma_counter);
 
-		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102 line 1710", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102 line 1710", print);
 	}
 
 	//Any other external forces acting on ions would be calc'd here
@@ -1729,7 +1730,7 @@ int main(int argc, char* argv[])
 		d_accIon.getDevPtr(), 
 		d_HALF_TIME_STEP.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "kick_100", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "kick_100", print);
 
 	// calculate the acceleration due to ion-dust interactions
 	// also save the distance to the closest dust particle for each ion
@@ -1743,7 +1744,7 @@ int main(int argc, char* argv[])
 		d_ION_DUST_ACC_MULT.getDevPtr(),
 		d_minDistDust.getDevPtr());
 
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", false);
+	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", print);
 	
 	/****** Time Step Loop ******/
 
@@ -1770,7 +1771,7 @@ int main(int argc, char* argv[])
 				d_m.getDevPtr(), // -->
 				d_timeStepFactor.getDevPtr()); // -->
 	
-			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", false);
+			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", print);
 
 			//KDK using just the ion-dust acceleration for s^m iterations
  
@@ -1794,7 +1795,7 @@ int main(int argc, char* argv[])
 					d_ION_DUST_ACC_MULT.getDevPtr(),
 					d_RAD_COLL_MULT.getDevPtr());
 
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", print);
 				
 			} else if(GEOMETRY == 1) {
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -1816,7 +1817,7 @@ int main(int argc, char* argv[])
 					d_ION_DUST_ACC_MULT.getDevPtr(),
 					d_RAD_COLL_MULT.getDevPtr());
 
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", print);
 			}
 
 			//polarity switching of electric field
@@ -1850,7 +1851,7 @@ int main(int argc, char* argv[])
 					d_CHARGE_ION.getDevPtr(),
 					xac);
 		
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 			} if(GEOMETRY == 1) {
 				// inject ions into the simulation sphere
 				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -1877,7 +1878,7 @@ int main(int argc, char* argv[])
 					plasma_counter,
 					xac); // <--
 		
-			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonCylinder", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonCylinder", print);
 			}
 	
 			// Calculate the ion forces on the dust
@@ -1890,7 +1891,7 @@ int main(int argc, char* argv[])
 				d_INV_DEBYE.getDevPtr(),
 				d_DUST_ION_ACC_MULT.getDevPtr()); 
 	
-			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
 			// calc ion number density and ion potential
 			calcIonDensityPotential_102 
@@ -1902,7 +1903,7 @@ int main(int argc, char* argv[])
 				 d_NUM_ION.getDevPtr(),
 				 d_ionPotential.getDevPtr(),
 				 d_ionDensity.getDevPtr());
-			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential line 1892", false);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential line 1892", print);
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region
@@ -1917,7 +1918,7 @@ int main(int argc, char* argv[])
 				d_INV_DEBYE.getDevPtr());
 	
 			roadBlock_104( statusFile, __LINE__, __FILE__, 
-				"calcIonIonAcc_102 line 1906", false);
+				"calcIonIonAcc_102 line 1906", print);
 			// }}}	
 
 			// copy ion accelerations to host
@@ -1943,7 +1944,7 @@ int main(int argc, char* argv[])
 					d_EXTERN_ELC_MULT.getDevPtr(),
 					d_INV_DEBYE.getDevPtr());
 	
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1925", false);
+				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1925", print);
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
@@ -1961,7 +1962,7 @@ int main(int argc, char* argv[])
 			E_direction,plasma_counter);
 
 			roadBlock_104( statusFile, __LINE__, __FILE__, 
-				"calcExtrnElcAccCyl_102 line 1955", false);
+				"calcExtrnElcAccCyl_102 line 1955", print);
 			}
 
 		//Any other external forces acting on ions would be calc'd here
@@ -2040,7 +2041,7 @@ int main(int argc, char* argv[])
 							momIonDust[boundsIon[k] - 1].x += velIon[k].x;
 							momIonDust[boundsIon[k] - 1].y += velIon[k].y;
 							momIonDust[boundsIon[k] - 1].z += velIon[k].z;
-					debugFile << velIon[k].x << ", " << velIon[k].z << std::endl;
+					//debugFile << velIon[k].x << ", " << velIon[k].z << std::endl;
 						}
 					}
 
@@ -2102,7 +2103,7 @@ int main(int argc, char* argv[])
 			d_collList.getDevPtr(), 
 			set_value);
 			
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", print);
 
 		//copy collision list to host 
 		d_collList.devToHost();
@@ -2124,7 +2125,7 @@ int main(int argc, char* argv[])
 
 		//copy collision list to device
 		d_collList.hostToDev();
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", false);					
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", print);					
 		
 		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
 			d_collList.getDevPtr(),
@@ -2140,7 +2141,18 @@ int main(int argc, char* argv[])
 			randStates.getDevPtr(), 
 			d_collision_counter.getDevPtr());
 
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisions_105", false);
+		bool print_test = false;
+		roadBlock_104(statusFile, __LINE__, __FILE__, "ionCollisions_105", print_test);
+		if(print_test)
+		{ //copy ion velocities to the host
+		  d_velIon.devToHost();
+			debugFile << "Failure in ionCollisions_105" << std::endl;
+		  for(int q = 1; q < NUM_ION; q++) {
+			debugFile << velIon[q].x << ", " << velIon[q].y << ", " 
+					<< velIon[q].z << std::endl;
+		  }
+		  exit(-1);
+		}
 
 		// copy collision counter to the host 
 		//d_collision_counter.devToHost();
@@ -2150,7 +2162,7 @@ int main(int argc, char* argv[])
 		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
 			d_boundsIon.getDevPtr());
 	
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", false);
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 	
 		// Kick for one timestep -- using just ion-ion accels
 		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -2158,12 +2170,12 @@ int main(int argc, char* argv[])
 			d_accIon.getDevPtr(), // <-->
 			d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
 	
-		roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", false);
+		roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", print);
 	
 		// Recalculate evolving parameters for time-dependent plasma conditions
 		if(TIME_EVOL >0) {
 			//advance values every 10th ion time step
-			if( j % 10 == 0) {
+			if( j % 100 == 0) {
 			// Update the plasma-counter and reset to zero if it has reached
 			// the end of the values stored in the file
 			plasma_counter = plasma_counter +1;
@@ -2218,7 +2230,7 @@ int main(int argc, char* argv[])
 		d_NUM_DUST.getDevPtr(),
 		d_NUM_ION.getDevPtr()); 
 					
-	roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", false);
+	roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", print);
 
 	d_accDustIon.devToHost();
 					    
@@ -2235,6 +2247,7 @@ int main(int argc, char* argv[])
 
 				for (int k = 0; k < NUM_DUST; k++){
 					//smooth the simulated dust charge over past timesteps 
+					//simCharge[k] = tempCharge[k]/N_IONDT_PER_DUSTDT; 
 					simCharge[k] = 0.95 * simCharge[k] 
 						+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 
@@ -2494,7 +2507,7 @@ int main(int argc, char* argv[])
 			d_ionPotential.devToHost();
 
 			roadBlock_104(  statusFile, __LINE__, __FILE__, 
-				"Copy d_ionDensity and d_ionPotential to Host", false);
+				"Copy d_ionDensity and d_ionPotential to Host", print);
 			// print the data to the ionDensOutFile
 			//Average the accumulated values over previous time steps by dividing
 			// by N and N_IONDT_PER_DUSTDT.  Remember that density was calculated
@@ -2513,7 +2526,7 @@ int main(int argc, char* argv[])
        	        d_ionDensity.getDevPtr()
 			);
 
-			roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", false);
+			roadBlock_104(  statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", print);
 
 		}
 
@@ -2541,14 +2554,14 @@ int main(int argc, char* argv[])
 		// copy back to the device
 		d_accIonDust.hostToDev();
 		roadBlock_104(statusFile, __LINE__, __FILE__,
-			"Copy d_accDustIon to device ", false);
+			"Copy d_accDustIon to device ", print);
 		// zero the ionDustAcc
 		zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK >>> (
 			d_accDustIon.getDevPtr(),
 			d_NUM_DUST.getDevPtr(),
 			d_NUM_ION.getDevPtr());
 
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "zero DustIonAcc", false);		
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "zero DustIonAcc", print);		
 
 
 		statusFile << "|" << std::endl;
@@ -2610,7 +2623,7 @@ int main(int argc, char* argv[])
 	d_velIon.devToHost();
 
 	// synchronize threads and check for errors
-	roadBlock_104( statusFile, __LINE__, __FILE__, "devToHost", false);
+	roadBlock_104( statusFile, __LINE__, __FILE__, "devToHost", print);
 	if (debugMode) {
 		// print the index of the traced ion to the debugging file
 		debugFile << "Single ion trace index: " << ionTraceIndex << "\n\n";
