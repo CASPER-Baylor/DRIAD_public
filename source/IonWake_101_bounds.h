@@ -288,6 +288,7 @@
 *   d_BOLTZMANN: the boltzmann constant
 *	d_CHARGE_ION: charge on the superion
 *	plasma_counter: index of evolving plasma parameters
+*	counter_part: fraction part of plasma timestep
 *   xac: 0 or 1 for polarity switching of E field
 *
 * Output (void):
@@ -330,7 +331,7 @@ __global__ void injectIonCylinder_101(
                 float* const ,
                 float* const ,
                 float* const ,
-				int,
+				int, float,
 				int );	
 		
 	/*

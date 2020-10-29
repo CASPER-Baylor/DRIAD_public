@@ -253,8 +253,10 @@ int main(int argc, char* argv[])
 	const float AXIAL_CONF = getParam_106<float>( paramFile, "AXIAL_CONF" );
 	const int	N_IONDT_PER_DUSTDT 
 		= getParam_106<int>( paramFile, "N_IONDT_PER_DUSTDT" );
+	const int	N_IONDT_PER_PLASMADT
+		= getParam_106<int>( paramFile, "N_IONDT_PER_PLASMADT" );
 	const int	N_PRINT_DEN_POT
-		= getParam_106<int>( paramFile, "N_PRINT_DEN_POT" );						  												  
+		= getParam_106<int>( paramFile, "N_PRINT_DEN_POT" );
 	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
 	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
     const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
@@ -285,6 +287,8 @@ int main(int argc, char* argv[])
 
 	// index for advancing to next evolving time
 	int plasma_counter = 0;
+	// fraction part of plasma evolving timestep
+	float counter_part = 0;
 
 	// temporary holder for lines in the file
 	std::string line;
@@ -543,6 +547,7 @@ int main(int argc, char* argv[])
 		<< "ION_TIME_STEP     " << ION_TIME_STEP     << '\n'
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
 		<< "N_IONDT_PER_DUSTDT " << N_IONDT_PER_DUSTDT << '\n'
+		<< "N_IONDT_PER_PLASMADT " << N_IONDT_PER_PLASMADT << '\n'
 		<< "GEOMETRY          " << GEOMETRY          << '\n'
 		<< "RAD_SPH_DEBYE     " << RAD_SPH_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
@@ -659,6 +664,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
+	<< std::setw(14) << N_IONDT_PER_PLASMADT << " % N_IONDT_PER_PLASMADT"  << '\n'
  	<< std::setw(14) << GAS_TYPE          << " % GAS_TYPE"          << '\n'
     << std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
     << std::setw(14) << TEMP_GAS		  << " % TEMP_GAS"          << '\n'
@@ -917,8 +923,6 @@ int main(int argc, char* argv[])
 	// amount of memory required for the positions within cylinder
 	int RESXc = RESX;
 	int RESZc = RESZ;
-	// Implementing this code shows that NUM_CYL_PTS = 10752 for RESXc = RESZc = 24
- 	// Using RESXc*RESXc*RESZc = 24^3 = 13824 pts. 	
 	int memFloat3DGrid = RESXc * RESXc *RESZc * sizeof(float4);
 
 	// allocate memory for the points in the cylinder
@@ -950,10 +954,12 @@ int main(int argc, char* argv[])
 			for (int x=0; x < RESXc; x++) {
 				tempx = -(RAD_CYL) + dx/2.0 + dx * x;
 				tempy = -(RAD_CYL) + dx/2.0 + dx * y;
-				//only save points inside cylinder
+				//Ensure that tempx, tempy are symmetric about r=0
+				//tempx = dx/2.0 + dx * x;
+				//tempy = dx/2.0 + dx * y;
+				//tag points inside cylinder
 				if(tempx*tempx+tempy*tempy < RAD_CYL*RAD_CYL){
 					GCYL_POS[count].w = 1;
-					count += 1;
 				}
 				else {
 					GCYL_POS[count].w = 0;
@@ -961,6 +967,7 @@ int main(int argc, char* argv[])
 					GCYL_POS[count].x = tempx;
 					GCYL_POS[count].y = tempy;
 					GCYL_POS[count].z = -(HT_CYL) + dz2/2.0 + dz2 * z;
+					count += 1;
 			}
 		}
 	}
@@ -969,6 +976,12 @@ int main(int argc, char* argv[])
 	const int NUM_CYL_PTS = RESXc * RESXc *RESZc;
 	debugFile <<  "Created cylinder positions " << std::endl;
 	debugFile << NUM_CYL_PTS << std::endl << std::endl;
+	//for (int j = 0; j < NUM_CYL_PTS; j++) {
+	//	debugFile << GCYL_POS[j].x << ", " << GCYL_POS[j].y << ", ";
+	//	debugFile << GCYL_POS[j].z << ", " << GCYL_POS[j].w << ", ";
+	//	debugFile << std::endl;
+	//}
+	//debugFile << std::endl;
 
 	// Need to get rid of the extra entries in GCYL_PTS -- allocated memory for
 	// more than needed.  Currently just giving them a value of 0 in 4th posn.
@@ -1640,6 +1653,9 @@ int main(int argc, char* argv[])
 		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 
 	} else if(GEOMETRY == 1) {
+		// fraction of plasma timestep
+		counter_part = 0;
+
 		injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
 			d_posIon.getDevPtr(), // -->
 			d_velIon.getDevPtr(), // -->
@@ -1661,7 +1677,7 @@ int main(int argc, char* argv[])
 			d_MASS_SINGLE_ION.getDevPtr(),
 			d_BOLTZMANN.getDevPtr(),
 			d_CHARGE_ION.getDevPtr(),
-			plasma_counter,
+			plasma_counter,counter_part,
 			xac); // <--
 
 		roadBlock_104( statusFile, __LINE__, __FILE__, "injectIonCylinder_101", print);
@@ -1823,7 +1839,8 @@ int main(int argc, char* argv[])
 
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
-			ionTime = dust_time + (j)* ION_TIME_STEP;
+			//ionTime = dust_time + (j)* ION_TIME_STEP;
+			ionTime = (j)* ION_TIME_STEP;
         	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
@@ -1854,6 +1871,9 @@ int main(int argc, char* argv[])
 		
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 			} if(GEOMETRY == 1) {
+				// fraction of plasma timestep
+				counter_part = (j % N_IONDT_PER_PLASMADT)/N_IONDT_PER_PLASMADT;
+
 				// inject ions into the simulation sphere
 				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
 					d_posIon.getDevPtr(), // -->
@@ -1876,7 +1896,7 @@ int main(int argc, char* argv[])
 					d_MASS_SINGLE_ION.getDevPtr(),
 					d_BOLTZMANN.getDevPtr(),
 					d_CHARGE_ION.getDevPtr(),
-					plasma_counter,
+					plasma_counter,counter_part,
 					xac); // <--
 		
 			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonCylinder", print);
@@ -1949,18 +1969,19 @@ int main(int argc, char* argv[])
 			} else if(GEOMETRY == 1) {
 				// calculate the forces between all ions outside
 				//simulation region and external electric field
-		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_accIon.getDevPtr(), // {{{
-			d_posIon.getDevPtr(), 
-			d_Q_DIV_M.getDevPtr(),
-			d_HT_CYL.getDevPtr(),
-			d_Vout.getDevPtr(),
-			d_NUMR.getDevPtr(),
-			d_RESZ.getDevPtr(),
-			d_dz.getDevPtr(),
-			d_dr.getDevPtr(),
-			d_E_FIELD.getDevPtr(),
-			E_direction,plasma_counter);
+			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+				d_accIon.getDevPtr(), // {{{
+				d_posIon.getDevPtr(), 
+				d_Q_DIV_M.getDevPtr(),
+				d_HT_CYL.getDevPtr(),
+				d_Vout.getDevPtr(),
+				d_NUMR.getDevPtr(),
+				d_RESZ.getDevPtr(),
+				d_dz.getDevPtr(),
+				d_dr.getDevPtr(),
+				d_E_FIELD.getDevPtr(),
+				E_direction,
+				plasma_counter);
 
 			roadBlock_104( statusFile, __LINE__, __FILE__, 
 				"calcExtrnElcAccCyl_102 line 1955", print);
@@ -2176,7 +2197,7 @@ int main(int argc, char* argv[])
 		// Recalculate evolving parameters for time-dependent plasma conditions
 		if(TIME_EVOL >0) {
 			//advance values every 10th ion time step
-			if( j % 100 == 0) {
+			if( j % N_IONDT_PER_PLASMADT == 0) {
 			// Update the plasma-counter and reset to zero if it has reached
 			// the end of the values stored in the file
 			plasma_counter = plasma_counter +1;

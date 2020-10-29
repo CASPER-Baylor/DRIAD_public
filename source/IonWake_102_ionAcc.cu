@@ -420,7 +420,7 @@ __global__ void calcExtrnElcAccCyl_102
 	float z = d_posIon[ID].z;
 
 	//find the column index of xg to left of r
-	// The table limits run from -dr:dr:RAD_CYL, so
+	// The table limits run from -2dr:dr:RAD_CYL, so
 	// add one to the table index for +r.
 	temp = rad / *d_dr + 1;
 	x1 = static_cast<int>(temp);

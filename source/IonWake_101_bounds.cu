@@ -358,6 +358,7 @@ __global__ void injectIonSphere_101(
 *	d_BOLTZMANN: the boltzmann constant 
 *   d_CHARGE_ION: the charge on a super-ion
 *	plasma_counter: index of the evolving plasma parameters
+*	counter_part: fraction of time evolved before next plasma condition
 *	xac: 0 or 1 for polarity switching
 *
 * Output (void):
@@ -401,6 +402,7 @@ __global__ void injectIonCylinder_101(
 	float* const d_BOLTZMANN,
 	float* const d_CHARGE_ION,
 	int plasma_counter,
+	float counter_part,
 	int xac){
 	
 	// thread ID 
@@ -411,6 +413,7 @@ __global__ void injectIonCylinder_101(
 	
 		float randNum,
             lowerFloatGIndex,
+            upperFloatGIndex,
             radVel,
             part_radVel,
             phi,
@@ -428,6 +431,7 @@ __global__ void injectIonCylinder_101(
 		int pageq = plasma_counter * *d_NUM_DIV_QTH;
 		int pagev = plasma_counter * *d_NUM_DIV_VEL;
 		int pagevq = plasma_counter * *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
+		int pageup = pagevq + *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
  
 		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);
@@ -448,6 +452,10 @@ __global__ void injectIonCylinder_101(
 			QIndex = 2;
 		}
 		
+		// We want to interpolate for the evolving time conditions.
+		// However, we will assume that the QIndex (top, side, bottom)
+		// is constant.
+
 		// get a random number from 0 to 1
 		randNum = curand_uniform(&randStates[IDion]);
 		
@@ -458,31 +466,22 @@ __global__ void injectIonCylinder_101(
 			*d_NUM_DIV_VEL,
 			randNum);
 				
+		 upperFloatGIndex = invertFind_101(
+		 &d_GCOM[pageup + tempIndex],
+		 *d_NUM_DIV_VEL,
+		 randNum);
+		  	
+		 // interpolate between upperFloatGIndex and lowerFloatGIndex to get 
+		 // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
+		 radVel = (counter_part * upperFloatGIndex) + 
+		 	( 1 - counter_part) * lowerFloatGIndex;
+
+		// integer part of radVel
+        tempIndex = static_cast<int>(radVel);
+        // fractional part of radvel
+        part_radVel = radVel - tempIndex;
 		
-		 //This interpolation is not needed for cylinder, where there
-		 //are exactly three angles.
-		 /*tempIndex = static_cast<int>(pagevq + QIndex + 1) * *d_NUM_DIV_VEL;
-		 * upperFloatGIndex = invertFind_101(
-		 * &d_GCOM[tempIndex],
-		 * *d_NUM_DIV_VEL,
-		 * randNum);
-		 * 	
-		 * // interpolate between upperFloatGIndex and lowerFloatGIndex to get 
-		 * // a normalized radial velocity that ranges from 0 to d_NUM_DIV_VEL
-		 * radVel = (partQIndex * upperFloatGIndex) + 
-		 * ( 1 - partQIndex ) * lowerFloatGIndex;
-		 */
-		
-		// This is a number that ranges from 0 to d_NUM_DIV_VEL
-		radVel = lowerFloatGIndex; 
-		
-         // integer part of radVel 
-		tempIndex = static_cast<int>(radVel); 
-        
-		 // fractional part of radvel
-		part_radVel = radVel - tempIndex; 
-         
-        tempIndex1 = tempIndex + 1;
+        tempIndex1 = tempIndex + *d_NUM_DIV_VEL;
 	 		
          // interpolate the value of radVel from Vcom 
         radVel = part_radVel * d_VCOM[pagev + tempIndex1] + 
