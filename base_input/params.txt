@@ -1,46 +1,38 @@
-            NUM_ION   5000
-     DEN_FAR_PLASMA   1.0e14
-           TEMP_ELC   58022
-           TEMP_ION   290.0
-           TEMP_GAS   290.0
-	       PRESSURE	  20
-               MACH   0.370
-		   GAS_TYPE   2		! 1 = neon, 2 = argon
+            NUM_ION   60000
+     DEN_FAR_PLASMA   1.17e15
+           TEMP_ELC   50107
+           TEMP_ION   465.9
+           TEMP_GAS   300.0
+	       PRESSURE	  60
+               MACH   0.022
+		   GAS_TYPE   1		! 1 = neon, 2 = argon
   CHARGE_SINGLE_ION   -1
-    MASS_SINGLE_ION   6.680e-26
+    MASS_SINGLE_ION   3.350e-26
            SOFT_RAD   1e-6
            M_FACTOR   10
-           RAD_DUST   4.445e-6
+           RAD_DUST   1.38e-6
            DEN_DUST   1510
-      ION_TIME_STEP   1.00e-9
-      NUM_TIME_STEP   20	!number of dust_steps = 1e-4s
- N_IONDT_PER_DUSTDT   100 
+      ION_TIME_STEP   1.00e-8
+      NUM_TIME_STEP   13000	!number of dust_steps dt = 1e-4s
+ N_IONDT_PER_DUSTDT   1 
            GEOMETRY	  1
       RAD_SPH_DEBYE   3.0
         NUM_DIV_VEL   50
         NUM_DIV_QTH   3
-      RAD_CYL_DEBYE	  1.25
-       HT_CYL_DEBYE	  2.15
-               P10X	  -4.9175e+05	
-               P12X  3.3659e+09 
-               P14X	 1.0942e+15 
-    		   P01Z  -71889. 
-		       P21Z	  4.9929e+09
-		       P03Z	  -1.2073e+10
-		       P23Z	  1.9629e+15
-		       P05Z	  -3.4191e+14
+      RAD_CYL_DEBYE	  1.5
+       HT_CYL_DEBYE	  2.5
 	           FREQ	  0
-	        E_FIELD	  -3100.0 ! const electric field in axial (z) direction
+	        E_FIELD	  198 	! const electric field in axial (z) direction
   			 OMEGA1   7.647e7
   			 OMEGA2   1.53e10
   		RADIAL_CONF   0.95
   		 AXIAL_CONF   1.0
-	N_PRINT_DEN_POT   10	!print density and potential every N duststeps
+	N_PRINT_DEN_POT   100	!print density and potential every N steps
 		GRID_FACTOR   1.0	!fraction of simulation region to calc den, pot
 		 BOX_CENTER   0.0	! height above the lower electrode in m
-  	   USE_ELE_GRAV   0		! 0 = no gravity, 1 = grav + sheath E field
+  	       USE_GRAV   0		! 0 = no gravity, 1 = grav + sheath E field
 			 E_MULT   1		! multiplier to steepen sheath Ez as power increases
-		  USE_LASER   0		! for laser push in simulation of lab
+		 LASER_PUSH   0		! for laser push in simulation of lab
 		   LASER_ON   0.20	! time to turn on laser push (applied to particle 1)
 		  LASER_OFF   0.205 ! time to turn off laser push
-	      TIME_EVOL	  0		! give number of lines in the file for evolving plasma
+	      TIME_EVOL	  86	! give number of lines in the file for evolving plasma
