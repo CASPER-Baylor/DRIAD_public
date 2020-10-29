@@ -889,14 +889,15 @@ int main(int argc, char* argv[])
 	debugFile << "num_pts " << num_pts << " NUM_GRID_PTS2 " << NUM_GRID_PTS2 << "\n";
 
 	int NUMR = RESX/2;
-	float dr = RAD_CYL/(NUMR - 1);
+	float dr = RAD_CYL/(NUMR - 2);
 	dz = 2.0*HT_CYL/(RESZ - 1);
 	
 	//Set up grid for calculating outside ion potential
 	// using cylindrical symmetry, NUM_R = RESX/2
 	for (int z =0; z < RESZ; z++) {
 		for (int x=0; x < NUMR; x++) {
-			GRID_POS[NUMR* z + x].x = dr * x;
+			//grid points run from -dr:dr:RAD_CYL
+			GRID_POS[NUMR* z + x].x = -dr + dr * x;
 			GRID_POS[NUMR* z + x].y = (-HT_CYL + dz * z);
 		}
 	}

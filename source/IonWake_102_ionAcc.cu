@@ -420,7 +420,9 @@ __global__ void calcExtrnElcAccCyl_102
 	float z = d_posIon[ID].z;
 
 	//find the column index of xg to left of r
-	temp = rad / *d_dr;
+	// The table limits run from -dr:dr:RAD_CYL, so
+	// add one to the table index for +r.
+	temp = rad / *d_dr + 1;
 	x1 = static_cast<int>(temp);
 	//fractional remainder
 	frac_r = temp-x1;	
@@ -457,6 +459,8 @@ __global__ void calcExtrnElcAccCyl_102
 	//Treat special cases for positions which are on edges of grid.
 	if( x1 == 0) { 
 		// on the left edge
+		// This case should never be met since the minimum r-index
+		// is now 1.  
 		Ex = ((d_Vout[page + pt2] - 
 				d_Vout[page + pt1]) *(1.0 - frac_z) +
 			  (d_Vout[page + pt6] - 
