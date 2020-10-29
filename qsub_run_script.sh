@@ -1,4 +1,4 @@
-module load cuda10.1/toolkit/10.1.243 
+module load cuda10.2/toolkit 
 export CUDA_VISIBLE_DEVICES=`idlegpu`
 echo "Start Time: `date`"
 echo "Node: `uname -n`"
