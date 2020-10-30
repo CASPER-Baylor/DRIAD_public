@@ -1839,8 +1839,8 @@ int main(int argc, char* argv[])
 
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
-			//ionTime = dust_time + (j)* ION_TIME_STEP;
-			ionTime = (j)* ION_TIME_STEP;
+			ionTime = dust_time + (j)* ION_TIME_STEP;
+			//ionTime = (j)* ION_TIME_STEP;
         	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
