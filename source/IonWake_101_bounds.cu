@@ -431,7 +431,10 @@ __global__ void injectIonCylinder_101(
 		int pageq = plasma_counter * *d_NUM_DIV_QTH;
 		int pagev = plasma_counter * *d_NUM_DIV_VEL;
 		int pagevq = plasma_counter * *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
-		int pageup = pagevq + *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
+		int pageup = pagevq;
+		if (counter_part > 0) {
+			pageup = pagevq + *d_NUM_DIV_QTH * *d_NUM_DIV_VEL;
+		}
  
 		float velScale = __fsqrt_rn( 3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) 
                             / *d_MASS_SINGLE_ION);

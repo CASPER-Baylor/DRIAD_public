@@ -1872,7 +1872,12 @@ int main(int argc, char* argv[])
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 			} if(GEOMETRY == 1) {
 				// fraction of plasma timestep
-				counter_part = (j % N_IONDT_PER_PLASMADT)/N_IONDT_PER_PLASMADT;
+				if(TIME_EVOL>0 ) {
+					counter_part = (j % N_IONDT_PER_PLASMADT)/N_IONDT_PER_PLASMADT;
+				}
+				else {
+					counter_part = 0;
+				}
 
 				// inject ions into the simulation sphere
 				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
