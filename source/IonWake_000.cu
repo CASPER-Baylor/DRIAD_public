@@ -268,6 +268,40 @@ int main(int argc, char* argv[])
 	const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
 	const int	TIME_EVOL = getParam_106<int>( paramFile, "TIME_EVOL" );	
 	
+	// Set size of the simulation region
+
+	// debye length (m)
+	float DEBYE =
+		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
+		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
+
+	// radius of the spherical simulation volume (m)
+	const float RAD_SPH = RAD_SPH_DEBYE * DEBYE;
+
+	// simulation radius squared (m^2)
+	const float RAD_SPH_SQRD = RAD_SPH * RAD_SPH;
+
+	// radius of the simulation cylinder (m)
+	const float RAD_CYL = RAD_CYL_DEBYE * DEBYE;
+
+	// cylinder radius squared (m^2)
+	const float RAD_CYL_SQRD = RAD_CYL * RAD_CYL;
+
+	// (half) height of the simulation cylinder (m)
+	const float HT_CYL = HT_CYL_DEBYE * DEBYE;
+
+	// variable for the volume
+	float temp_volume = 0;
+	if(GEOMETRY == 0) {
+		// volume of the simulation sphere (m^3)
+		temp_volume = (4.0 / 3.0) * PI * RAD_SPH * RAD_SPH * RAD_SPH;
+	} else {
+		// volume of the simulation cylinder (overwrites vol abv)
+		temp_volume = PI * RAD_CYL_SQRD * 2.0* HT_CYL;
+	}
+	const float SIM_VOLUME = temp_volume;
+
+
 	/*****  Read in evolving plasma parameters **********/
 	/* These will overwrite paramters set in params.txt */
 
@@ -353,11 +387,6 @@ int main(int argc, char* argv[])
 		evolMach[0] = MACH;
 	}
 
-	// debye length (m)
-	float DEBYE =
-		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
-		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
-
 	//  ion debye length (m) used for dust shielding
 	float DEBYE_I = 
 		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ION)/
@@ -367,43 +396,17 @@ int main(int argc, char* argv[])
 	const float MASS_DUST =
 		DEN_DUST * (4.0 / 3.0) * PI * RAD_DUST * RAD_DUST * RAD_DUST;
 
-	// radius of the spherical simulation volume (m)
-	const float RAD_SPH = RAD_SPH_DEBYE * DEBYE;
-
 	// inverse debye (1/m)
 	float INV_DEBYE = 1.0 / DEBYE;
 
 	// soft radius squared (m^2)
 	const float SOFT_RAD_SQRD = SOFT_RAD * SOFT_RAD;
 
-	// simulation radius squared (m^2)
-	const float RAD_SPH_SQRD = RAD_SPH * RAD_SPH;
-
 	// half of a time step (s)
 	const float HALF_TIME_STEP = ION_TIME_STEP / 2.0;
 
 	// dust radius squared (m^2)
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
-
-	// radius of the simulation cylinder (m)
-	const float RAD_CYL = RAD_CYL_DEBYE * DEBYE;
-
-	// cylinder radius squared (m^2)
-	const float RAD_CYL_SQRD = RAD_CYL * RAD_CYL;
-
-	// (half) height of the simulation cylinder (m)
-	const float HT_CYL = HT_CYL_DEBYE * DEBYE;
-
-	// variable for the volume
-	float temp_volume = 0;
-	if(GEOMETRY == 0) {
-		// volume of the simulation sphere (m^3)
-		temp_volume = (4.0 / 3.0) * PI * RAD_SPH * RAD_SPH * RAD_SPH;
-	} else {
-		// volume of the simulation cylinder (overwrites vol abv)
-		temp_volume = PI * RAD_CYL_SQRD * 2.0* HT_CYL;
-	}
-	const float SIM_VOLUME = temp_volume;
 
 	// multiplier for super ions
 	float SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
@@ -1839,8 +1842,8 @@ int main(int argc, char* argv[])
 
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
-			ionTime = dust_time + (j)* ION_TIME_STEP;
-			//ionTime = (j)* ION_TIME_STEP;
+			//ionTime = dust_time + (j)* ION_TIME_STEP;
+			ionTime = (i-1)*1e-6 + (j)* ION_TIME_STEP;
         	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
