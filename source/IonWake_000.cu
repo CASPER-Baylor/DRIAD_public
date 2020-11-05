@@ -1129,11 +1129,12 @@ int main(int argc, char* argv[])
 	}
 
 	// allocate memory for the ion current to each dust particle
-	int* ionCurrent = new int[NUM_DUST];
+	//int* ionCurrent = new int[NUM_DUST];
+	float* ionCurrent = new float[NUM_DUST];
 
 	// set initial currents to 0
 	for (int i = 0; i < NUM_DUST; i++) {
-		ionCurrent[i] = 0;
+		ionCurrent[i] = 0.0;
 	}
 
 	// seed the random number generator
@@ -1183,11 +1184,12 @@ int main(int argc, char* argv[])
 			ionInitFile >> 	posIon[i].y;
 			ionInitFile >> 	posIon[i].z;
 
+			// read in the charge
+			ionInitFile >>  posIon[i].w;
+
 			ionInitFile >>  velIon[i].x;
 			ionInitFile >>  velIon[i].y;
 			ionInitFile >>  velIon[i].z;
-			// read in the charge
-			ionInitFile >>  posIon[i].w;
 			// initialize velIon.w to zero
 			velIon[i].w = 0.0;
 		}
@@ -1477,6 +1479,7 @@ int main(int argc, char* argv[])
        		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
        		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
        		(Q_DIV_M) / (PERM_FREE_SPACE);
+		debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
 	}
 
 	//Create CUDA device pointers for the evolving parameters
@@ -1609,6 +1612,8 @@ int main(int argc, char* argv[])
 	}
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "Pause before timestep", print);	
+
+	//debugFile << "out of initInjectIonCyl" << std::endl;
 
 	/*************************
 		Time Step
@@ -1882,6 +1887,9 @@ int main(int argc, char* argv[])
 					counter_part = 0;
 				}
 
+			//d_CHARGE_ION.devToHost();
+			//d_CHARGE_ION.hostToDev();
+
 				// inject ions into the simulation sphere
 				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
 					d_posIon.getDevPtr(), // -->
@@ -2012,7 +2020,8 @@ int main(int argc, char* argv[])
 					// print the position of the specified ion to the trace file
 					traceFile << posIon[ionTraceIndex].x;
 					traceFile << ", " << posIon[ionTraceIndex].y;
-					traceFile << ", " << posIon[ionTraceIndex].z << std::endl;
+					traceFile << ", " << posIon[ionTraceIndex].z;
+					traceFile << ", " << posIon[ionTraceIndex].w << std::endl;
 					// }}}
 
 				// copy the ion velocities to the host
@@ -2058,7 +2067,7 @@ int main(int argc, char* argv[])
 					// calculate the ion currents to the dust particles
 					// set initial currents to 0
 					for (int k = 0; k < NUM_DUST; k++){
-						ionCurrent[k] = 0;
+						ionCurrent[k] = 0.0;
 					}
 
 					// loop over all of the ion bounds
@@ -2066,7 +2075,7 @@ int main(int argc, char* argv[])
 						// if the ion was collected by a dust particle
 						if (boundsIon[k] > 0){
 							// increase the current to that dust particle by 1
-							ionCurrent[boundsIon[k] - 1] += 1;
+							ionCurrent[boundsIon[k] - 1] += posIon[k].w;
 							// sum the ion momentum transfer to dust
 							momIonDust[boundsIon[k] - 1].x += velIon[k].x;
 							momIonDust[boundsIon[k] - 1].y += velIon[k].y;
@@ -2087,14 +2096,14 @@ int main(int argc, char* argv[])
 							(BOLTZMANN * TEMP_ELC));
 	
 						// add current to dust charge
-						posDust[g].w += elcCurrent+ionCurrent[g]* CHARGE_ION;
+						posDust[g].w += elcCurrent+ionCurrent[g];
 
-						dustChargeFile << posDust[g].w << ", ";
+						//dustChargeFile << posDust[g].w << ", ";
 						//save charge for averaging
 						tempCharge[g] += posDust[g].w;
 					}
 
-					dustChargeFile << "\n";
+					//dustChargeFile << "\n";
 
 					// copy the dust charge (and position) to the GPU
 					d_posDust.hostToDev(); 
@@ -2204,12 +2213,25 @@ int main(int argc, char* argv[])
 	
 		// Recalculate evolving parameters for time-dependent plasma conditions
 		if(TIME_EVOL >0) {
-			//advance values every 10th ion time step
+			//advance values every Nth ion time step
 			if( j % N_IONDT_PER_PLASMADT == 0) {
 			// Update the plasma-counter and reset to zero if it has reached
 			// the end of the values stored in the file
 			plasma_counter = plasma_counter +1;
 			if(plasma_counter == TIME_EVOL) { plasma_counter = 0;}
+
+			// copy variables to the host 
+			d_INV_DEBYE.devToHost();
+			d_E_FIELD.devToHost();
+			d_TEMP_ION.devToHost();
+			d_CHARGE_ION.devToHost();
+			d_DRIFT_VEL_ION.devToHost();
+			d_SOUND_SPEED.devToHost();
+			d_DEN_FAR_PLASMA.devToHost();
+			d_RAD_COLL_MULT.devToHost();
+			d_EXTERN_ELC_MULT.devToHost();
+			d_TEMP_ELC.devToHost();
+			d_MACH.devToHost();
 
 			TEMP_ELC = evolTe[plasma_counter];
 			TEMP_ION = evolTi[plasma_counter];
@@ -2235,6 +2257,8 @@ int main(int argc, char* argv[])
           		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
           		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
           		(Q_DIV_M) / (PERM_FREE_SPACE);
+
+			//debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
 
 			// copy updated variables to the device
 			d_INV_DEBYE.hostToDev();
@@ -2348,12 +2372,12 @@ int main(int argc, char* argv[])
 
 					//print this acceleration to the trace file
 					//dustTraceFile << "ion acceleration  ";
-					debugSpecificFile << accDust[j].x;
-					debugSpecificFile << ", " << accDust[j].y;
-					debugSpecificFile << ", " << accDust[j].z;
-					debugSpecificFile << ", " << deltavee.x;
-					debugSpecificFile << ", " << deltavee.y;
-					debugSpecificFile << ", " << deltavee.z << "\n";
+					//debugSpecificFile << accDust[j].x;
+					//debugSpecificFile << ", " << accDust[j].y;
+					//debugSpecificFile << ", " << accDust[j].z;
+					//debugSpecificFile << ", " << deltavee.x;
+					//debugSpecificFile << ", " << deltavee.y;
+					//debugSpecificFile << ", " << deltavee.z << "\n";
 
 
 					// Calculate dust-dust acceleration 
@@ -2628,6 +2652,7 @@ int main(int argc, char* argv[])
 				ionFinalFile << posIon[j].x << " ";
 				ionFinalFile << posIon[j].y << " ";
 				ionFinalFile << posIon[j].z << " ";
+				ionFinalFile << posIon[j].w << " ";
 				ionFinalFile << velIon[j].x << " ";
 				ionFinalFile << velIon[j].y << " ";
 				ionFinalFile << velIon[j].z << std::endl;
@@ -2670,7 +2695,8 @@ int main(int argc, char* argv[])
 		// print the ion position
 		ionPosFile << posIon[i].x;
 		ionPosFile << ", " << posIon[i].y;
-		ionPosFile << ", " << posIon[i].z << std::endl;
+		ionPosFile << ", " << posIon[i].z;
+		ionPosFile << ", " << posIon[i].w << std::endl;
 	}
 
 	// print final ion velocities to the ionVelFile
