@@ -496,7 +496,7 @@ int main(int argc, char* argv[])
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
 	float dust_time = 0;
-	float ionTime = 0;
+	double ionTime = 0;
 	float rhoDustsq = 0; // for radial dust confinement
 	float rhoDust = 0; // for radial dust confinement
 	float acc = 0; //for radial dust confinement
@@ -551,6 +551,7 @@ int main(int argc, char* argv[])
 		<< "NUM_TIME_STEP     " << NUM_TIME_STEP     << '\n'
 		<< "N_IONDT_PER_DUSTDT " << N_IONDT_PER_DUSTDT << '\n'
 		<< "N_IONDT_PER_PLASMADT " << N_IONDT_PER_PLASMADT << '\n'
+		<< "N_PRINT_DEN_POT   " << N_PRINT_DEN_POT 	 << '\n'
 		<< "GEOMETRY          " << GEOMETRY          << '\n'
 		<< "RAD_SPH_DEBYE     " << RAD_SPH_DEBYE     << '\n'
 		<< "NUM_DIV_VEL       " << NUM_DIV_VEL       << '\n'
@@ -668,6 +669,7 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
 	<< std::setw(14) << N_IONDT_PER_PLASMADT << " % N_IONDT_PER_PLASMADT"  << '\n'
+	<< std::setw(14) << N_PRINT_DEN_POT	  << " % N_PRINT_DEN_POT"   << '\n'
  	<< std::setw(14) << GAS_TYPE          << " % GAS_TYPE"          << '\n'
     << std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
     << std::setw(14) << TEMP_GAS		  << " % TEMP_GAS"          << '\n'
