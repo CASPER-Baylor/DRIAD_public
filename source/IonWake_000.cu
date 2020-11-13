@@ -245,7 +245,7 @@ int main(int argc, char* argv[])
 		= getParam_106<float>( paramFile, "RAD_CYL_DEBYE" );
 	const float HT_CYL_DEBYE =getParam_106<float>( paramFile, "HT_CYL_DEBYE" );
 	const float PRESSURE = getParam_106<float>( paramFile, "PRESSURE" );
-	const float FREQ = getParam_106<float>( paramFile, "FREQ" );
+	const float FREQ = getParam_106<double>( paramFile, "FREQ" );
 	float E_FIELD = getParam_106<float>( paramFile, "E_FIELD" );
 	const float OMEGA1 = getParam_106<float>( paramFile, "OMEGA1" );
 	const float OMEGA2 = getParam_106<float>( paramFile, "OMEGA2" );
@@ -1849,8 +1849,8 @@ int main(int argc, char* argv[])
 
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
-			//ionTime = dust_time + (j)* ION_TIME_STEP;
-			ionTime = (i-1)*1e-6 + (j)* ION_TIME_STEP;
+			ionTime = dust_time + (j)* ION_TIME_STEP;
+			//ionTime = (i-1)*1e-6 + (j)* ION_TIME_STEP;
         	xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
 
