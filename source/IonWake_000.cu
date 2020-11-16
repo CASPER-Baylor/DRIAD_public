@@ -491,6 +491,7 @@ int main(int argc, char* argv[])
 	// a constant multiplier for the radial dust acceleration due to
 	// external confinement
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
+	const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -652,8 +653,8 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RAD_SPH_DEBYE     << " % RAD_SPH_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
-	<< std::setw(14) << RAD_CYL			  << " % RAD_CYL"	        << '\n'
-	<< std::setw(14) << HT_CYL 	      	  << " % HT_CYL	 "      	<< '\n'
+	<< std::setw(14) << RAD_CYL_DEBYE	  << " % RAD_CYL_DEBYE"	    << '\n'
+	<< std::setw(14) << HT_CYL_DEBYE   	  << " % HT_CYL_DEBYE"     	<< '\n'
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
@@ -2428,12 +2429,16 @@ int main(int argc, char* argv[])
 					accDust[j].z +=  accDust2[j].z;
 						
 					// calculate acceleration of the dust
-					// radial acceleration from confinement
-					accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
-					accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
 					//Radial position of dust
 					rhoDustsq = posDust[j].x * posDust[j].x +
 								posDust[j].y * posDust[j].y;
+					// radial acceleration from confinement
+					//accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
+					//accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
+					accDust[j].x += (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq)*
+										simCharge[j] * posDust[j].x;
+					accDust[j].y += (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq)*
+										simCharge[j] * posDust[j].y;
 
 					// Big accel to keep dust from leaving sides of cylinder
 					rhoDust = sqrt(rhoDustsq);
