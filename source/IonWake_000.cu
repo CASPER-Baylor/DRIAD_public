@@ -492,6 +492,7 @@ int main(int argc, char* argv[])
 	// external confinement
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
+	float Er_DIV_M = OMEGA1 / MASS_DUST;  //Overwritten if TIME_EVOL
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -578,15 +579,18 @@ int main(int argc, char* argv[])
 
 		debugFile << "-- Derived Parameters --"  << '\n'
 		<< "DEBYE         " << DEBYE         << '\n'
-		<< "DEBYE_I       " << DEBYE_I         << '\n'
+		<< "DEBYE_I       " << DEBYE_I       << '\n'
 		<< "RAD_SPH       " << RAD_SPH       << '\n'
-		<< "RAD_CYL       " << RAD_CYL     << '\n'
-		<< "HT_CYL        " << HT_CYL      << '\n'
+		<< "RAD_CYL       " << RAD_CYL       << '\n'
+		<< "HT_CYL        " << HT_CYL      	 << '\n'
 		<< "SIM_VOLUME    " << SIM_VOLUME    << '\n'
 		<< "SOUND_SPEED   " << SOUND_SPEED   << '\n'
-		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION<< '\n'
+		<< "DRIFT_VEL_ION " << DRIFT_VEL_ION << '\n'
 		<< "ELC_CURRENT_0 " << ELC_CURRENT_0 << '\n'
-		<< "MASS_DUST     " << MASS_DUST     << '\n';
+		<< "MASS_DUST     " << MASS_DUST     << '\n'
+		<< "OMEGA_DIV_M	  " << OMEGA_DIV_M	 << '\n'
+		<< "OMEGA2_DIV_M  " << OMEGA2_DIV_M	 << '\n'
+		<< "Er_DIV_M	  " << Er_DIV_M	 	 << '\n' << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
@@ -817,14 +821,17 @@ int main(int argc, char* argv[])
 	}
 
 	if (debugMode) {
-		debugFile << "-- Dust Positions --" << std::endl;
+		debugFile << "-- First 20 Dust Positions --" << std::endl;
 		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
 
-		for (int i = 0; i < NUM_DUST; i++) {
+		for (int i = 0; i < 20; i++) {
 			debugFile << "X: " << posDust[i].x <<
 			" Y: " << posDust[i].y <<
 			" Z: " << posDust[i].z <<
-			" Q: " << posDust[i].w << std::endl;
+			" Q: " << posDust[i].w << 
+			" VX: " << velDust[i].x <<
+			" VY " << velDust[i].y <<
+			" VZ " << velDust[i].z << std::endl;
 		}
 
 		debugFile << std::endl;
@@ -1463,6 +1470,7 @@ int main(int argc, char* argv[])
 		MACH = evolMach[plasma_counter];
 		E_FIELD = evolEz[plasma_counter];
 		DRIFT_VEL_ION = evolVz[plasma_counter];
+		Er_DIV_M = evolEr[plasma_counter]/MASS_DUST;
 
 		DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 			(evolne[plasma_counter] * CHARGE_ELC * CHARGE_ELC));
@@ -2242,6 +2250,7 @@ int main(int argc, char* argv[])
 			MACH = evolMach[plasma_counter];
 			E_FIELD = evolEz[plasma_counter];
 			DRIFT_VEL_ION = evolVz[plasma_counter];
+			Er_DIV_M = evolEr[plasma_counter]/MASS_DUST;
 
 			DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 				(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
@@ -2374,13 +2383,13 @@ int main(int argc, char* argv[])
 					accDust[j].z = accDustIon[j*NUM_ION].z/N_IONDT_PER_DUSTDT;
 
 					//print this acceleration to the trace file
-					//dustTraceFile << "ion acceleration  ";
-					//debugSpecificFile << accDust[j].x;
-					//debugSpecificFile << ", " << accDust[j].y;
-					//debugSpecificFile << ", " << accDust[j].z;
-					//debugSpecificFile << ", " << deltavee.x;
-					//debugSpecificFile << ", " << deltavee.y;
-					//debugSpecificFile << ", " << deltavee.z << "\n";
+					//debugFile << "ion acceleration  ";
+					//debugFile << accDust[j].x;
+					//debugFile << ", " << accDust[j].y;
+					//debugFile << ", " << accDust[j].z;
+					//debugFile << ", " << deltavee.x;
+					//debugFile << ", " << deltavee.y;
+					//debugFile << ", " << deltavee.z << "\n";
 
 
 					// Calculate dust-dust acceleration 
@@ -2432,26 +2441,38 @@ int main(int argc, char* argv[])
 					//Radial position of dust
 					rhoDustsq = posDust[j].x * posDust[j].x +
 								posDust[j].y * posDust[j].y;
+
 					// radial acceleration from confinement
-					//accDust[j].x += OMEGA_DIV_M * simCharge[j] * posDust[j].x;
-					//accDust[j].y += OMEGA_DIV_M * simCharge[j] * posDust[j].y;
-					accDust[j].x += (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq)*
-										simCharge[j] * posDust[j].x;
-					accDust[j].y += (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq)*
-										simCharge[j] * posDust[j].y;
+					if(TIME_EVOL > 0){
+						///*** linear in r using Er from evolving plasma params***///
+						acc = Er_DIV_M * simCharge[j];
+					}
+					else { //TIME_EVOL==0
+						///*** linear in r ***///
+						//acc = OMEGA_DIV_M * simCharge[j];
+						///*** cubic in r ***///
+						acc = (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq) * simCharge[j];
+					}
+
+					accDust[j].x += acc * posDust[j].x;
+					accDust[j].y += acc * posDust[j].y;
+
+				//debugFile << "radial acceleration ";
+				//debugFile << acc*posDust[j].x << ", ";
+				//debugFile << acc*posDust[j].y << ", " << '\n';
 
 					// Big accel to keep dust from leaving sides of cylinder
 					rhoDust = sqrt(rhoDustsq);
 					if(rhoDust > radialConfine) {
-					acc = 10* OMEGA_DIV_M * simCharge[j]
+					acc = OMEGA2_DIV_M * simCharge[j]
 							*(rhoDust-radialConfine) / rhoDust;
 					accDust[j].x += acc * posDust[j].x;
 					accDust[j].y += acc * posDust[j].y;
 					}
 				
-				//debugSpecificFile << "confinement acceleration ";
-				//debugSpecificFile << acc*posDust[j].x << ", ";
-				//debugSpecificFile << acc*posDust[j].y << ", ";
+				//debugFile << "confinement acceleration ";
+				//debugFile << acc*posDust[j].x << ", ";
+				//debugFile << acc*posDust[j].y << ", " << '\n';
 
 					//axial confinement in z for dust near ends of cylinder	
 					if(abs(posDust[j].z) > axialConfine) {
