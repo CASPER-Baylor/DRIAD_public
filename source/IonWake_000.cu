@@ -1794,20 +1794,20 @@ int main(int argc, char* argv[])
 		for (int j = 1; j <= N_IONDT_PER_DUSTDT; j++){
 
 			//Select the time step depth
-			select_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
-				d_posIon.getDevPtr(), // <--
-				d_posDust.getDevPtr(), // <--
-				d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
-				d_minDistDust.getDevPtr(), // <-- (TS1: good)
-				d_RAD_DUST.getDevPtr(),
-				d_ION_TIME_STEP.getDevPtr(),
-				d_MAX_DEPTH.getDevPtr(),
-				d_M_FACTOR.getDevPtr(), 
-				d_NUM_DUST.getDevPtr(),
-				d_m.getDevPtr(), // -->
-				d_timeStepFactor.getDevPtr()); // -->
-	
-			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", print);
+			//select_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		//		d_posIon.getDevPtr(), // <--
+		//		d_posDust.getDevPtr(), // <--
+		//		d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
+		//		d_minDistDust.getDevPtr(), // <-- (TS1: good)
+		//		d_RAD_DUST.getDevPtr(),
+		//		d_ION_TIME_STEP.getDevPtr(),
+		//		d_MAX_DEPTH.getDevPtr(),
+		//		d_M_FACTOR.getDevPtr(), 
+		//		d_NUM_DUST.getDevPtr(),
+		//		d_m.getDevPtr(), // -->
+		//		d_timeStepFactor.getDevPtr()); // -->
+//	
+//			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", print);
 
 			//KDK using just the ion-dust acceleration for s^m iterations
  
@@ -1816,9 +1816,9 @@ int main(int argc, char* argv[])
 					d_posIon.getDevPtr(), // {{{
 					d_velIon.getDevPtr(), // <-->
 					d_accIonDust.getDevPtr(), // <--
-					d_m.getDevPtr(), // <
-					d_timeStepFactor.getDevPtr(), // <
 					d_boundsIon.getDevPtr(), // <-->
+					d_minDistDust.getDevPtr(),
+					d_M_FACTOR.getDevPtr(),
 					d_ION_TIME_STEP.getDevPtr(), 
 					GEOMETRY,
 					d_RAD_SPH_SQRD.getDevPtr(),
@@ -1838,9 +1838,9 @@ int main(int argc, char* argv[])
 					d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
 					d_velIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
 					d_accIonDust.getDevPtr(),//<-->TS1: from calcIonDustAcc before time step)
-					d_m.getDevPtr(), // < (TS1 = TS+: select)
-					d_timeStepFactor.getDevPtr(), // < (TS1 = TS+: select)
 					d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
+					d_minDistDust.getDevPtr(),
+					d_M_FACTOR.getDevPtr(),
 					d_ION_TIME_STEP.getDevPtr(),
 					GEOMETRY,
 					d_RAD_CYL_SQRD.getDevPtr(),

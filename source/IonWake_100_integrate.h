@@ -173,9 +173,10 @@ __global__ void select_100
 *	pos: positions and charge of ions
 *	vel: velocities of ions
 *	acc: accelerations of ions
-*   d_m: depth for time step divisions
-*	d_tsFactor: divisor for time step
-*	boundsIon -- flags for boundary crossings
+*   //d_m: depth for time step divisions
+*	//d_tsFactor: divisor for time step
+*	d_boundsIon -- flags for boundary crossings
+*	d_minDistDust:  distance to closest dust particle
 *	d_TIME_STEP: time step
 *   d_RAD_SIM_SQRD -or- d_RAD_CYL_SQRT: simulation bounds	
 *   (empty) -or- d_HT_CYL: simulation bounds
@@ -205,9 +206,9 @@ __global__ void KDK_100
     (float4*, 
 	 float4*,
 	 float4*,
-	 const int*,
-	 const int*,
 	 int*,
+	 float*,
+	 const float*,
 	 const float*,
 	 const int,
 	 const float*,
