@@ -350,6 +350,9 @@ __global__ void KDK_100
 	float timeStep, halfTimeStep;
  	float3 oldIonPos;
 
+	// Reset the ion bounds flag to 0
+	d_boundsIon[threadID] = 0;
+
 	// Calculate the time step depth.  The timestep will be divided by a multiple
 	// of two depending on its speed and distance from dust.
 	// m = ceil(ln( M * dT * v / abs(r - R)/ln(2);  tsf = 2^m

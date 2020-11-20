@@ -2013,6 +2013,81 @@ int main(int argc, char* argv[])
 				"calcExtrnElcAccCyl_102 line 1955", print);
 			}
 
+		// Updates to ion velocity: collisions with ions and neutral //
+
+		//Determine number of ions to collide
+		randNum = (rand() % 100001)/100000.0;
+		if (randNum < (N1 - N_COLL) ) n_coll = N_COLL+1; else n_coll = N_COLL;
+
+		if (n_coll > NUM_ION/2) {
+			set_value = 1;
+			unset_value = 0;
+			n_coll = NUM_ION - n_coll;
+		} else {
+			set_value = 0;
+			unset_value = 1;
+		}
+
+		//reset collision list
+		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_collList.getDevPtr(), 
+			set_value);
+			
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", print);
+
+		//copy collision list to host 
+		d_collList.devToHost();
+
+		// prepare list of ions to collide:
+		// {{{
+		for(int coll=0; coll < n_coll; coll++){
+			collID[coll] = 0;
+			do{
+				dum  = (int)(rand() % NUM_ION);
+				exist = false;
+				for(int q=0;q<=coll-1;q++) if (collID[q]==dum) exist = true;
+			} while(exist);
+			collID[coll] = dum;
+			collList[dum] = unset_value;
+		}
+		// }}}
+		//debugFile << "number of ions to collide" << n_coll << std::endl;
+
+		//copy collision list to device
+		d_collList.hostToDev();
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", print);					
+		
+		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_collList.getDevPtr(),
+			d_TEMP_GAS.getDevPtr(),
+			d_MASS_SINGLE_ION.getDevPtr(),
+			d_BOLTZMANN.getDevPtr(),
+			d_I_CS_RANGES.getDevPtr(),
+			d_TOT_ION_COLL_FREQ.getDevPtr(),
+			d_SIGMA_I1.getDevPtr(),
+			d_SIGMA_I2.getDevPtr(),
+			d_SIGMA_I_TOT.getDevPtr(),
+			d_velIon.getDevPtr(),
+			randStates.getDevPtr(), 
+			d_collision_counter.getDevPtr());
+
+		bool print_test = false;
+		roadBlock_104(statusFile, __LINE__, __FILE__, "ionCollisions_105", print_test);
+		//if(print_test)
+		//{ //copy ion velocities to the host
+		//  d_velIon.devToHost();
+		//	debugFile << "Failure in ionCollisions_105" << std::endl;
+		//	for(int q = 1; q < NUM_ION; q++) {
+		//		debugFile << velIon[q].x << ", " << velIon[q].y << ", " 
+		//				<< velIon[q].z << std::endl;
+		//	}
+		//	exit(-1);
+		//}
+
+		// copy collision counter to the host 
+		//d_collision_counter.devToHost();
+		//debugFile << "Number ion collisions: " << collision_counter << "\n";
+
 		//Any other external forces acting on ions would be calc'd here
 
 			//Loop over ion  commands
@@ -2133,85 +2208,11 @@ int main(int argc, char* argv[])
 			}
 
 		// reset the ion bounds flag to 0
-		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_boundsIon.getDevPtr());
+		//resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		//	d_boundsIon.getDevPtr());
+		//	
+		//roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 	
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
-	
-		// Updates to ion velocity: collisions with ions and neutral //
-
-		//Determine number of ions to collide
-		randNum = (rand() % 100001)/100000.0;
-		if (randNum < (N1 - N_COLL) ) n_coll = N_COLL+1; else n_coll = N_COLL;
-
-		if (n_coll > NUM_ION/2) {
-			set_value = 1;
-			unset_value = 0;
-			n_coll = NUM_ION - n_coll;
-		} else {
-			set_value = 0;
-			unset_value = 1;
-		}
-
-		//reset collision list
-		setCollisionList_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_collList.getDevPtr(), 
-			set_value);
-			
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "ionCollisionList_105", print);
-
-		//copy collision list to host 
-		d_collList.devToHost();
-
-		// prepare list of ions to collide:
-		// {{{
-		for(int coll=0; coll < n_coll; coll++){
-			collID[coll] = 0;
-			do{
-				dum  = (int)(rand() % NUM_ION);
-				exist = false;
-				for(int q=0;q<=coll-1;q++) if (collID[q]==dum) exist = true;
-			} while(exist);
-			collID[coll] = dum;
-			collList[dum] = unset_value;
-		}
-		// }}}
-		//debugFile << "number of ions to collide" << n_coll << std::endl;
-
-		//copy collision list to device
-		d_collList.hostToDev();
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "foo", print);					
-		
-		ionCollisions_105 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_collList.getDevPtr(),
-			d_TEMP_GAS.getDevPtr(),
-			d_MASS_SINGLE_ION.getDevPtr(),
-			d_BOLTZMANN.getDevPtr(),
-			d_I_CS_RANGES.getDevPtr(),
-			d_TOT_ION_COLL_FREQ.getDevPtr(),
-			d_SIGMA_I1.getDevPtr(),
-			d_SIGMA_I2.getDevPtr(),
-			d_SIGMA_I_TOT.getDevPtr(),
-			d_velIon.getDevPtr(),
-			randStates.getDevPtr(), 
-			d_collision_counter.getDevPtr());
-
-		bool print_test = false;
-		roadBlock_104(statusFile, __LINE__, __FILE__, "ionCollisions_105", print_test);
-		//if(print_test)
-		//{ //copy ion velocities to the host
-		//  d_velIon.devToHost();
-	//		debugFile << "Failure in ionCollisions_105" << std::endl;
-	//	  for(int q = 1; q < NUM_ION; q++) {
-	//		debugFile << velIon[q].x << ", " << velIon[q].y << ", " 
-	//				<< velIon[q].z << std::endl;
-	//	  }
-	//	  exit(-1);
-	//	}
-
-		// copy collision counter to the host 
-		//d_collision_counter.devToHost();
-		//debugFile << "Number ion collisions: " << collision_counter << "\n";
 
 		// Kick for one timestep -- using just ion-ion accels
 		//kick_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
