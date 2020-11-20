@@ -323,6 +323,7 @@ __global__ void select_100
 __global__ void KDK_100
     (float4* posIon, 
 	 float4* velIon,
+	 float4* accIon,
 	 float4* ionDustAcc,
 	 int* d_boundsIon,
 	 float* d_minDistDust,
@@ -391,6 +392,10 @@ __global__ void KDK_100
         timeStepFactor  = timeStepFactor  * 2;
     }
 	 	 
+	// Kick a one timestep with all forces except ion-dust force
+	kick_dev(velIon+threadID, accIon+threadID, *d_TIME_STEP); 
+
+	// Add in accel from dust in smaller steps if needed
 	timeStep = *d_TIME_STEP / timeStepFactor;
 	halfTimeStep = timeStep * 0.5;
 
@@ -452,6 +457,11 @@ __global__ void KDK_100
 			}
 		}
 	}// end for loop over depth			
+	
+	// Zero out the accIon to set up for next loop
+	accIon[threadID].x = 0;
+	accIon[threadID].y = 0;
+	accIon[threadID].z = 0;
 }
 	 
 /*

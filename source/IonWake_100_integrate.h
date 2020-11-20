@@ -206,6 +206,7 @@ __global__ void KDK_100
     (float4*, 
 	 float4*,
 	 float4*,
+	 float4*,
 	 int*,
 	 float*,
 	 const float*,

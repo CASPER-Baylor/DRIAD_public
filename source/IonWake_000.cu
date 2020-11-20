@@ -1815,6 +1815,7 @@ int main(int argc, char* argv[])
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
 					d_posIon.getDevPtr(), // {{{
 					d_velIon.getDevPtr(), // <-->
+					d_accIon.getDevPtr(), // <-->
 					d_accIonDust.getDevPtr(), // <--
 					d_boundsIon.getDevPtr(), // <-->
 					d_minDistDust.getDevPtr(),
@@ -1837,6 +1838,7 @@ int main(int argc, char* argv[])
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
 					d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
 					d_velIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
+					d_accIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
 					d_accIonDust.getDevPtr(),//<-->TS1: from calcIonDustAcc before time step)
 					d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
 					d_minDistDust.getDevPtr(),
@@ -1888,7 +1890,7 @@ int main(int argc, char* argv[])
 					d_CHARGE_ION.getDevPtr(),
 					xac);
 		
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
+			roadBlock_104(statusFile, __LINE__, __FILE__, "injectIonSphere_101", print);
 			} if(GEOMETRY == 1) {
 				// fraction of plasma timestep
 				if(TIME_EVOL>0 ) {
@@ -1897,9 +1899,6 @@ int main(int argc, char* argv[])
 				else {
 					counter_part = 0;
 				}
-
-			//d_CHARGE_ION.devToHost();
-			//d_CHARGE_ION.hostToDev();
 
 				// inject ions into the simulation sphere
 				injectIonCylinder_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -2133,7 +2132,13 @@ int main(int argc, char* argv[])
 				}
 			}
 
-		// Updates to ion velocity: collision and kick //
+		// reset the ion bounds flag to 0
+		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			d_boundsIon.getDevPtr());
+	
+		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
+	
+		// Updates to ion velocity: collisions with ions and neutral //
 
 		//Determine number of ions to collide
 		randNum = (rand() % 100001)/100000.0;
@@ -2193,34 +2198,28 @@ int main(int argc, char* argv[])
 
 		bool print_test = false;
 		roadBlock_104(statusFile, __LINE__, __FILE__, "ionCollisions_105", print_test);
-		if(print_test)
-		{ //copy ion velocities to the host
-		  d_velIon.devToHost();
-			debugFile << "Failure in ionCollisions_105" << std::endl;
-		  for(int q = 1; q < NUM_ION; q++) {
-			debugFile << velIon[q].x << ", " << velIon[q].y << ", " 
-					<< velIon[q].z << std::endl;
-		  }
-		  exit(-1);
-		}
+		//if(print_test)
+		//{ //copy ion velocities to the host
+		//  d_velIon.devToHost();
+	//		debugFile << "Failure in ionCollisions_105" << std::endl;
+	//	  for(int q = 1; q < NUM_ION; q++) {
+	//		debugFile << velIon[q].x << ", " << velIon[q].y << ", " 
+	//				<< velIon[q].z << std::endl;
+	//	  }
+	//	  exit(-1);
+	//	}
 
 		// copy collision counter to the host 
 		//d_collision_counter.devToHost();
 		//debugFile << "Number ion collisions: " << collision_counter << "\n";
 
-		// reset the ion bounds flag to 0
-		resetIonBounds_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_boundsIon.getDevPtr());
-	
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
-	
 		// Kick for one timestep -- using just ion-ion accels
-		kick_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_velIon.getDevPtr(), // {{{
-			d_accIon.getDevPtr(), // <-->
-			d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
-	
-		roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", print);
+		//kick_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
+		//	d_velIon.getDevPtr(), // {{{
+		//	d_accIon.getDevPtr(), // <-->
+		//	d_ION_TIME_STEP.getDevPtr()); //lsm 1.23.18
+		//	
+		//roadBlock_104( statusFile, __LINE__, __FILE__, "kick_100", print);
 	
 		// Recalculate evolving parameters for time-dependent plasma conditions
 		if(TIME_EVOL >0) {
