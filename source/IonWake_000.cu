@@ -1708,19 +1708,6 @@ int main(int argc, char* argv[])
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 
-	//Calculate ion-ion forces
-	//Ions inside the simulation region
-	// calculate the acceleration due to ion-ion interactions
-	calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
-		d_posIon.getDevPtr(), // <--
-		d_accIon.getDevPtr(), // <-->
-		d_NUM_ION.getDevPtr(), 
-		d_SOFT_RAD_SQRD.getDevPtr(),
-		d_ION_ION_ACC_MULT.getDevPtr(),
-		d_INV_DEBYE.getDevPtr());
-
-	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102 line 1675", print);
-
 	if (xac == 0) {
 		E_direction = -1;
 	}
@@ -1728,36 +1715,72 @@ int main(int argc, char* argv[])
 		E_direction = 1;
 	}
 
+	//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
+	calcIonAccels_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
+		d_posIon.getDevPtr(), // <--
+		d_accIon.getDevPtr(), // <-->
+		d_NUM_ION.getDevPtr(), 
+		d_SOFT_RAD_SQRD.getDevPtr(),
+		d_ION_ION_ACC_MULT.getDevPtr(),
+		d_INV_DEBYE.getDevPtr(),
+		d_Q_DIV_M.getDevPtr(),
+		d_HT_CYL.getDevPtr(),
+		d_Vout.getDevPtr(),
+		d_NUMR.getDevPtr(),
+		d_RESZ.getDevPtr(),
+		d_dz.getDevPtr(),
+		d_dr.getDevPtr(),
+		d_E_FIELD.getDevPtr(),
+		E_direction,
+		plasma_counter,
+		GEOMETRY,
+		d_EXTERN_ELC_MULT.getDevPtr());
+
+	roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
+
+	//Calculate ion-ion forces
+	//Ions inside the simulation region
+	// calculate the acceleration due to ion-ion interactions
+	//calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
+	//	d_posIon.getDevPtr(), // <--
+	//	d_accIon.getDevPtr(), // <-->
+	//	d_NUM_ION.getDevPtr(), 
+	//	d_SOFT_RAD_SQRD.getDevPtr(),
+	//	d_ION_ION_ACC_MULT.getDevPtr(),
+	//	d_INV_DEBYE.getDevPtr());
+//
+//	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", print);
+
 	// Calculate the ion accelerations due to the ions outside of
 	// the simulation cavity
-	if(GEOMETRY == 0) {
+	//if(GEOMETRY == 0) {
 		// calculate the forces between all ions
-		calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_accIon.getDevPtr(), // {{{
-			d_posIon.getDevPtr(),
-			d_EXTERN_ELC_MULT.getDevPtr(),
-			d_INV_DEBYE.getDevPtr());
-
-		roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1694", print);
-	} else if(GEOMETRY == 1) {
-		// calculate the forces from ions outside simulation region
-		// and external electric field 
-		calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			d_accIon.getDevPtr(), // {{{
-			d_posIon.getDevPtr(), 
-			d_Q_DIV_M.getDevPtr(),
-			d_HT_CYL.getDevPtr(),
-			d_Vout.getDevPtr(),
-			d_NUMR.getDevPtr(),
-			d_RESZ.getDevPtr(),
-			d_dz.getDevPtr(),
-			d_dr.getDevPtr(),
-			d_E_FIELD.getDevPtr(),
-			E_direction,
-			plasma_counter);
-
-		roadBlock_104( statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102 line 1710", print);
-	}
+	//	calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+	//		d_accIon.getDevPtr(), // {{{
+	//		d_posIon.getDevPtr(),
+	//		d_EXTERN_ELC_MULT.getDevPtr(),
+	//		d_INV_DEBYE.getDevPtr());
+//
+//		roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", print);
+	//} else if(GEOMETRY == 1) {
+	//	// calculate the forces from ions outside simulation region
+	//	// and external electric field 
+	//	calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+	//		d_accIon.getDevPtr(), // {{{
+	//		d_posIon.getDevPtr(), 
+	//		d_Q_DIV_M.getDevPtr(),
+	//		d_HT_CYL.getDevPtr(),
+	//		d_Vout.getDevPtr(),
+	//		d_NUMR.getDevPtr(),
+	//		d_RESZ.getDevPtr(),
+	//		d_dz.getDevPtr(),
+	//		d_dr.getDevPtr(),
+	//		d_E_FIELD.getDevPtr(),
+	//		E_direction,
+	//		plasma_counter);
+//
+//		roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", print);
+//	}
 
 	//Any other external forces acting on ions would be calc'd here
 	// Kick for 1/2 a timestep -- using just ion-ion accels
@@ -1952,21 +1975,50 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
+			if (xac ==0) {
+				E_direction = -1;
+			} else {
+				E_direction = 1;
+			}
+
+		//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
+		calcIonAccels_102 <<<blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
+			d_posIon.getDevPtr(), // <--
+			d_accIon.getDevPtr(), // <-->
+			d_NUM_ION.getDevPtr(), 
+			d_SOFT_RAD_SQRD.getDevPtr(),
+			d_ION_ION_ACC_MULT.getDevPtr(),
+			d_INV_DEBYE.getDevPtr(),
+			d_Q_DIV_M.getDevPtr(),
+			d_HT_CYL.getDevPtr(),
+			d_Vout.getDevPtr(),
+			d_NUMR.getDevPtr(),
+			d_RESZ.getDevPtr(),
+			d_dz.getDevPtr(),
+			d_dr.getDevPtr(),
+			d_E_FIELD.getDevPtr(),
+			E_direction,
+			plasma_counter,
+			GEOMETRY,
+			d_EXTERN_ELC_MULT.getDevPtr());
+	
+		roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
+
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region
 			// calculate the acceleration due to ion-ion interactions
-			calcIonIonAcc_102 
-				<<< blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
-				d_posIon.getDevPtr(), // {{{
-				d_accIon.getDevPtr(), // <-->
-				d_NUM_ION.getDevPtr(),
-				d_SOFT_RAD_SQRD.getDevPtr(),
-				d_ION_ION_ACC_MULT.getDevPtr(),
-				d_INV_DEBYE.getDevPtr());
-	
-			roadBlock_104( statusFile, __LINE__, __FILE__, 
-				"calcIonIonAcc_102 line 1906", print);
+			//calcIonIonAcc_102 
+			//	<<< blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
+			//	d_posIon.getDevPtr(), // {{{
+			//	d_accIon.getDevPtr(), // <-->
+			//	d_NUM_ION.getDevPtr(),
+			//	d_SOFT_RAD_SQRD.getDevPtr(),
+			//	d_ION_ION_ACC_MULT.getDevPtr(),
+			//	d_INV_DEBYE.getDevPtr());
+//	
+			//roadBlock_104( statusFile, __LINE__, __FILE__, 
+			//	"calcIonIonAcc_102 line 1906", print);
 			// }}}	
 
 			// copy ion accelerations to host
@@ -1976,43 +2028,37 @@ int main(int argc, char* argv[])
 			//traceFile << ", " << accIon[ionTraceIndex].y;
 			//traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
 
-			if (xac ==0) {
-				E_direction = -1;
-			} else {
-				E_direction = 1;
-			}
-
 			// Calculate the ion accelerations due to the ions outside of
 			// the simulation cavity
-			if(GEOMETRY == 0) {
-				// calculate the forces between all ions
-				calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-					d_accIon.getDevPtr(), // {{{
-					d_posIon.getDevPtr(), // <--
-					d_EXTERN_ELC_MULT.getDevPtr(),
-					d_INV_DEBYE.getDevPtr());
-	
-				roadBlock_104(  statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102 line 1925", print);
-			} else if(GEOMETRY == 1) {
-				// calculate the forces between all ions outside
-				//simulation region and external electric field
-			calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-				d_accIon.getDevPtr(), // {{{
-				d_posIon.getDevPtr(), 
-				d_Q_DIV_M.getDevPtr(),
-				d_HT_CYL.getDevPtr(),
-				d_Vout.getDevPtr(),
-				d_NUMR.getDevPtr(),
-				d_RESZ.getDevPtr(),
-				d_dz.getDevPtr(),
-				d_dr.getDevPtr(),
-				d_E_FIELD.getDevPtr(),
-				E_direction,
-				plasma_counter);
-
-			roadBlock_104( statusFile, __LINE__, __FILE__, 
-				"calcExtrnElcAccCyl_102 line 1955", print);
-			}
+			//if(GEOMETRY == 0) {
+			//	// calculate the forces between all ions
+			//	calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			//		d_accIon.getDevPtr(), // {{{
+			//		d_posIon.getDevPtr(), // <--
+			//		d_EXTERN_ELC_MULT.getDevPtr(),
+			//		d_INV_DEBYE.getDevPtr());
+//	
+//			roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", print);
+//			} else if(GEOMETRY == 1) {
+			//	// calculate the forces between all ions outside
+			//	//simulation region and external electric field
+			//calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
+			//	d_accIon.getDevPtr(), // {{{
+			//	d_posIon.getDevPtr(), 
+			//	d_Q_DIV_M.getDevPtr(),
+			//	d_HT_CYL.getDevPtr(),
+			//	d_Vout.getDevPtr(),
+			//	d_NUMR.getDevPtr(),
+			//	d_RESZ.getDevPtr(),
+			//	d_dz.getDevPtr(),
+			//	d_dr.getDevPtr(),
+			//	d_E_FIELD.getDevPtr(),
+			//	E_direction,
+			//	plasma_counter);
+//
+//			roadBlock_104( statusFile, __LINE__, __FILE__, 
+//				"calcExtrnElcAccCyl_102 line 1955", print);
+//			}
 
 		// Updates to ion velocity: collisions with ions and neutral //
 
