@@ -1858,6 +1858,18 @@ int main(int argc, char* argv[])
 				roadBlock_104(  statusFile, __LINE__, __FILE__, "KDK_100", print);
 			}
 
+			// calc ion number density and ion potential
+			calcIonDensityPotential_102 
+				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
+				d_gridPos.getDevPtr(), // {{{
+				 d_posIon.getDevPtr(),
+				 d_COULOMB_CONST.getDevPtr(),
+				 d_INV_DEBYE.getDevPtr(),
+				 d_NUM_ION.getDevPtr(),
+				 d_ionPotential.getDevPtr(),
+				 d_ionDensity.getDevPtr());
+			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", print);
+
 			//polarity switching of electric field
 			// Need to track dust_time + ion_time
 			ionTime = dust_time + (j)* ION_TIME_STEP;
@@ -1940,17 +1952,6 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
-			// calc ion number density and ion potential
-			calcIonDensityPotential_102 
-				<<< blocksPerGridGrid, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
-				d_gridPos.getDevPtr(), // {{{
-				 d_posIon.getDevPtr(),
-				 d_COULOMB_CONST.getDevPtr(),
-				 d_INV_DEBYE.getDevPtr(),
-				 d_NUM_ION.getDevPtr(),
-				 d_ionPotential.getDevPtr(),
-				 d_ionDensity.getDevPtr());
-			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential line 1892", print);
 
 			//Calculate ion-ion forces
 			//Ions inside the simulation region

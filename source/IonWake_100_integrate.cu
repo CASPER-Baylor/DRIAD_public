@@ -461,10 +461,6 @@ __global__ void KDK_100
 		}
 	}// end for loop over depth			
 	
-	// Zero out the accIon to set up for next loop
-	accIon[threadID].x = 0;
-	accIon[threadID].y = 0;
-	accIon[threadID].z = 0;
 }
 	 
 /*
