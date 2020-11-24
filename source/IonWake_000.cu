@@ -1859,11 +1859,11 @@ int main(int argc, char* argv[])
 				
 			} else if(GEOMETRY == 1) {
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
-					d_posIon.getDevPtr(), //<-->TS1: rand+inject(dust bounds)
-					d_velIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
-					d_accIon.getDevPtr(), //<--> TS1: rand + 1/2 kick ion-ion
-					d_accIonDust.getDevPtr(),//<-->TS1: from calcIonDustAcc before time step)
-					d_boundsIon.getDevPtr(), // <--> (TS1: all 0)
+					d_posIon.getDevPtr(), 
+					d_velIon.getDevPtr(), 
+					d_accIon.getDevPtr(), 
+					d_accIonDust.getDevPtr(),
+					d_boundsIon.getDevPtr(),
 					d_minDistDust.getDevPtr(),
 					d_M_FACTOR.getDevPtr(),
 					d_ION_TIME_STEP.getDevPtr(),
@@ -1872,7 +1872,7 @@ int main(int argc, char* argv[])
 					d_HT_CYL.getDevPtr(),
 					d_RAD_DUST.getDevPtr(),
 					d_NUM_DUST.getDevPtr(),
-					d_posDust.getDevPtr(), // <--
+					d_posDust.getDevPtr(), 
 					d_NUM_ION.getDevPtr(),
 					d_SOFT_RAD_SQRD.getDevPtr(),
 					d_ION_DUST_ACC_MULT.getDevPtr(),
@@ -2490,16 +2490,10 @@ int main(int argc, char* argv[])
 								posDust[j].y * posDust[j].y;
 
 					// radial acceleration from confinement
-					if(TIME_EVOL > 0){
-						///*** linear in r using Er from evolving plasma params***///
-						acc = Er_DIV_M * simCharge[j];
-					}
-					else { //TIME_EVOL==0
-						///*** linear in r ***///
-						//acc = OMEGA_DIV_M * simCharge[j];
-						///*** cubic in r ***///
-						acc = (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq) * simCharge[j];
-					}
+					///*** linear in r ***///
+					acc = OMEGA_DIV_M * simCharge[j];
+					///*** cubic in r ***///
+					//acc = (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq) * simCharge[j];
 
 					accDust[j].x += acc * posDust[j].x;
 					accDust[j].y += acc * posDust[j].y;
@@ -2529,7 +2523,7 @@ int main(int argc, char* argv[])
 							adj_z = posDust[j].z + axialConfine;
 						}	
 						//accDust[j].z += OMEGA_DIV_M* simCharge[j] * adj_z;
-						accDust[j].z += 10*OMEGA_DIV_M* simCharge[j] * adj_z;
+						accDust[j].z += OMEGA2_DIV_M* simCharge[j] * adj_z;
 					}
 					
 					//polarity switching
