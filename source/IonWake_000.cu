@@ -367,12 +367,16 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	// for evolving conditions - radial E field acting on ions
+	float E_FIELDR = 0;
+
 	if(TIME_EVOL > 0) {
 		MACH = evolMach[0];
 		DEN_FAR_PLASMA = evolne[0];
 		TEMP_ELC = evolTe[0];
 		TEMP_ION = evolTi[0];
 		E_FIELD = evolEz[0];
+		E_FIELDR = evolEr[0];
 	}	
 	else { //TIME_EVOL == 0
 		//copy the values set in the param file to the evolving variables
@@ -492,7 +496,6 @@ int main(int argc, char* argv[])
 	// external confinement
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
-	float Er_DIV_M = OMEGA1 / MASS_DUST;  //Overwritten if TIME_EVOL
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -590,7 +593,7 @@ int main(int argc, char* argv[])
 		<< "MASS_DUST     " << MASS_DUST     << '\n'
 		<< "OMEGA_DIV_M	  " << OMEGA_DIV_M	 << '\n'
 		<< "OMEGA2_DIV_M  " << OMEGA2_DIV_M	 << '\n'
-		<< "Er_DIV_M	  " << Er_DIV_M	 	 << '\n' << '\n';
+		<< "E_FIELDR	  " << E_FIELDR	 	 << '\n' << '\n';
 
 		debugFile << "-- Super Ion Parameters --"  << '\n'
 		<< "SUPER_ION_MULT " << SUPER_ION_MULT << '\n'
@@ -1470,7 +1473,7 @@ int main(int argc, char* argv[])
 		MACH = evolMach[plasma_counter];
 		E_FIELD = evolEz[plasma_counter];
 		DRIFT_VEL_ION = evolVz[plasma_counter];
-		Er_DIV_M = evolEr[plasma_counter]/MASS_DUST;
+		E_FIELDR = evolEr[plasma_counter];
 
 		DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 			(evolne[plasma_counter] * CHARGE_ELC * CHARGE_ELC));
@@ -1497,6 +1500,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float> d_DEN_FAR_PLASMA(&DEN_FAR_PLASMA, 1);
 	CUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
 	CUDAvar<float> d_E_FIELD(&E_FIELD, 1);
+	CUDAvar<float> d_E_FIELDR(&E_FIELDR, 1);
 	CUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
 	CUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
 	CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
@@ -1511,6 +1515,7 @@ int main(int argc, char* argv[])
 	d_DEN_FAR_PLASMA.hostToDev();
 	d_INV_DEBYE.hostToDev();
 	d_E_FIELD.hostToDev();
+	d_E_FIELDR.hostToDev();
 	d_TEMP_ION.hostToDev();
 	d_CHARGE_ION.hostToDev();
 	d_DRIFT_VEL_ION.hostToDev();
@@ -1645,6 +1650,11 @@ int main(int argc, char* argv[])
 	//polarity switching of electric field
 	int xac = 0;
 
+	if(E_FIELD > 0){
+		xac = 0;}
+	else{
+		xac = 1;}
+
 	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
 		injectIonSphere_101 <<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -1731,6 +1741,7 @@ int main(int argc, char* argv[])
 		d_dz.getDevPtr(),
 		d_dr.getDevPtr(),
 		d_E_FIELD.getDevPtr(),
+		d_E_FIELDR.getDevPtr(),
 		E_direction,
 		plasma_counter,
 		GEOMETRY,
@@ -1897,8 +1908,13 @@ int main(int argc, char* argv[])
 			// Need to track dust_time + ion_time
 			ionTime = dust_time + (j)* ION_TIME_STEP;
 			//ionTime = (i-1)*1e-6 + (j)* ION_TIME_STEP;
-        	xac = int(floor(2.0*FREQ*ionTime)) % 2;
+        	//xac = int(floor(2.0*FREQ*ionTime)) % 2;
 			//traceFile << ionTime << ", " << xac << ", " << "\n";
+
+			if(E_FIELD > 0){
+				xac = 0;}
+			else{
+				xac = 1;}
 
 			// inject ions on the boundary of the simulation
 			if(GEOMETRY == 0) {
@@ -1975,11 +1991,13 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
-			if (xac ==0) {
-				E_direction = -1;
-			} else {
-				E_direction = 1;
-			}
+			//if (xac ==0) {
+			//	E_direction = -1;
+			//} else {
+			//	E_direction = 1;
+			//}
+			//DEBUG -- for DC switch test, E field already flips
+			E_direction = -1;
 
 		//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
 		calcIonAccels_102 <<<blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
@@ -1997,6 +2015,7 @@ int main(int argc, char* argv[])
 			d_dz.getDevPtr(),
 			d_dr.getDevPtr(),
 			d_E_FIELD.getDevPtr(),
+			d_E_FIELDR.getDevPtr(),
 			E_direction,
 			plasma_counter,
 			GEOMETRY,
@@ -2281,6 +2300,7 @@ int main(int argc, char* argv[])
 			// copy variables to the host 
 			d_INV_DEBYE.devToHost();
 			d_E_FIELD.devToHost();
+			d_E_FIELDR.devToHost();
 			d_TEMP_ION.devToHost();
 			d_CHARGE_ION.devToHost();
 			d_DRIFT_VEL_ION.devToHost();
@@ -2297,7 +2317,7 @@ int main(int argc, char* argv[])
 			MACH = evolMach[plasma_counter];
 			E_FIELD = evolEz[plasma_counter];
 			DRIFT_VEL_ION = evolVz[plasma_counter];
-			Er_DIV_M = evolEr[plasma_counter]/MASS_DUST;
+			E_FIELDR = evolEr[plasma_counter];
 
 			DEBYE = sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ELC)/
 				(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
@@ -2322,6 +2342,7 @@ int main(int argc, char* argv[])
 			// copy updated variables to the device
 			d_INV_DEBYE.hostToDev();
 			d_E_FIELD.hostToDev();
+			d_E_FIELDR.hostToDev();
 			d_TEMP_ION.hostToDev();
 			d_CHARGE_ION.hostToDev();
 			d_DRIFT_VEL_ION.hostToDev();
@@ -2364,12 +2385,11 @@ int main(int argc, char* argv[])
 					simCharge[k] = 0.95 * simCharge[k] 
 						+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 
+					// print all the dust charges to the trace file
+					dustChargeFile << tempCharge[k] << ", " << simCharge[k] << ", ";
+
 					//reset the tempCharge to zero
 					tempCharge[k] = 0;
-
-					// print all the dust charges to the trace file
-					dustChargeFile << simCharge[k] << ", ";
-
 				}
 
 			dustChargeFile << std::endl;

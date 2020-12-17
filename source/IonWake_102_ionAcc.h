@@ -91,6 +91,7 @@
   *   d_dz: distance increment in z-direction
   *   d_dr: distance increment in radial direction
   *   d_E_FIELD: electric field in the z-direction
+  *   d_E_FIELDR: radial electric field in plasma column
   *   E_direction: +/- z, for alternating DC E-field
   *   plasma_counter: used to increment evolving boundary conditions
   *   GEOMETRY: spherical or cylindrical simulation region
@@ -126,6 +127,7 @@ __global__ void calcIonAccels_102
     float*,
     int*,
     int*,
+    float*,
     float*,
     float*,
     float*,

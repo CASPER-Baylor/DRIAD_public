@@ -89,6 +89,7 @@ __global__ void calcIonAccels_102
 	float* d_dz,
 	float* d_dr,
 	float* d_E_FIELD,
+	float* d_E_FIELDR,
 	int E_dir,
 	int plasma_counter,
 	int GEOMETRY,
@@ -334,6 +335,9 @@ __global__ void calcIonAccels_102
               (d_Vout[page + ptB] -
                 d_Vout[page + pt2]) * frac_r * frac_z)/ (2.0 * *d_dz);
     	}
+
+		// Add acceleration of ions from time-evolving radial E field
+		Ex += *d_E_FIELDR;
 
 		//Scale from radial accel to Cartesian xy-coordinates
     	d_accIon[ID].x += Ex * *d_Q_DIV_M * d_posIon[ID].x / rad ;
