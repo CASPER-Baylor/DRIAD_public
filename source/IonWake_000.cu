@@ -1817,6 +1817,7 @@ int main(int argc, char* argv[])
 	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", print);
 	
 	/****** Time Step Loop ******/
+	float flip_Ez = 1.0; //for changing dir of Ez with DC switch
 
 	for (int i = 1; i <= NUM_TIME_STEP; i++)   
 	//NUM_TIME_STEP is the number of dust time steps
@@ -2295,7 +2296,10 @@ int main(int argc, char* argv[])
 			// Update the plasma-counter and reset to zero if it has reached
 			// the end of the values stored in the file
 			plasma_counter = plasma_counter +1;
-			if(plasma_counter == TIME_EVOL) { plasma_counter = 0;}
+			if(plasma_counter == TIME_EVOL) { 
+				plasma_counter = 0;
+				flip_Ez = flip_Ez *(-1.0);
+			}
 
 			// copy variables to the host 
 			d_INV_DEBYE.devToHost();
@@ -2316,6 +2320,7 @@ int main(int argc, char* argv[])
 			DEN_FAR_PLASMA = evolne[plasma_counter];
 			MACH = evolMach[plasma_counter];
 			E_FIELD = evolEz[plasma_counter];
+			E_FIELD = E_FIELD * flip_Ez;
 			DRIFT_VEL_ION = evolVz[plasma_counter];
 			E_FIELDR = evolEr[plasma_counter];
 
