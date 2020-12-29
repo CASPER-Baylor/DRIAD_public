@@ -338,7 +338,7 @@ __global__ void calcIonAccels_102
 
 		// Add acceleration of ions from time-evolving radial E field
 		//DEBUG -- this was too big, so commented out
-		//Ex += *d_E_FIELDR;
+		Ex += *d_E_FIELDR/2000;
 
 		//Scale from radial accel to Cartesian xy-coordinates
     	d_accIon[ID].x += Ex * *d_Q_DIV_M * d_posIon[ID].x / rad ;

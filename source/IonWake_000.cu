@@ -496,6 +496,9 @@ int main(int argc, char* argv[])
 	// external confinement
 	const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
 	const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
+	float Er_sum = 0; //in TIME_EVOL used to apply avg radial Er
+	float Er_div_m = 0; //in TIME_EVOL used to apply avg radial Er
+	float dtdust_dtplasma = N_IONDT_PER_PLASMADT / N_IONDT_PER_DUSTDT;
 	float radialConfine = RADIAL_CONF * RAD_CYL; //limit position of dust in cyl
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
@@ -1493,6 +1496,7 @@ int main(int argc, char* argv[])
        		((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
        		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
        		(Q_DIV_M) / (PERM_FREE_SPACE);
+		Er_sum += E_FIELDR;
 		debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
 	}
 
@@ -2342,6 +2346,8 @@ int main(int argc, char* argv[])
           		(CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) *
           		(Q_DIV_M) / (PERM_FREE_SPACE);
 
+			Er_sum += E_FIELDR;
+
 			//debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
 
 			// copy updated variables to the device
@@ -2391,10 +2397,15 @@ int main(int argc, char* argv[])
 						+ 0.05*tempCharge[k]/N_IONDT_PER_DUSTDT; 
 
 					// print all the dust charges to the trace file
-					dustChargeFile << tempCharge[k] << ", " << simCharge[k] << ", ";
+					dustChargeFile << simCharge[k] << ", ";
 
 					//reset the tempCharge to zero
 					tempCharge[k] = 0;
+
+					// Average electric field gradient acting on dust
+					if(TIME_EVOL > 0){
+						Er_div_m = Er_sum * dtdust_dtplasma / MASS_DUST;
+					}
 				}
 
 			dustChargeFile << std::endl;
@@ -2519,6 +2530,11 @@ int main(int argc, char* argv[])
 					acc = OMEGA_DIV_M * simCharge[j];
 					///*** cubic in r ***///
 					//acc = (OMEGA_DIV_M + OMEGA2_DIV_M * rhoDustsq) * simCharge[j];
+					if(TIME_EVOL > 0){
+					// radial E field from background plasma
+					// negative sign because of way PIC data is saved/imported
+					acc -= Er_div_m * simCharge[j];
+					}
 
 					accDust[j].x += acc * posDust[j].x;
 					accDust[j].y += acc * posDust[j].y;
