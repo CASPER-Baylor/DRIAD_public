@@ -221,6 +221,8 @@ int main(int argc, char* argv[])
 		  )	* (2 * DIM_BLOCK);
 	float DEN_FAR_PLASMA 
 		= getParam_106<float>( paramFile, "DEN_FAR_PLASMA" );
+	float DEN_IONS
+		= getParam_106<float>( paramFile, "DEN_IONS" );
 	float TEMP_ELC = getParam_106<float>( paramFile, "TEMP_ELC" );
 	float TEMP_ION = getParam_106<float>( paramFile, "TEMP_ION" );
 	const short DEN_DUST = getParam_106<short>( paramFile, "DEN_DUST" );
@@ -370,6 +372,7 @@ int main(int argc, char* argv[])
 	if(TIME_EVOL > 0) {
 		MACH = evolMach[0];
 		DEN_FAR_PLASMA = evolne[0];
+		DEN_IONS = evolni[0];
 		TEMP_ELC = evolTe[0];
 		TEMP_ION = evolTi[0];
 		E_FIELD = evolEz[0];
@@ -382,7 +385,7 @@ int main(int argc, char* argv[])
 		evolTe[0] = TEMP_ELC;
 		evolTi[0] = TEMP_ION;
 		evolne[0] = DEN_FAR_PLASMA;
-		evolni[0] = DEN_FAR_PLASMA;
+		evolni[0] = DEN_IONS;
 		evolVz[0] = MACH*sqrt(BOLTZMANN * TEMP_ELC / MASS_SINGLE_ION);
 		evolMach[0] = MACH;
 	}
@@ -390,7 +393,7 @@ int main(int argc, char* argv[])
 	//  ion debye length (m) used for dust shielding
 	float DEBYE_I = 
 		sqrt((PERM_FREE_SPACE * BOLTZMANN * TEMP_ION)/
-		(DEN_FAR_PLASMA * CHARGE_ELC * CHARGE_ELC));
+		(DEN_IONS * CHARGE_ELC * CHARGE_ELC));
 
 	// dust particle mass assumes spherical particle (Kg)
 	const float MASS_DUST =
@@ -409,7 +412,7 @@ int main(int argc, char* argv[])
 	const float RAD_DUST_SQRD = RAD_DUST * RAD_DUST;
 
 	// multiplier for super ions
-	float SUPER_ION_MULT = SIM_VOLUME * DEN_FAR_PLASMA / NUM_ION;
+	float SUPER_ION_MULT = SIM_VOLUME * DEN_IONS / NUM_ION;
 
 	// charge on each super ion (C)
 	float CHARGE_ION = CHARGE_SINGLE_ION * SUPER_ION_MULT;
@@ -537,6 +540,7 @@ int main(int argc, char* argv[])
 		debugFile << "-- User Parameters --" << '\n'
 		<< "NUM_ION           " << NUM_ION           << '\n'
 		<< "DEN_FAR_PLASMA    " << DEN_FAR_PLASMA    << '\n'
+		<< "DEN_IONS		  " << DEN_IONS			 << '\n'
 		<< "TEMP_ELC          " << TEMP_ELC          << '\n'
 		<< "TEMP_ION          " << TEMP_ION          << '\n'
 		<< "TEMP_GAS   		  " << TEMP_GAS			 << '\n'
@@ -643,6 +647,7 @@ int main(int argc, char* argv[])
 	paramOutFile
 	<< std::setw(14) << NUM_ION           << " % NUM_ION"           << '\n'
 	<< std::setw(14) << DEN_FAR_PLASMA    << " % DEN_FAR_PLASMA"    << '\n'
+	<< std::setw(14) << DEN_IONS		  << " % DEN_IONS	   "    << '\n'
 	<< std::setw(14) << TEMP_ELC          << " % TEMP_ELC"          << '\n'
 	<< std::setw(14) << TEMP_ION          << " % TEMP_ION"          << '\n'
 	<< std::setw(14) << DEN_DUST          << " % DEN_DUST"          << '\n'
@@ -961,7 +966,7 @@ int main(int argc, char* argv[])
 
 	//float ION_OUTSIDE_MULT = COULOMB_CONST * CHARGE_ION * 
 	float kq_in_box = COULOMB_CONST * CHARGE_SINGLE_ION * dx *dx *dz2;
-	float TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box;
+	float TABLE_POTENTIAL_MULT = DEN_IONS * kq_in_box;
 	for (int z =0; z < RESZc; z++) {
 		for (int y=0; y < RESXc; y++) {
 			for (int x=0; x < RESXc; x++) {
@@ -1466,7 +1471,8 @@ int main(int argc, char* argv[])
 	if(TIME_EVOL >0) {
 		TEMP_ELC = evolTe[plasma_counter];
 		TEMP_ION = evolTi[plasma_counter];
-		DEN_FAR_PLASMA = evolni[plasma_counter];
+		DEN_FAR_PLASMA = evolne[plasma_counter];
+		DEN_IONS = evolni[plasma_counter];
 		MACH = evolMach[plasma_counter];
 		E_FIELD = evolEz[plasma_counter];
 		DRIFT_VEL_ION = evolVz[plasma_counter];
@@ -2247,6 +2253,7 @@ int main(int argc, char* argv[])
 			TEMP_ELC = evolTe[plasma_counter];
 			TEMP_ION = evolTi[plasma_counter];
 			DEN_FAR_PLASMA = evolne[plasma_counter];
+			DEN_IONS = evolni[plasma_counter];
 			MACH = evolMach[plasma_counter];
 			E_FIELD = evolEz[plasma_counter];
 			DRIFT_VEL_ION = evolVz[plasma_counter];
@@ -2441,6 +2448,7 @@ int main(int argc, char* argv[])
 					//Radial position of dust
 					rhoDustsq = posDust[j].x * posDust[j].x +
 								posDust[j].y * posDust[j].y;
+					rhoDust = sqrt(rhoDustsq);
 
 					// radial acceleration from confinement
 					if(TIME_EVOL > 0){
@@ -2462,7 +2470,6 @@ int main(int argc, char* argv[])
 				//debugFile << acc*posDust[j].y << ", " << '\n';
 
 					// Big accel to keep dust from leaving sides of cylinder
-					rhoDust = sqrt(rhoDustsq);
 					if(rhoDust > radialConfine) {
 					acc = OMEGA2_DIV_M * simCharge[j]
 							*(rhoDust-radialConfine) / rhoDust;

@@ -652,7 +652,7 @@ __global__ void calcIonDensityPotential_102
 			if(hardDist <= r_dens){
 			// Update density.  sharedPos[h].w is the total charge on 
 			// this super-ion=SUPER_ION_MULT*CHARGE_SINGLE_ION. The density 
-			// is SUPER_ION_MULT*DEN_FAR_PLASMA. Need to divide by 
+			// is SUPER_ION_MULT*DEN_IONS. Need to divide by 
 			// CHARGE_SINGLE_ION before printing.  
 				densCrntGrid += sharedPos[h].w ;
 			} 
