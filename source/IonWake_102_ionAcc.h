@@ -10,6 +10,7 @@
 *	Includes functions for calculating ion-ion accelerations 
 *
 * Functions:
+*	calcIonAccels_102()
 *	calcIonIonAcc_102()
 *   calcIonDustAcc_102()
 *   calcIonDustAcc_102_dev()
@@ -59,6 +60,81 @@
 	*	CUDA
 	*/
 	#include "device_launch_parameters.h"
+
+/*
+  * Name: calcIonAccels_102
+  * Created: 11/20/2020
+  *
+  * Editors
+  *   Name: Lorin Matthews
+  *   Contact: Lorin_Matthews@baylor.edu
+  *
+  * Description:
+  *   Calculates the accelerations due to ion-ion
+  *   interactions modeled as Yukawa particles, using both ions
+  *   inside the simulation and force from ions outside simulation
+  *   regtion (using table lookup).  Also add in acceleration from a
+  *   constant external electric field (in z-direction).
+  *
+  * Input:
+  *   d_posIon: the positions and charges of the ions
+  *   d_accIon: the accelerations of the ions
+  *   d_NUM_ION: the number of ions
+  *   d_SOFT_RAD_SQRD: the squared softening radius squared
+  *   d_ION_ION_ACC_MULT: a constant multiplier for the yakawa interaction
+  *   d_INV_DEBYE: the inverse of the debye
+  *   d_Q_DIV_M: charge to mass ratio of ions
+  *   d_HT_CYL: half of the cylinder height
+  *   d_Vout: table with potentials at points in rz-plane from outside ions
+  *   d_NUMR: number of columns in table (radial direction)
+  *   d_RESZ: number of rows in table (axial direction)
+  *   d_dz: distance increment in z-direction
+  *   d_dr: distance increment in radial direction
+  *   d_E_FIELD: electric field in the z-direction
+  *   d_E_FIELDR: radial electric field in plasma column
+  *   E_direction: +/- z, for alternating DC E-field
+  *   plasma_counter: used to increment evolving boundary conditions
+  *   GEOMETRY: spherical or cylindrical simulation region
+  *   d_EXTERN_ELC_MULT: used in calculating outside force for spherical boundary
+  *   d_INV_DEBYE: used in calculation of outside force for spherical boundary
+  *
+  * Output (void):
+  *   d_accIon: the acceleration due to all of the other ions
+  *       is added to the initial ion acceleration
+  *
+  * Assumptions:
+  *   All inputs are real values
+  *   All ions have the parameters specified in the creation of the
+  *       d_ION_ION_ACC_MULT value
+  *   The ion potential is a Yukawa potential
+  *   The number of ions is a multiple of the block size
+  *
+  * Includes:
+  *   cuda_runtime.h
+  *   device_launch_parameters.h
+  *
+  */
+
+__global__ void calcIonAccels_102
+    (float4*,
+    float4*,
+    int * const,
+    float * const,
+    float * const,
+    float * const,
+    float*,
+    float* const,
+    float*,
+    int*,
+    int*,
+    float*,
+    float*,
+    float*,
+    float*,
+    int,
+    int,
+    int,
+    float* const);
 
     /*
     * calcIonIonAcc_102

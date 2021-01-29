@@ -323,10 +323,11 @@ __global__ void select_100
 __global__ void KDK_100
     (float4* posIon, 
 	 float4* velIon,
+	 float4* accIon,
 	 float4* ionDustAcc,
-	 const int* m,
-	 const int* d_tsFactor,
 	 int* d_boundsIon,
+	 float* d_minDistDust,
+	 const float* d_M_FACTOR,
 	 const float* d_TIME_STEP,
 	 const int GEOMETRY,
 	 const float* d_bndry_sqrd,
@@ -343,12 +344,64 @@ __global__ void KDK_100
 	int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 		
 	//local variables
-	int timeStepFactor = d_tsFactor[threadID];
-	float timeStep = *d_TIME_STEP / timeStepFactor;
-	float halfTimeStep = timeStep * 0.5;
+	int mtemp, timeStepFactor;
+	float v2, speed;
+	int max_depth = 8; //Maximum division of timestep = 2^8
+	float timeStep, halfTimeStep;
  	float3 oldIonPos;
-	//bool stopflag = false;
+
+	// Reset the ion bounds flag to 0
+	d_boundsIon[threadID] = 0;
+
+	// Calculate the time step depth.  The timestep will be divided by a multiple
+	// of two depending on its speed and distance from dust.
+	// m = ceil(ln( M * dT * v / abs(r - R)/ln(2);  tsf = 2^m
+	/* ------------------------------------------------------- *
+     * m  - timestep depth                                     *
+     * M  - d_M_FACTOR                                         *
+     * dT - time step                                          *
+     * v  - magnitude of velocity                              *
+     * r  - distance to closest dust particle                  *
+     * R  - radius of the dust particles                       *
+     *                                                         *
+     * 30 is a factor which initial tests showed to work well  *
+     * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+    // ion speed squared
+    v2 = velIon[threadID].x * velIon[threadID].x +
+         velIon[threadID].y * velIon[threadID].y +
+         velIon[threadID].z * velIon[threadID].z;
+
+    // ion speed
+    speed = __fsqrt_rn(v2);
+
+    // v2 is being used to as an intermediat step in calculating m
+    v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed /
+        (d_minDistDust[threadID] - *d_RAD_DUST)) / __logf(2.0);
+
+    // timestep depth
+    mtemp = ceil(v2);
+
+    // check that the timestep depth is within allowed bounds
+    if (mtemp < 0){
+        mtemp = 0;
+    } else if (mtemp > max_depth) {
+        mtemp = max_depth;
+    }
+
+    // calculate 2^(time step depth)
+    timeStepFactor = 1;
+    for(int i = 0; i < mtemp; i++) {
+        timeStepFactor  = timeStepFactor  * 2;
+    }
 	 	 
+	// Kick a one timestep with all forces except ion-dust force
+	kick_dev(velIon+threadID, accIon+threadID, *d_TIME_STEP); 
+
+	// Add in accel from dust in smaller steps if needed
+	timeStep = *d_TIME_STEP / timeStepFactor;
+	halfTimeStep = timeStep * 0.5;
+
 	// Kick for 1/2 a timestep to get started
 	kick_dev(velIon+threadID, ionDustAcc+threadID, halfTimeStep); 
 		
@@ -407,6 +460,7 @@ __global__ void KDK_100
 			}
 		}
 	}// end for loop over depth			
+	
 }
 	 
 /*
