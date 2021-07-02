@@ -836,7 +836,6 @@ int main(int argc, char* argv[])
 		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
 		if (NUM_DUST > 0){
 			for (int i = 0; i < 20; i++) {
-				debugFile << "in loop for dust grains" << std::endl;
 				debugFile << "X: " << posDust[i].x <<
 				" Y: " << posDust[i].y <<
 				" Z: " << posDust[i].z <<
@@ -846,7 +845,6 @@ int main(int argc, char* argv[])
 				" VZ " << velDust[i].z << std::endl;
 			}
 		}
-		debugFile << "made it past dust loop" << std::endl;
 		debugFile << std::endl;
 		debugFile.flush();
 	}
