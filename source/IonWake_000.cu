@@ -831,20 +831,24 @@ int main(int argc, char* argv[])
 		}
 	}
 
+	int max_loop;
+	if (NUM_DUST < 20) {max_loop = NUM_DUST;}
+	else {max_loop = 20;}
+
 	if (debugMode) {
-		debugFile << "-- First 20 Dust Positions --" << std::endl;
+		debugFile << "-- First " << max_loop << " Dust Positions --" << std::endl;
 		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
-		if (NUM_DUST > 0){
-			for (int i = 0; i < 20; i++) {
-				debugFile << "X: " << posDust[i].x <<
-				" Y: " << posDust[i].y <<
-				" Z: " << posDust[i].z <<
-				" Q: " << posDust[i].w << 
-				" VX: " << velDust[i].x <<
-				" VY " << velDust[i].y <<
-				" VZ " << velDust[i].z << std::endl;
-			}
+
+		for (int i = 0; i < max_loop; i++) {
+			debugFile << "X: " << posDust[i].x <<
+			" Y: " << posDust[i].y <<
+			" Z: " << posDust[i].z <<
+			" Q: " << posDust[i].w << 
+			" VX: " << velDust[i].x <<
+			" VY " << velDust[i].y <<
+			" VZ " << velDust[i].z << std::endl;
 		}
+
 		debugFile << std::endl;
 		debugFile.flush();
 	}
