@@ -834,17 +834,19 @@ int main(int argc, char* argv[])
 	if (debugMode) {
 		debugFile << "-- First 20 Dust Positions --" << std::endl;
 		debugFile << "NUM_DUST: " << NUM_DUST << std::endl;
-
-		for (int i = 0; i < 20; i++) {
-			debugFile << "X: " << posDust[i].x <<
-			" Y: " << posDust[i].y <<
-			" Z: " << posDust[i].z <<
-			" Q: " << posDust[i].w << 
-			" VX: " << velDust[i].x <<
-			" VY " << velDust[i].y <<
-			" VZ " << velDust[i].z << std::endl;
+		if (NUM_DUST > 0){
+			for (int i = 0; i < 20; i++) {
+				debugFile << "in loop for dust grains" << std::endl;
+				debugFile << "X: " << posDust[i].x <<
+				" Y: " << posDust[i].y <<
+				" Z: " << posDust[i].z <<
+				" Q: " << posDust[i].w << 
+				" VX: " << velDust[i].x <<
+				" VY " << velDust[i].y <<
+				" VZ " << velDust[i].z << std::endl;
+			}
 		}
-
+		debugFile << "made it past dust loop" << std::endl;
 		debugFile << std::endl;
 		debugFile.flush();
 	}
@@ -852,7 +854,7 @@ int main(int argc, char* argv[])
 	// Output the number of dust to the parameter file
 	paramOutFile << std::setw(14) << NUM_DUST << " % NUM_DUST\n";
 	paramOutFile.flush();
-	
+
 	/****** Calculations on the Grid ******/
 
 	// pointer for grid positions, potentials, and ion density 
@@ -2376,15 +2378,16 @@ int main(int argc, char* argv[])
 
 	} // ***** end of ion loop *****// 
 
+	if (NUM_DUST > 0){				
+		sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float4)*DIM_BLOCK>>> (
+			d_accDustIon.getDevPtr(),
+			d_NUM_DUST.getDevPtr(),
+			d_NUM_ION.getDevPtr()); 
 					
-	sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float4)*DIM_BLOCK>>> (
-		d_accDustIon.getDevPtr(),
-		d_NUM_DUST.getDevPtr(),
-		d_NUM_ION.getDevPtr()); 
-					
-	roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", print);
+		roadBlock_104(statusFile, __LINE__, __FILE__, "sumDustIonAcc_103", print);
 
-	d_accDustIon.devToHost();
+		d_accDustIon.devToHost();
+	}
 					    
 		// ***** begin dust updates *****//
 		// If dust particles have static positions 
