@@ -116,6 +116,9 @@ int main(int argc, char* argv[])
 	fileName = dataDirName + runName + "_outside_potential.txt";
 	std::ofstream ionPotOutsideFile(fileName.c_str());
 
+	// open an output file for outputting the xac values
+	fileName = dataDirName + runName + "_xac.txt";
+	std::ofstream xacFile(fileName.c_str());
 
 	/****** Debugging Parameters ******/
 
@@ -269,7 +272,8 @@ int main(int argc, char* argv[])
 	const float LASER_ON = getParam_106<float>( paramFile, "LASER_ON" );
 	const float LASER_OFF = getParam_106<float>( paramFile, "LASER_OFF" );
 	const int	TIME_EVOL = getParam_106<int>( paramFile, "TIME_EVOL" );	
-	
+	const int RESX = getParam_106<int>( paramFile, "RESX" );
+
 	// Set size of the simulation region
 
 	// debye length (m)
@@ -535,7 +539,7 @@ int main(int argc, char* argv[])
 
 	int N = N_PRINT_DEN_POT; //determines how often ion dens and potential are printed
 	// Set up grid for collecting ion number density and potential
-	const int RESX = 64;
+	// const int RESX = 64;
 	const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
 	const float grid_factor = GRID_FACTOR; 
 	float dx = 2.0*(RAD_CYL*grid_factor)/RESX;
@@ -653,7 +657,7 @@ int main(int argc, char* argv[])
 	paramOutFile
 	<< std::setw(14) << NUM_ION           << " % NUM_ION"           << '\n'
 	<< std::setw(14) << DEN_FAR_PLASMA    << " % DEN_FAR_PLASMA"    << '\n'
-	<< std::setw(14) << DEN_IONS		  << " % DEN_IONS	   "    << '\n'
+	<< std::setw(14) << DEN_IONS	      << " % DEN_IONS	   "    << '\n'
 	<< std::setw(14) << TEMP_ELC          << " % TEMP_ELC"          << '\n'
 	<< std::setw(14) << TEMP_ION          << " % TEMP_ION"          << '\n'
 	<< std::setw(14) << DEN_DUST          << " % DEN_DUST"          << '\n'
@@ -668,30 +672,30 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << RAD_SPH_DEBYE     << " % RAD_SPH_DEBYE"     << '\n'
 	<< std::setw(14) << NUM_DIV_VEL       << " % NUM_DIV_VEL"       << '\n'
 	<< std::setw(14) << GEOMETRY          << " % GEOMETRY"          << '\n'
-	<< std::setw(14) << RAD_CYL_DEBYE	  << " % RAD_CYL_DEBYE"	    << '\n'
-	<< std::setw(14) << HT_CYL_DEBYE   	  << " % HT_CYL_DEBYE"     	<< '\n'
+	<< std::setw(14) << RAD_CYL_DEBYE     << " % RAD_CYL_DEBYE"     << '\n'
+	<< std::setw(14) << HT_CYL_DEBYE      << " % HT_CYL_DEBYE"     	<< '\n'
 	<< std::setw(14) << NUM_DIV_QTH       << " % NUM_DIV_QTH"       << '\n'
 	<< std::setw(14) << DEBYE             << " % DEBYE"             << '\n'
 	<< std::setw(14) << DEBYE_I           << " % DEBYE_I"           << '\n'
 	<< std::setw(14) << RAD_SPH           << " % RAD_SPH"           << '\n'
 	<< std::setw(14) << RAD_CYL           << " % RAD_CYL"           << '\n'
-	<< std::setw(14) << HT_CYL            << " % HT_CYL"           << '\n'
+	<< std::setw(14) << HT_CYL            << " % HT_CYL"            << '\n'
 	<< std::setw(14) << PRESSURE          << " % PRESSURE"          << '\n'
 	<< std::setw(14) << FREQ              << " % FREQ  "            << '\n'
 	<< std::setw(14) << E_FIELD           << " % E_FIELD"           << '\n'
-	<< std::setw(14) << OMEGA1			  << " % OMEGA1"            << '\n'
-	<< std::setw(14) << OMEGA2			  << " % OMEGA2"            << '\n'
-	<< std::setw(14) << RADIAL_CONF		  << " % RADIAL_CONF" 		<< '\n'
-	<< std::setw(14) << AXIAL_CONF		  << " % AXIAL_CONF" 		<< '\n'
+	<< std::setw(14) << OMEGA1	      << " % OMEGA1"            << '\n'
+	<< std::setw(14) << OMEGA2	      << " % OMEGA2"            << '\n'
+	<< std::setw(14) << RADIAL_CONF	      << " % RADIAL_CONF" 	<< '\n'
+	<< std::setw(14) << AXIAL_CONF	      << " % AXIAL_CONF" 	<< '\n'
 	<< std::setw(14) << N_IONDT_PER_DUSTDT << " % N_IONDT_PER_DUSTDT"  << '\n'
 	<< std::setw(14) << N_IONDT_PER_PLASMADT << " % N_IONDT_PER_PLASMADT"  << '\n'
-	<< std::setw(14) << N_PRINT_DEN_POT	  << " % N_PRINT_DEN_POT"   << '\n'
+	<< std::setw(14) << N_PRINT_DEN_POT   << " % N_PRINT_DEN_POT"   << '\n'
  	<< std::setw(14) << GAS_TYPE          << " % GAS_TYPE"          << '\n'
-    << std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
-    << std::setw(14) << TEMP_GAS		  << " % TEMP_GAS"          << '\n'
+	<< std::setw(14) << BOX_CENTER        << " % BOX_CENTER"        << '\n'
+	<< std::setw(14) << TEMP_GAS	      << " % TEMP_GAS"          << '\n'
 	<< std::setw(14) << SIM_VOLUME        << " % SIM_VOLUME"        << '\n'
 	<< std::setw(14) << SOUND_SPEED       << " % SOUND_SPEED"       << '\n'
-	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"		<< '\n'
+	<< std::setw(14) << DRIFT_VEL_ION     << " % DRIFT_VEL_ION"	<< '\n'
 	<< std::setw(14) << MASS_DUST         << " % MASS_DUST"         << '\n'
 	<< std::setw(14) << SUPER_ION_MULT    << " % SUPER_ION_MULT"    << '\n'
 	<< std::setw(14) << CHARGE_ION        << " % CHARGE_ION"        << '\n'
@@ -703,15 +707,15 @@ int main(int argc, char* argv[])
 	<< std::setw(14) << HALF_TIME_STEP    << " % HALF_TIME_STEP"    << '\n'
 	<< std::setw(14) << ION_ION_ACC_MULT  << " % ION_ION_ACC_MULT"  << '\n'
 	<< std::setw(14) << ION_DUST_ACC_MULT << " % ION_DUST_ACC_MULT" << '\n'
-	<< std::setw(14) << RAD_COLL_MULT 	  << " % RAD_COLL_MULT" 	<< '\n'
+	<< std::setw(14) << RAD_COLL_MULT     << " % RAD_COLL_MULT" 	<< '\n'
 	<< std::setw(14) << RAD_DUST_SQRD     << " % RAD_DUST_SQRD"     << '\n'
 	<< std::setw(14) << EXTERN_ELC_MULT   << " % EXTERN_ELC_MULT"   << '\n'
-	<< std::setw(14) << Q_DIV_M	      	  << " % Q_DIV_M"    		<< '\n'
-	<< std::setw(14) << USE_GRAV		  << " % USE_GRAV"		 	<< '\n'
-	<< std::setw(14) << LASER_PUSH		  << " % LASER_PUSH"	 	<< '\n'
-	<< std::setw(14) << LASER_ON		  << " % LASER_ON"			<< '\n'
-	<< std::setw(14) << LASER_OFF		  << " % LASER_OFF"		 	<< '\n'
-	<< std::setw(14) << TIME_EVOL	      << " % TIME_EVOL"	 		<< '\n';
+	<< std::setw(14) << Q_DIV_M	      << " % Q_DIV_M"    	<< '\n'
+	<< std::setw(14) << USE_GRAV	      << " % USE_GRAV"		<< '\n'
+	<< std::setw(14) << LASER_PUSH	      << " % LASER_PUSH"	<< '\n'
+	<< std::setw(14) << LASER_ON	      << " % LASER_ON"		<< '\n'
+	<< std::setw(14) << LASER_OFF	      << " % LASER_OFF"		<< '\n'
+	<< std::setw(14) << TIME_EVOL	      << " % TIME_EVOL"	 	<< '\n';
 	paramOutFile.flush();
 
 	/****** Dust Parameters ******/
@@ -908,6 +912,7 @@ int main(int argc, char* argv[])
 	float2* GRID_POS = NULL;
 	float4* GCYL_POS = NULL;
 	float* Vout= NULL;
+	float* VoutReverse = NULL;
 
 	// amount of memory required for the grid variables
 	//This grid only covers half the xz-plane (r > 0)
@@ -918,6 +923,7 @@ int main(int argc, char* argv[])
 	// allocate memory for the grid points and potential at those points 
 	GRID_POS = (float2*)malloc(memFloat2Grid);
 	Vout = (float*)malloc(memFloatGrid*num_pts);
+	VoutReverse = (float*)malloc(memFloatGrid*num_pts);
 
 	debugFile << "Memory size Vout" << memFloatGrid*num_pts  << std::endl;
 	debugFile << "num_pts " << num_pts << " NUM_GRID_PTS2 " << NUM_GRID_PTS2 << "\n";
@@ -982,9 +988,6 @@ int main(int argc, char* argv[])
 			for (int x=0; x < RESXc; x++) {
 				tempx = -(RAD_CYL) + dx/2.0 + dx * x;
 				tempy = -(RAD_CYL) + dx/2.0 + dx * y;
-				//Ensure that tempx, tempy are symmetric about r=0
-				//tempx = dx/2.0 + dx * x;
-				//tempy = dx/2.0 + dx * y;
 				//tag points inside cylinder
 				if(tempx*tempx+tempy*tempy < RAD_CYL*RAD_CYL){
 					GCYL_POS[count].w = 1;
@@ -1107,7 +1110,7 @@ int main(int argc, char* argv[])
 
 	// holds electron current to a dust grain in the time step in C
 	float elcCurrent = 0;
-    //float delta_q = 0; //change in charge in one time step
+	//float delta_q = 0; //change in charge in one time step
 
 	// holds a dust grain potential in the time step in V
 	float dustPotential = 0;
@@ -1441,6 +1444,7 @@ int main(int argc, char* argv[])
 	CUDAvar<float2> d_GRID_POS(GRID_POS, NUM_GRID_PTS2);
 	CUDAvar<float4> d_GCYL_POS(GCYL_POS, NUM_CYL_PTS);
 	CUDAvar<float>	d_Vout(Vout, NUM_GRID_PTS2*num_pts);
+	CUDAvar<float> d_VoutReverse(VoutReverse, NUM_GRID_PTS2*num_pts);
 	CUDAvar<curandState_t> randStates(NUM_ION);
 
 	float hardDist = 0;
@@ -1571,6 +1575,25 @@ int main(int argc, char* argv[])
 
 	// Copy the table to the host 
 	d_Vout.devToHost();
+
+	int column = 0;
+	int row = 0;
+	int back_index = 0;
+	for (int p = 0; p < num_pts; p++){
+		for (int j = 0; j < NUM_GRID_PTS2; j++){
+			column = floor(j/NUMR);
+			row = j - (column * NUMR);
+			back_index = NUM_GRID_PTS2 - NUMR * (column + 1) + row;
+			VoutReverse[p * NUM_GRID_PTS2 + j] = Vout[p * NUM_GRID_PTS2 + (back_index)];
+		}
+	}
+	float hold_value = 0;
+	for (int p = 0; p < num_pts; p++){
+		for (int j = 0; j < NUM_GRID_PTS2; j++){
+			hold_value = (Vout[p * NUM_GRID_PTS2 + j] + VoutReverse[p * NUM_GRID_PTS2 + j]) / 2.0;
+			Vout[p * NUM_GRID_PTS2 + j] = hold_value;
+		}
+	}
 
 	for (int p = 0; p < num_pts; p++) {
 		//output potential at the grid positions such that matlab can read them in
@@ -1732,11 +1755,11 @@ int main(int argc, char* argv[])
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 
-	if (xac == 0) {
-		E_direction = -1;
+	if (xac == 0) { //E_FIELD > 0
+		E_direction = 1;
 	}
 	else {
-		E_direction = 1;
+		E_direction = -1;
 	}
 
 	//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
@@ -1762,51 +1785,7 @@ int main(int argc, char* argv[])
 		d_EXTERN_ELC_MULT.getDevPtr());
 
 	roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
-
-	//Calculate ion-ion forces
-	//Ions inside the simulation region
-	// calculate the acceleration due to ion-ion interactions
-	//calcIonIonAcc_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
-	//	d_posIon.getDevPtr(), // <--
-	//	d_accIon.getDevPtr(), // <-->
-	//	d_NUM_ION.getDevPtr(), 
-	//	d_SOFT_RAD_SQRD.getDevPtr(),
-	//	d_ION_ION_ACC_MULT.getDevPtr(),
-	//	d_INV_DEBYE.getDevPtr());
-//
-//	roadBlock_104(  statusFile, __LINE__, __FILE__, "calcIonIonAcc_102", print);
-
-	// Calculate the ion accelerations due to the ions outside of
-	// the simulation cavity
-	//if(GEOMETRY == 0) {
-		// calculate the forces between all ions
-	//	calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-	//		d_accIon.getDevPtr(), // {{{
-	//		d_posIon.getDevPtr(),
-	//		d_EXTERN_ELC_MULT.getDevPtr(),
-	//		d_INV_DEBYE.getDevPtr());
-//
-//		roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", print);
-	//} else if(GEOMETRY == 1) {
-	//	// calculate the forces from ions outside simulation region
-	//	// and external electric field 
-	//	calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-	//		d_accIon.getDevPtr(), // {{{
-	//		d_posIon.getDevPtr(), 
-	//		d_Q_DIV_M.getDevPtr(),
-	//		d_HT_CYL.getDevPtr(),
-	//		d_Vout.getDevPtr(),
-	//		d_NUMR.getDevPtr(),
-	//		d_RESZ.getDevPtr(),
-	//		d_dz.getDevPtr(),
-	//		d_dr.getDevPtr(),
-	//		d_E_FIELD.getDevPtr(),
-	//		E_direction,
-	//		plasma_counter);
-//
-//		roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAccCyl_102", print);
-//	}
-
+	
 	//Any other external forces acting on ions would be calc'd here
 	// Kick for 1/2 a timestep -- using just ion-ion accels
 	kick_100<<< blocksPerGridIon, DIM_BLOCK >>> (
@@ -1842,24 +1821,7 @@ int main(int argc, char* argv[])
 		// Ion Time Step Loop
 		for (int j = 1; j <= N_IONDT_PER_DUSTDT; j++){
 
-			//Select the time step depth
-			//select_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
-		//		d_posIon.getDevPtr(), // <--
-		//		d_posDust.getDevPtr(), // <--
-		//		d_velIon.getDevPtr(), // <-- (TS1: rand + 1/2 ion-ion kick )
-		//		d_minDistDust.getDevPtr(), // <-- (TS1: good)
-		//		d_RAD_DUST.getDevPtr(),
-		//		d_ION_TIME_STEP.getDevPtr(),
-		//		d_MAX_DEPTH.getDevPtr(),
-		//		d_M_FACTOR.getDevPtr(), 
-		//		d_NUM_DUST.getDevPtr(),
-		//		d_m.getDevPtr(), // -->
-		//		d_timeStepFactor.getDevPtr()); // -->
-//	
-//			roadBlock_104( statusFile, __LINE__, __FILE__, "select_100", print);
-
 			//KDK using just the ion-dust acceleration for s^m iterations
- 
 			if(GEOMETRY == 0) {
 				KDK_100 <<< blocksPerGridIon, DIM_BLOCK >>> (
 					d_posIon.getDevPtr(), // {{{
@@ -1919,17 +1881,21 @@ int main(int argc, char* argv[])
 				 d_ionDensity.getDevPtr());
 			roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", print);
 
-			//polarity switching of electric field
+			// polarity switching of electric field
 			// Need to track dust_time + ion_time
-			ionTime = dust_time + (j)* ION_TIME_STEP;
-			//ionTime = (i-1)*1e-6 + (j)* ION_TIME_STEP;
-        	//xac = int(floor(2.0*FREQ*ionTime)) % 2;
-			//traceFile << ionTime << ", " << xac << ", " << "\n";
+			ionTime = dust_time + (j) * ION_TIME_STEP;
+			if (FREQ > 0){
+				if (i % int((1/FREQ)/dust_dt) == 1){
+					if (i > 1){
+						if (j == 1){
+							if (xac == 0){xac = 1;}
+							else if (xac == 1){xac = 0;}
+						}
+					}
+				}
+			}
 
-			if(E_FIELD > 0){
-				xac = 0;}
-			else{
-				xac = 1;}
+			xacFile << ionTime << ", " << dust_time << ", " << xac << ", " << "\n";
 
 			// inject ions on the boundary of the simulation
 			if(GEOMETRY == 0) {
@@ -2006,13 +1972,13 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
-			//if (xac ==0) {
-			//	E_direction = -1;
-			//} else {
-			//	E_direction = 1;
-			//}
+			if (xac ==0) {
+				E_direction = 1;
+			} else {
+				E_direction = 1;
+			}
 			//DEBUG -- for DC switch test, E field already flips
-			E_direction = -1;
+			//E_direction = -1;
 
 		//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
 		calcIonAccels_102 <<<blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
@@ -2038,64 +2004,7 @@ int main(int argc, char* argv[])
 	
 		roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
 
-
-			//Calculate ion-ion forces
-			//Ions inside the simulation region
-			// calculate the acceleration due to ion-ion interactions
-			//calcIonIonAcc_102 
-			//	<<< blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK >>> (
-			//	d_posIon.getDevPtr(), // {{{
-			//	d_accIon.getDevPtr(), // <-->
-			//	d_NUM_ION.getDevPtr(),
-			//	d_SOFT_RAD_SQRD.getDevPtr(),
-			//	d_ION_ION_ACC_MULT.getDevPtr(),
-			//	d_INV_DEBYE.getDevPtr());
-//	
-			//roadBlock_104( statusFile, __LINE__, __FILE__, 
-			//	"calcIonIonAcc_102 line 1906", print);
-			// }}}	
-
-			// copy ion accelerations to host
-			//d_accIon.devToHost();
-			// print the acc of specified ion to the trace file
-			//traceFile << accIon[ionTraceIndex].x;
-			//traceFile << ", " << accIon[ionTraceIndex].y;
-			//traceFile << ", " << accIon[ionTraceIndex].z << std::endl;
-
-			// Calculate the ion accelerations due to the ions outside of
-			// the simulation cavity
-			//if(GEOMETRY == 0) {
-			//	// calculate the forces between all ions
-			//	calcExtrnElcAcc_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			//		d_accIon.getDevPtr(), // {{{
-			//		d_posIon.getDevPtr(), // <--
-			//		d_EXTERN_ELC_MULT.getDevPtr(),
-			//		d_INV_DEBYE.getDevPtr());
-//	
-//			roadBlock_104(statusFile, __LINE__, __FILE__, "calcExtrnElcAcc_102", print);
-//			} else if(GEOMETRY == 1) {
-			//	// calculate the forces between all ions outside
-			//	//simulation region and external electric field
-			//calcExtrnElcAccCyl_102 <<< blocksPerGridIon, DIM_BLOCK >>> (
-			//	d_accIon.getDevPtr(), // {{{
-			//	d_posIon.getDevPtr(), 
-			//	d_Q_DIV_M.getDevPtr(),
-			//	d_HT_CYL.getDevPtr(),
-			//	d_Vout.getDevPtr(),
-			//	d_NUMR.getDevPtr(),
-			//	d_RESZ.getDevPtr(),
-			//	d_dz.getDevPtr(),
-			//	d_dr.getDevPtr(),
-			//	d_E_FIELD.getDevPtr(),
-			//	E_direction,
-			//	plasma_counter);
-//
-//			roadBlock_104( statusFile, __LINE__, __FILE__, 
-//				"calcExtrnElcAccCyl_102 line 1955", print);
-//			}
-
 		// Updates to ion velocity: collisions with ions and neutral //
-
 		//Determine number of ions to collide
 		randNum = (rand() % 100001)/100000.0;
 		if (randNum < (N1 - N_COLL) ) n_coll = N_COLL+1; else n_coll = N_COLL;
@@ -2610,25 +2519,6 @@ int main(int argc, char* argv[])
 						//debugSpecificFile << q_div_m * acc << std::endl;
 					}
 
-					// forces from ions outside simulation region
-					//rad = sqrt(posDust[j].x * posDust[j].x +
-					//		posDust[j].y * posDust[j].y);
-					//zsq = posDust[j].z * posDust[j].z;
-					//radAcc = P10X + P12X * zsq + P14X * zsq * zsq;
-					//vertAcc = P01Z * posDust[j].z +
-				//			P21Z * rad * rad * posDust[j].z +
-				//			P03Z * posDust[j].z * zsq +
-				//			P23Z * rad * rad * posDust[j].z * zsq +
-				//			P05Z * posDust[j].z * zsq * zsq;
-				//	accDust[j].x += posDust[j].x * radAcc * q_div_m;
-				//	accDust[j].y += posDust[j].y * radAcc * q_div_m;
-				//	accDust[j].z += vertAcc * q_div_m;
-		
-					//debugFile << "outside ion acceleration  ";
-					//debugFile << posDust[j].x*radAcc*q_div_m;
-					//debugFile << ", " << posDust[j].y*radAcc*q_div_m;
-					//debugFile << ", " << vertAcc*q_div_m << "\n";
-
 					// drag force
 					accDust[j].x -= BETA*velDust[j].x;
 					accDust[j].y -= BETA*velDust[j].y;
@@ -2984,6 +2874,7 @@ int main(int argc, char* argv[])
 	dustChargeFile.close();
 	paramOutFile.close();
 	ionDensOutFile.close();
+	xacFile.close();
 
 	return 0;
 
