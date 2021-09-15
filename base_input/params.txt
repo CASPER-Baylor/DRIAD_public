@@ -1,39 +1,41 @@
-            NUM_ION   60000
-     DEN_FAR_PLASMA   1.17e15
-           TEMP_ELC   50107
-           TEMP_ION   465.9
-           TEMP_GAS   300.0
-	       PRESSURE	  60
+            NUM_ION   60000	! number of superions
+     DEN_FAR_PLASMA   1.17e15	! in m^-3
+     	   DEN_IONS   1.17e15	! in m^-3
+           TEMP_ELC   50107	! in K
+           TEMP_ION   465.9	! in K
+           TEMP_GAS   300.0	! in K
+	   PRESSURE   60	! in Pa
                MACH   0.022
-		   GAS_TYPE   1		! 1 = neon, 2 = argon
-  CHARGE_SINGLE_ION   -1
-    MASS_SINGLE_ION   3.350e-26
-           SOFT_RAD   1e-6
+	   GAS_TYPE   1		! 1 = neon, 2 = argon
+  CHARGE_SINGLE_ION   -1	! in elementary charge e^-
+    MASS_SINGLE_ION   3.350e-26	! in kg
+           SOFT_RAD   1e-6	! in m
            M_FACTOR   10
-           RAD_DUST   1.38e-6
-           DEN_DUST   1510
-      ION_TIME_STEP   1.00e-8
-      NUM_TIME_STEP   10	!number of dust_steps dt = 1e-4s
+           RAD_DUST   1.38e-6	! in m
+           DEN_DUST   1510	! in kg/m^3
+      ION_TIME_STEP   1.00e-8	! in sec
+      NUM_TIME_STEP   10	! number of dust_steps dt = 1e-4s
  N_IONDT_PER_DUSTDT   100 
-N_IONDT_PER_PLASMADT   100 
-           GEOMETRY	  1		! 0 = sphere, 1 = cylinder
+ N_IONDT_PER_PLASMADT  100 
+           GEOMETRY   1		! 0 = sphere, 1 = cylinder
       RAD_SPH_DEBYE   3.0
         NUM_DIV_VEL   50
         NUM_DIV_QTH   3
-      RAD_CYL_DEBYE	  1.5
-       HT_CYL_DEBYE	  2.5
-	           FREQ	  500
-	        E_FIELD	  198 	! const electric field in axial (z) direction
-  			 OMEGA1   7.647e7
-  			 OMEGA2   1.53e10
-  		RADIAL_CONF   0.95
-  		 AXIAL_CONF   1.0
-	N_PRINT_DEN_POT   1		!print density and potential every N steps
-		GRID_FACTOR   1.0	!fraction of simulation region to calc den, pot
-		 BOX_CENTER   0.0	! height above the lower electrode in m
-  	       USE_GRAV   0		! 0 = no gravity, 1 = grav + sheath E field
-			 E_MULT   1		! multiplier to steepen sheath Ez as power increases
-		 LASER_PUSH   0		! for laser push in simulation of lab
-		   LASER_ON   0.20	! time to turn on laser push (applied to particle 1)
-		  LASER_OFF   0.205 ! time to turn off laser push
-	      TIME_EVOL	  86	! give number of lines in the file for evolving plasma
+      RAD_CYL_DEBYE   1.0
+       HT_CYL_DEBYE   2.0
+	       FREQ   500	! frequency of E_FIELD switching in Hz
+	    E_FIELD   198 	! const electric field in axial (z) direction
+  	     OMEGA1   7.647e7
+  	     OMEGA2   1.53e10
+  	RADIAL_CONF   0.95	
+  	 AXIAL_CONF   1.0
+    N_PRINT_DEN_POT   1		! print density and potential every N steps
+	GRID_FACTOR   1.0	! fraction of simulation region to calc den, pot
+	 BOX_CENTER   0.0	! height above the lower electrode in m
+  	   USE_GRAV   0		! 0 = no gravity, 1 = grav + sheath E field
+	     E_MULT   1		! multiplier to steepen sheath Ez as power increases
+	 LASER_PUSH   0		! for laser push in simulation of lab
+	   LASER_ON   0.20	! time to turn on laser push (applied to particle 1)
+	  LASER_OFF   0.205 	! time to turn off laser push
+	  TIME_EVOL   86	! give number of lines in the file for evolving plasma
+	       RESX   64	! resolution in x, RESX^2*(HT_CYL_DEBYE/RAD_CYL_DEBYE) = multiple of 32
