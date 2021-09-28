@@ -535,9 +535,8 @@ int main(int argc, char* argv[])
 	const float BETA =1.44* 4.0 /3.0 * RAD_DUST_SQRD * PRESSURE / MASS_DUST * 
 		sqrt(8.0 * PI * MASS_SINGLE_ION/BOLTZMANN/TEMP_GAS);
 	//Thermal bath or Brownian motion of dust
-	//const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
-	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/dust_dt)/MASS_DUST;
-	
+	const float SIGMA = sqrt(2.0* BETA * BOLTZMANN * TEMP_GAS/MASS_DUST/dust_dt);
+		
 	int N = N_PRINT_DEN_POT; //determines how often ion dens and potential are printed
 	// Set up grid for collecting ion number density and potential
 	// const int RESX = 64;
