@@ -1688,9 +1688,13 @@ int main(int argc, char* argv[])
 	int xac = 0;
 
 	if(E_FIELD > 0){
-		xac = 0;}
+		xac = 0;
+		E_direction = 1;
+	}
 	else{
-		xac = 1;}
+		xac = 1;
+		E_direction = -1;
+	}
 
 	// inject ions on the boundary of the simulation
 	if(GEOMETRY == 0) {
@@ -1754,13 +1758,6 @@ int main(int argc, char* argv[])
 		d_boundsIon.getDevPtr());
 
 	roadBlock_104( statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
-
-	if (xac == 0) { //E_FIELD > 0
-		E_direction = 1;
-	}
-	else {
-		E_direction = -1;
-	}
 
 	//Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
 	calcIonAccels_102 <<< blocksPerGridIon, DIM_BLOCK,sizeof(float4) * DIM_BLOCK >>>(
@@ -1972,10 +1969,10 @@ int main(int argc, char* argv[])
 	
 			roadBlock_104(statusFile, __LINE__, __FILE__, "calcDustIonAcc_103", print);
 
-			if (xac ==0) {
+			if (xac == 0) {
 				E_direction = 1;
 			} else {
-				E_direction = 1;
+				E_direction = -1;
 			}
 			//DEBUG -- for DC switch test, E field already flips
 			//E_direction = -1;
