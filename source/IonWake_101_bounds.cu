@@ -554,8 +554,27 @@ __global__ void injectIonCylinder_101(
 		
 		// polarity switching
 		if(xac == 1) {
-			d_posIon[IDion].z *= -1.0;
-			d_velIon[IDion].z *= -1.0;
+			// d_posIon[IDion].z *= -1.0;
+			// d_velIon[IDion].z *= -1.0;
+			// xac == 1 means Ez points to -z, so need the
+			// position for injection to be at +z and velocity
+			// to point to -z.  Position will be positive as
+			// allocated above, so just need to check that  
+			// velocity is negative
+			if(d_velIon[IDion].z > 0) {
+				d_velIon[IDion].z = -d_velIon[IDion].z;
+			}
+		}
+		else {
+			// xac == 0 means Ez points to +z, so need the
+			// position for injection to be at -z and velocity
+			// to point to +z.  Position will be positive as 
+			// allocated above, so need to reset and check 
+			// that velocity is positive
+			if(d_velIon[IDion].z < 0) {
+				d_velIon[IDion].z = -d_velIon[IDion].z;
+			}
+			d_posIon[IDion].z = -d_posIon[IDion].z;
 		}	
 		
 		// reset the acceleration
