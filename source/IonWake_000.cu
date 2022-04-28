@@ -264,7 +264,7 @@ int main(int argc, char* argv[])
 		= getParam_106<int>( paramFile, "N_PRINT_DEN_POT" );
 	const float GRID_FACTOR = getParam_106<float>( paramFile, "GRID_FACTOR" );
 	const float GAS_TYPE = getParam_106<float>( paramFile, "GAS_TYPE" );
-    const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
+    	const float TEMP_GAS = getParam_106<float>( paramFile, "TEMP_GAS" );
 	const int	USE_GRAV = getParam_106<int>( paramFile, "USE_GRAV" );
 	const float BOX_CENTER = getParam_106<float>( paramFile, "BOX_CENTER" );
 	const float E_MULT = getParam_106<float>( paramFile, "E_MULT" );
@@ -1604,6 +1604,7 @@ int main(int argc, char* argv[])
 		ionPotOutsideFile << "" << std::endl;
 	}
 
+	d_Vout.hostToDev();
 	//Set the potential and density of ions on the grid to zero
 	zeroIonDensityPotential_102 <<<blocksPerGridGrid, DIM_BLOCK >>>
 		(d_ionPotential.getDevPtr(),
