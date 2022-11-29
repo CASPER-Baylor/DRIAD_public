@@ -510,8 +510,8 @@ int main(int argc, char* argv[])
 	float axialConfine = AXIAL_CONF * HT_CYL; //limit axial position of dust in cyl
 	float dust_dt = 1e-4; //N * 500 * ION_TIME_STEP;
 	float half_dust_dt = dust_dt * 0.5;	
-	float dust_time = 0;
-	float ionTime = 0;
+	double dust_time = 0;
+	double ionTime = 0;
 	float rhoDustsq = 0; // for radial dust confinement
 	float rhoDust = 0; // for radial dust confinement
 	float acc = 0; //for radial dust confinement
