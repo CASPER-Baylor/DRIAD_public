@@ -1157,7 +1157,7 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 	
 	// find the index of the last value in mat that is 
 	// less than y
-	while (mat[intIndex + 1] < y && intIndex < sizeMat){
+	while (mat[intIndex] < y && intIndex < sizeMat - 1){
 		intIndex++;
 	}
 
@@ -1166,7 +1166,7 @@ __device__ float invertFind_101(float* const mat, int sizeMat, float y){
 	// indices  and interpolating between the values in mat
 	// that y fell between
 	float floatIndex = intIndex + 
-		(y - mat[intIndex])/(mat[intIndex+1] - mat[intIndex]);
+		(y - mat[intIndex - 1])/(mat[intIndex] - mat[intIndex - 1]);
 
 	return floatIndex;
 }	
