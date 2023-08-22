@@ -1,2 +1,0 @@
-    rX(m)   rY  rZ   vX (m/s) vY    vZ    Q (Coulombs)
-[0]   0 	0 	0 	-0 		-0 		-0 	-1.02334e-14
