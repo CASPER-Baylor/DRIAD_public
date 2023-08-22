@@ -1,5 +1,16 @@
-To Run
-	Execute: ./IonWake_EXE {Input Directory} {Output Directory} {Run Name}
+For compiling, running and checking the code, you need to open the Terminal 
+in the IonWake folder and write the word make from the Terminal  and
+selecting one of the options below.
+
+Makefile options:
+	
+	build_debug: function to build the code in debug mode(slower but more detailed)
+	build_release: function to build the code in release mode(faster but less detailed)	
+	clean: function to remove the build directory
+	run: function to run the code
+	status: check the status of a job
+	info: get errors and extra informations of the job
+
 
 Input Files
 	params.txt
