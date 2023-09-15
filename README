@@ -10,22 +10,28 @@ MakeFile:
 
 	Makefile options:
 	
-		build_debug: function to build the code in debug mode(slower but more detailed)
-		build_release: function to build the code in release mode(faster but less detailed)	
-		clean: function to remove the build directory
-		run: function to run the code
-		status: check the status of a job
-		info: get errors and extra informations of the job
+		build_debug: function to build the code in debug mode(slower but more detailed).
+
+		build_release: function to build the code in release mode(faster but less detailed).
+
+		clean: function to remove the build directory.
+
+		run: function to run the code.
+
+		status: check the status of a job.
+
+		info: get errors and extra informations of the job.
 
 
 Input Files
-	_params.txt
-		Contains general input parameters for the simulation. Such as the timestep length
-		and the radius of the dust particles.
-	dust_params.txt
-		Contains the initial positions and charges for the dust particles. 
-	_timestep.txt
-		Is used to turn on and off several time step options.
+	
+	_dust_params.txt: Contains the initial positions and charges for the dust particles. 
+
+	_params.txt: Contains general input parameters for the simulation. Such as the timestep length and the radius of the dust particles.
+
+	_plasma_params.txt(OPTIONAL): Parameters file for time evolving conditions.
+
+	_timestep.txt: Is used to turn on and off several time step options.
 
 Timestep Options
 	TR-ion-pos
@@ -41,33 +47,3 @@ Timestep Options
 		dynamically calculated.
  
 Sample parameter values from params.txt
-	NUM_ION   		   60000 //number of ions
-    DEN_FAR_PLASMA     1e14  //background plasma density
-    TEMP_ELC   		   29011 //temperature in Kelvin
-    TEMP_ION   		   290   //temperature in Kelvin
-    DEN_DUST   		   1510  // density of dust material kg/m^3
-    MASS_SINGLE_ION    6.633521e-26
-    MACH   	  		   1.00  // drift vel of ions relative to sound speed
-    SOFT_RAD   		   1e-6  // softening radius for ion-ion forces
-    RAD_DUST   		   5e-6  // radius of dust grains
-    CHARGE_SINGLE_ION -1     // charge in units of e
-    TIME_STEP   	   1.0e-8 //time step in seconds
-    NUM_TIME_STEP      200000
-    GEOMETRY	 	   0 	// 0 = sphere, 1 = cylinder
-    RAD_SIM_DEBYE      1.5 	// radius of spherical simulation region (debye)
-    NUM_VEL_DIV   	   50 	//for calculating incoming ion velocity
-    NUM_QTH_DIV   	   100 // angles for incoming ion pos: 3 for cylinder, 100 
-    RAD_CYL_DEBYE	   2.0	// radius of cylindrical sim bounds (debye)
-    HT_CYL_DEBYE	   5.0	// half the height of cylinder (in debye lengths)
-    P10X	 		  -3.3064e5 // coefficient for exterior ion force: cylinder
-    P12X   			  -1.7962e9 
-    P14X	 		   1.6279e14
-    P01Z   			  -1917.3
-   	P21Z	 		  -2.4581e9 	
-  	P03Z			  -3.4150e8 
- 	P23Z	 		   3.7472e14
- 	P05Z	  		  -9.8550e13
-	PRESSURE		  100	// pressure in Torr
-	FREQ			  500	// frequency of AC E-field switching
-	E_FIELD			  350	// magnitude of AC Efield (V/m)
-	DUST_CONFINEMENT  2.63e6 // radial confining force for dust
