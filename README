@@ -1,24 +1,30 @@
-For compiling, running and checking the code, you need to open the Terminal 
-in the IonWake folder and write the word make from the Terminal  and
-selecting one of the options below.
+CMakeList:
+ In order to add new files (.cu or .cpp) to the code, it must be included their names in the corresponding sections(CUDA_FILES and CPP_FILES).
 
-Makefile options:
+	Important:
+	If it is used templates in some file, you CANNOT include this file in the CMakelist otherwise you will obtain a duplicate definition error. Also, if you split the implementation(.h or .hpp) from the definition(.cu or .cpp) you must include in the main file the .cu or cpp directly instead of include the .h or .hpp.
+
+
+MakeFile:
+	For compiling, running and checking the code, you need to open the Terminal in the IonWake folder and write the word make from the Terminal  and selecting one of the options below.
+
+	Makefile options:
 	
-	build_debug: function to build the code in debug mode(slower but more detailed)
-	build_release: function to build the code in release mode(faster but less detailed)	
-	clean: function to remove the build directory
-	run: function to run the code
-	status: check the status of a job
-	info: get errors and extra informations of the job
+		build_debug: function to build the code in debug mode(slower but more detailed)
+		build_release: function to build the code in release mode(faster but less detailed)	
+		clean: function to remove the build directory
+		run: function to run the code
+		status: check the status of a job
+		info: get errors and extra informations of the job
 
 
 Input Files
-	params.txt
+	_params.txt
 		Contains general input parameters for the simulation. Such as the timestep length
 		and the radius of the dust particles.
-	dust-params.txt
+	dust_params.txt
 		Contains the initial positions and charges for the dust particles. 
-	timestep.txt
+	_timestep.txt
 		Is used to turn on and off several time step options.
 
 Timestep Options
