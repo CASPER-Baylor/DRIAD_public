@@ -1,0 +1,64 @@
+Performing C++ SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
+Change Dir: /data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_1f3e6/fast && gmake[1]: Entering directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+/usr/bin/gmake  -f CMakeFiles/cmTC_1f3e6.dir/build.make CMakeFiles/cmTC_1f3e6.dir/build
+gmake[2]: Entering directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_1f3e6.dir/src.cxx.o
+/usr/local/gcc/8.2.0/bin/c++ -DCMAKE_HAVE_LIBC_PTHREAD   -o CMakeFiles/cmTC_1f3e6.dir/src.cxx.o -c /data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp/src.cxx
+Linking CXX executable cmTC_1f3e6
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1f3e6.dir/link.txt --verbose=1
+/usr/local/gcc/8.2.0/bin/c++ CMakeFiles/cmTC_1f3e6.dir/src.cxx.o -o cmTC_1f3e6 
+CMakeFiles/cmTC_1f3e6.dir/src.cxx.o: In function `main':
+src.cxx:(.text+0x2d): undefined reference to `pthread_create'
+src.cxx:(.text+0x39): undefined reference to `pthread_detach'
+src.cxx:(.text+0x45): undefined reference to `pthread_cancel'
+src.cxx:(.text+0x56): undefined reference to `pthread_join'
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [CMakeFiles/cmTC_1f3e6.dir/build.make:99: cmTC_1f3e6] Error 1
+gmake[2]: Leaving directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:127: cmTC_1f3e6/fast] Error 2
+gmake[1]: Leaving directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+
+
+Source file was:
+#include <pthread.h>
+
+static void* test_func(void* data)
+{
+  return data;
+}
+
+int main(void)
+{
+  pthread_t thread;
+  pthread_create(&thread, NULL, test_func, NULL);
+  pthread_detach(thread);
+  pthread_cancel(thread);
+  pthread_join(thread, NULL);
+  pthread_atfork(NULL, NULL, NULL);
+  pthread_exit(NULL);
+
+  return 0;
+}
+
+Determining if the function pthread_create exists in the pthreads failed with the following output:
+Change Dir: /data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp
+
+Run Build Command(s):/usr/bin/gmake -f Makefile cmTC_249c9/fast && gmake[1]: Entering directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+/usr/bin/gmake  -f CMakeFiles/cmTC_249c9.dir/build.make CMakeFiles/cmTC_249c9.dir/build
+gmake[2]: Entering directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+Building CXX object CMakeFiles/cmTC_249c9.dir/CheckFunctionExists.cxx.o
+/usr/local/gcc/8.2.0/bin/c++   -DCHECK_FUNCTION_EXISTS=pthread_create -o CMakeFiles/cmTC_249c9.dir/CheckFunctionExists.cxx.o -c /data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CheckLibraryExists/CheckFunctionExists.cxx
+Linking CXX executable cmTC_249c9
+/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_249c9.dir/link.txt --verbose=1
+/usr/local/gcc/8.2.0/bin/c++  -DCHECK_FUNCTION_EXISTS=pthread_create CMakeFiles/cmTC_249c9.dir/CheckFunctionExists.cxx.o -o cmTC_249c9  -lpthreads 
+/usr/bin/ld: cannot find -lpthreads
+collect2: error: ld returned 1 exit status
+gmake[2]: *** [CMakeFiles/cmTC_249c9.dir/build.make:99: cmTC_249c9] Error 1
+gmake[2]: Leaving directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+gmake[1]: *** [Makefile:127: cmTC_249c9/fast] Error 2
+gmake[1]: Leaving directory '/data/saenzb/DRIAD/Version_Vieja/IonWake/build/CMakeFiles/CMakeTmp'
+
+
+
