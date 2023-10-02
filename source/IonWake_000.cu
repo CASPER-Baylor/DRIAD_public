@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
     std::ofstream debugFile(fileName.c_str());
 
     // open an output file for specific debugging output
-    fileName = dataDirName + runName + "_debug-specific.txt";
+    fileName = dataDirName + runName + "_debug_specific.txt";
     std::ofstream debugSpecificFile(fileName.c_str());
 
     // open an output file for tracing values throughout the timestep
@@ -84,7 +84,7 @@ int main(int argc, char *argv[])
     std::ofstream statusFile(fileName.c_str());
 
     // open an output file for holding ion positions
-    fileName = dataDirName + runName + "_ion-pos.txt";
+    fileName = dataDirName + runName + "_ion_pos.txt";
     std::ofstream ionPosFile(fileName.c_str());
 
     // open an output file for holding ion velocities
@@ -92,15 +92,15 @@ int main(int argc, char *argv[])
     // std::ofstream ionVelFile(fileName.c_str());
 
     // open an output file for holding dust positions
-    fileName = dataDirName + runName + "_dust-pos.txt";
+    fileName = dataDirName + runName + "_dust_pos.txt";
     std::ofstream dustPosFile(fileName.c_str());
 
     // open an output file for holding dust charges
-    fileName = dataDirName + runName + "_dust-charge.txt";
+    fileName = dataDirName + runName + "_dust_charge.txt";
     std::ofstream dustChargeFile(fileName.c_str());
 
     // open an output file for tracing dust positions during the simulation
-    fileName = dataDirName + runName + "_dust-pos-trace.txt";
+    fileName = dataDirName + runName + "_dust_pos_trace.txt";
     std::ofstream dustTraceFile(fileName.c_str());
 
     // open an output file for outputting the input parameters
@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     std::ofstream paramOutFile(fileName.c_str());
 
     // open an output file for outputting the grid data
-    fileName = dataDirName + runName + "_ion-den.txt";
+    fileName = dataDirName + runName + "_ion_den.txt";
     std::ofstream ionDensOutFile(fileName.c_str());
 
     // open an output file for outputting the outside ion boundary data
