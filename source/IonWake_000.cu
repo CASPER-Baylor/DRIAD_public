@@ -961,6 +961,8 @@ int main(int argc, char *argv[])
     float2 *GRID_POS = NULL;
     float4 *GCYL_POS = NULL;
     float *Vout = NULL;
+    // VoutReverse array holds a reflection of the outside from ions, and is used to 
+    // average the outside ion potential over the left and right sides of the simulation
     float *VoutReverse = NULL;
 
     // amount of memory required for the grid variables
@@ -1643,6 +1645,8 @@ int main(int argc, char *argv[])
     // Copy the table to the host
     d_Vout.devToHost();
 
+    // save the values of the outside potential to VoutReverse in the reverse order
+    // relative to Vout -- VoutReverse is used for averaging the outside ion potential 
     int column = 0;
     int row = 0;
     int back_index = 0;
@@ -1656,6 +1660,9 @@ int main(int argc, char *argv[])
             VoutReverse[p * NUM_GRID_PTS2 + j] = Vout[p * NUM_GRID_PTS2 + (back_index)];
         }
     }
+    // average the outside potential stored in Vout and VoutReverse to reduce any asymmetry
+    // that may be present in the potential from ions outside the simulation region, and store
+    // the averaged outside ion potential in Vout
     float hold_value = 0;
     for (int p = 0; p < num_pts; p++)
     {
