@@ -880,16 +880,13 @@ int main(int argc, char *argv[])
         }
     }
 
+    // use max_loop to set a maximum number of dust grain information to print 
+    // that is equal to the number of dust grains if there are less than 20 dust   
+    // grains, or equal to 20 if there are more than 20 dust grains
     int max_loop;
-    if (NUM_DUST < 20)
-    {
-        max_loop = NUM_DUST;
-    }
-    else
-    {
-        max_loop = 20;
-    }
-
+    if (NUM_DUST < 20) { max_loop = NUM_DUST; }
+    else { max_loop = 20; }
+    // print the dust positions, velocities, and charges for the max_loop number of dust grains
     if (debugMode)
     {
         debugFile << "-- First " << max_loop << " Dust Positions --" << std::endl;
