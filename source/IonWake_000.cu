@@ -537,15 +537,20 @@ int main(int argc, char *argv[])
     // Set up grid for collecting ion number density and potential
     // const int RESX = 64;
     // const int RESZ = static_cast<int>(HT_CYL_DEBYE/(RAD_CYL_DEBYE/1))*RESX;
+
+    // determining the grid resolution in the z-direction based on the simulation
+    // cylinder dimensions
     int resz_test = static_cast<int>(HT_CYL_DEBYE / (RAD_CYL_DEBYE / 1)) * RESX;
     int resz_hold = resz_test;
-    ;
-    if (resz_test % 32 != 0)
+    if (resz_test % 32 != 0)  // the case where grid in z is not a multiple of 32
     {
-        if (resz_test < 32)
+        // if the grid resolution in z is less than 32, force the resolution to be 32
+        if (resz_test < 32)  
         {
             resz_hold = (32);
         }
+        // if the grid resolution in z is more than 32, but not a multiple of 32, force 
+        // the value to be rounded down to a multiple of 32
         else
         {
             resz_hold = (resz_test - (resz_test % 32));
@@ -553,15 +558,19 @@ int main(int argc, char *argv[])
     }
     else
     {
+        // if the grid resolution in z is zero, force the resolution to be 32
         if (resz_test == 0)
         {
             resz_hold = (32);
         }
+        // if the grid resolution in z is non-zero and a multiple of 32, keep the 
+        // value unchanged
         else
         {
             resz_hold = (resz_test);
         }
     }
+    // set the grid resolution in z based on the calculations done for resz_hold above
     const int RESZ = static_cast<int>(resz_hold);
 
     const float grid_factor = GRID_FACTOR;
