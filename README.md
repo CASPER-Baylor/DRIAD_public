@@ -5,8 +5,7 @@ Scripts for running DRIAD on kodiak at Baylor using the RAPID framework
 SETUP
 •	Clone the repository (into your kodiak data directory)
 •	In the root DRIAD_run_scripts directory (data/matthewsl/.../DRIAD_run_scripts) create two files run_dir.txt and source_dir.txt.
-•	In the run_dir.txt file place the full path name of the DRIAD_run_scripts directory. On my laptop it is /home/dustin_sanford/root/academic/research/data/DRIAD_run_scripts
-•	In the source_dir.txt file place the full path name of the IonWake root directory. On my laptop it is /home/tycho_brahe/root/academic/research/code/IonWake
+
 USING:
 
 To compile the version of IonWake (DRIAD) located at the specified source directory and copy the executable to the run directory: 
