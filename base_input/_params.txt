@@ -14,7 +14,7 @@
             RAD_DUST   4.60e-6	! in m
             DEN_DUST   1510	    ! in kg/m^3
        ION_TIME_STEP   1.00e-9	! in sec
-       NUM_TIME_STEP   10	      ! number of dust_steps dt = 1e-4s
+       NUM_TIME_STEP   150	      ! number of dust_steps dt = 1e-4s
   N_IONDT_PER_DUSTDT   100	    ! N_IONDT_PER_DUSTDT * ION_TIME_STEP = 1e-6
 N_IONDT_PER_PLASMADT   100	
             GEOMETRY   1		    ! 0 = sphere / 1 = cylinder
