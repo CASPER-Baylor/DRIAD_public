@@ -1,5 +1,5 @@
 CMakeList:
- In order to add new files (.cu or .cpp) to the code, it must be included their names in the corresponding sections(CUDA_FILES and CPP_FILES).
+ In order to add new files (.cu or .cpp) to the code, it must be included their names in the corresponding sections(CUDA_FILES or CPP_FILES).
 
 	Important:
 	If it is used templates in some file, you CANNOT include this file in the CMakelist otherwise you will obtain a duplicate definition error. Also, if you split the implementation(.h or .hpp) from the definition(.cu or .cpp) you must include in the main file the .cu or cpp directly instead of include the .h or .hpp.
