@@ -5,8 +5,6 @@ sourceDirectory:=source
 
 # function to build the code in debug mode
 build_debug:
-	# create the source and run txt files to run the code
-	./getPaths.sh
     # create the build directory if it doesn't exist
 	@mkdir -p ${buildDirectory}
 
@@ -18,9 +16,6 @@ build_debug:
 
 # function to build the code in release mode
 build_release:
-	# create the source and run txt files to run the code
-	./getPaths.sh
-
     # create the build directory if it doesn't exist
 	@mkdir -p ${buildDirectory}
 
@@ -40,6 +35,7 @@ run:
 	# set job name, copy binary file and run the binary file
 	@read -p "Name of Job: " name &&  \
 	cd ../DRIAD_run_scripts && \
+	./getPaths.sh && \
 	./setup_run.sh $$name && \
 	./compile.sh && ./run.sh $$name
 	
