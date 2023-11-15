@@ -7,7 +7,11 @@
 !analysis/
 !compile.sh
 !disp.sh
+!local_run_script.sh
 !qsub_run_script.sh
-!run.sh
+!runLocal.sh
+!runJob.sh
+!deleteJob.sh
+!deleteLocal.sh
 !setup_run.sh
 !.gitignore
