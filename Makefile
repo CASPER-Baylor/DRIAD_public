@@ -30,14 +30,23 @@ clean:
     # remove the build directory if it exists
 	@rm -rf ${buildDirectory}
 
-# function to run the code
-run:
+# function to run the code into a job
+run_job:
 	# set job name, copy binary file and run the binary file
 	@read -p "Name of Job: " name &&  \
 	cd ../DRIAD_run_scripts && \
 	./getPaths.sh && \
 	./setup_run.sh $$name && \
-	./compile.sh && ./run.sh $$name
+	./compile.sh && ./runJob.sh $$name
+
+# function to run the code into a job
+run_local:
+	# set job name, copy binary file and run the binary file
+	@read -p "Name of Job: " name &&  \
+	cd ../DRIAD_run_scripts && \
+	./getPaths.sh && \
+	./setup_run.sh $$name && \
+	./compile.sh && ./runLocal.sh $$name
 	
 # check the status of a job
 status:
@@ -50,3 +59,12 @@ info:
 
 	@read -p "Name of Job: " name &&  \
 	cd ../DRIAD_run_scripts && ./disp.sh $$name
+
+kill_job:
+	@read -p "Name of Job: " name && \
+	cd ../DRIAD_run_scripts && ./deleteJob.sh $$name		
+
+kill_local:
+	@read -p "Name of Job: " name && \
+	cd ../DRIAD_run_scripts && ./deleteLocal.sh $$name	
+
