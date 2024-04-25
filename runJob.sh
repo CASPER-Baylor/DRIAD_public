@@ -7,7 +7,7 @@ echo "cd $run_dir" > qsub_submit_script.sh
 echo "./qsub_run_script.sh $1" >> qsub_submit_script.sh
 
 # Run in KODIAK
-#qsub -N $1 -q gpu -l nodes=1:ppn=18 -o $1_output/qsub_stdout.txt -e $1_output/qsub_stderr.txt qsub_submit_script.sh > $1_output/qsub_jobID.txt
+qsub -N $1 -q gpu -l nodes=1:ppn=18 -o $1_output/qsub_stdout.txt -e $1_output/qsub_stderr.txt qsub_submit_script.sh > $1_output/qsub_jobID.txt
 
 # Run in SWINT
-qsub -N $1 -q swint -l nodes=1:ppn=18 -o $1_output/qsub_stdout.txt -e $1_output/qsub_stderr.txt qsub_submit_script.sh > $1_output/$1_jobID.txt 
+#qsub -N $1 -q swint -l nodes=1:ppn=18 -o $1_output/qsub_stdout.txt -e $1_output/qsub_stderr.txt qsub_submit_script.sh > $1_output/$1_jobID.txt 
