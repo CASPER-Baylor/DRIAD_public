@@ -334,7 +334,7 @@ int main(int argc, char *argv[])
     if (TIME_EVOL > 0)
     {
 
-        fileName = inputDirName + "plasma_params.txt";
+        fileName = inputDirName + "_plasma_params.txt";
         std::ifstream plasmaEvolFile(fileName.c_str());
         // check if the file opened
         bool plasma_cond_file = plasmaEvolFile.is_open();
@@ -542,14 +542,14 @@ int main(int argc, char *argv[])
     // cylinder dimensions
     int resz_test = static_cast<int>(HT_CYL_DEBYE / (RAD_CYL_DEBYE / 1)) * RESX;
     int resz_hold = resz_test;
-    if (resz_test % 32 != 0)  // the case where grid in z is not a multiple of 32
+    if (resz_test % 32 != 0) // the case where grid in z is not a multiple of 32
     {
         // if the grid resolution in z is less than 32, force the resolution to be 32
-        if (resz_test < 32)  
+        if (resz_test < 32)
         {
             resz_hold = (32);
         }
-        // if the grid resolution in z is more than 32, but not a multiple of 32, force 
+        // if the grid resolution in z is more than 32, but not a multiple of 32, force
         // the value to be rounded down to a multiple of 32
         else
         {
@@ -563,7 +563,7 @@ int main(int argc, char *argv[])
         {
             resz_hold = (32);
         }
-        // if the grid resolution in z is non-zero and a multiple of 32, keep the 
+        // if the grid resolution in z is non-zero and a multiple of 32, keep the
         // value unchanged
         else
         {
@@ -880,12 +880,18 @@ int main(int argc, char *argv[])
         }
     }
 
-    // use max_loop to set a maximum number of dust grain information to print 
-    // that is equal to the number of dust grains if there are less than 20 dust   
+    // use max_loop to set a maximum number of dust grain information to print
+    // that is equal to the number of dust grains if there are less than 20 dust
     // grains, or equal to 20 if there are more than 20 dust grains
     int max_loop;
-    if (NUM_DUST < 20) { max_loop = NUM_DUST; }
-    else { max_loop = 20; }
+    if (NUM_DUST < 20)
+    {
+        max_loop = NUM_DUST;
+    }
+    else
+    {
+        max_loop = 20;
+    }
     // print the dust positions, velocities, and charges for the max_loop number of dust grains
     if (debugMode)
     {
@@ -961,7 +967,7 @@ int main(int argc, char *argv[])
     float2 *GRID_POS = NULL;
     float4 *GCYL_POS = NULL;
     float *Vout = NULL;
-    // VoutReverse array holds a reflection of the outside from ions, and is used to 
+    // VoutReverse array holds a reflection of the outside from ions, and is used to
     // average the outside ion potential over the left and right sides of the simulation
     float *VoutReverse = NULL;
 
@@ -1061,14 +1067,16 @@ int main(int argc, char *argv[])
     // const int NUM_CYL_PTS = count;
     const int NUM_CYL_PTS = RESXc * RESXc * RESZc;
     debugFile << "Created cylinder positions " << std::endl;
-    debugFile << NUM_CYL_PTS << std::endl << std::endl;
+    debugFile << NUM_CYL_PTS << std::endl
+              << std::endl;
 
     // Need to get rid of the extra entries in GCYL_PTS -- allocated memory for
     // more than needed.  Currently just giving them a value of 0 in 4th posn.
 
     // number of blocks per grid for Table -- this is a multiple of 1024 (RESX/2*RESZ)
     const int blocksPerTable = (NUM_GRID_PTS2 + 1) / DIM_BLOCK2;
-    debugFile << " blocksPerTable " << blocksPerTable << std::endl << std::endl;
+    debugFile << " blocksPerTable " << blocksPerTable << std::endl
+              << std::endl;
 
     /**********************/
 
@@ -1171,7 +1179,8 @@ int main(int argc, char *argv[])
             debugFile << "i: " << i << " | " << commands[i] << std::endl;
         }
 
-        debugFile << "--------------------" << std::endl << std::endl;
+        debugFile << "--------------------" << std::endl
+                  << std::endl;
         debugFile.flush();
     }
 
@@ -1427,7 +1436,8 @@ int main(int argc, char *argv[])
                       << std::endl;
         }
 
-        debugFile << std::endl << "Last 10 ion positions: " << std::endl;
+        debugFile << std::endl
+                  << "Last 10 ion positions: " << std::endl;
         for (int i = 1; i <= 10; i++)
         {
             int ID = NUM_ION - i;
@@ -1435,14 +1445,16 @@ int main(int argc, char *argv[])
                       << std::endl;
         }
 
-        debugFile << std::endl << "First 10 ion velocities: " << std::endl;
+        debugFile << std::endl
+                  << "First 10 ion velocities: " << std::endl;
         for (int i = 0; i < 10; i++)
         {
             debugFile << "X: " << velIon[i].x << " Y: " << velIon[i].y << " Z: " << velIon[i].z
                       << std::endl;
         }
 
-        debugFile << std::endl << "Last 10 ion velocities: " << std::endl;
+        debugFile << std::endl
+                  << "Last 10 ion velocities: " << std::endl;
         for (int i = 1; i <= 10; i++)
         {
             int ID = NUM_ION - i;
@@ -1646,7 +1658,7 @@ int main(int argc, char *argv[])
     d_Vout.devToHost();
 
     // save the values of the outside potential to VoutReverse in the reverse order
-    // relative to Vout -- VoutReverse is used for averaging the outside ion potential 
+    // relative to Vout -- VoutReverse is used for averaging the outside ion potential
     int column = 0;
     int row = 0;
     int back_index = 0;
@@ -2702,7 +2714,8 @@ int main(int argc, char *argv[])
                       << " Z: " << posIon[i].z << std::endl;
         }
 
-        debugFile << '\n' << "-- Final Ion Positions: Last 20 Ions --" << '\n';
+        debugFile << '\n'
+                  << "-- Final Ion Positions: Last 20 Ions --" << '\n';
         for (int i = 1; i <= 20; i++)
         {
             int ID = NUM_ION - i;
