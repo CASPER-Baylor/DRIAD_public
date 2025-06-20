@@ -23,6 +23,7 @@
  *	boundaryEField_101()
  *	tileCalculation_101dev
  *	pointPointPotential_101dev()
+ *  outside_potential_fitting_101()
  *
  */
 
@@ -1145,7 +1146,7 @@ __global__ void boundaryEField_101(float2 *d_GRID_POS, float4 *d_GCYL_POS, int *
     // int i, tile;
     int page;
     float3 dist;
-    float distSquared, softdist;
+    float dist_squared, soft_dist, hard_dist;
     float V = 0;
     int tileThreadID;
 
@@ -1186,10 +1187,11 @@ __global__ void boundaryEField_101(float2 *d_GRID_POS, float4 *d_GCYL_POS, int *
             dist.z = d_GRID_POS[IDgrid].y - sharedPos[h].z;
 
             // calculate the distance squared
-            distSquared = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
+            dist_squared = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
 
             // calculate the distance. Small offset prevents divide by zero.
-            softdist = __fsqrt_rn(distSquared + 1e-14);
+            soft_dist = __fsqrt_rn(dist_squared + 1e-14);
+            hard_dist = __fsqrt_rn(dist_squared);
 
             // Calculate the potential
             // TABLE_POTENTIAL_MULT = DEN_FAR_PLASMA * kq_in_box
@@ -1197,8 +1199,8 @@ __global__ void boundaryEField_101(float2 *d_GRID_POS, float4 *d_GCYL_POS, int *
             // the w field of the GCYL_POS's float4 position tags whether the point
             // is inside (1) or outside (0) the cylinder.
             // V += *d_DEN_FAR_PLASMA * sharedPos[h].w / softdist
-            V += *d_TABLE_POTENTIAL_MULT * sharedPos[h].w / softdist *
-                 __expf(-softdist * *d_INV_DEBYE);
+            V += (*d_TABLE_POTENTIAL_MULT * sharedPos[h].w / soft_dist) *
+                 __expf(-hard_dist * *d_INV_DEBYE);
 
         } // end loop over ion in tile
 
@@ -1208,6 +1210,252 @@ __global__ void boundaryEField_101(float2 *d_GRID_POS, float4 *d_GCYL_POS, int *
 
     // save to global memory
     d_Vout[page + IDgrid] += V;
+}
+
+/*
+* Name: outside_potential_fitting_101
+* Created: 04/17/2025
+*
+* Editors
+*	Name: Diana Jimenez
+*	Contact: diana_jimenez1@baylor.edu
+*
+* Description:
+*	Fits the outside electric potential to a polynomial
+*
+Input:
+*	GRID_POS:positions in the r-z plane
+* 	Vout: potential from the outside ions in the r-z plane
+*	outside_coeff: pointer to store the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*	plasma_counter: index to track evolving plasma conditions
+*	NUM_GRID_PTS2: number of points in xz-plane for lookup table
+*	N_COEFFS: number of coefficients in the polynomial = order of the polynomial used for the fitting
+*
+* Output (void):
+*	outside_coeff: pointer to store the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*
+*/
+
+void outside_potential_fitting_101(float2 *GRID_POS, float *Vout, float *outside_coeff, int plasma_counter, int NUM_GRID_PTS2, int N_COEFFS)
+{
+    float r[NUM_GRID_PTS2],
+        z[NUM_GRID_PTS2],
+        V[NUM_GRID_PTS2];
+
+    double error;
+
+    int page = plasma_counter * NUM_GRID_PTS2;
+
+    for (int i = 0; i < NUM_GRID_PTS2; i++)
+    {
+        r[i] = abs(GRID_POS[i].x);
+        z[i] = GRID_POS[i].y;
+        V[i] = Vout[page + i];
+    }
+
+    // declaring GSL matrices and vectors
+    // model matrix. It has NUM_GRID_PTS rows and N_COEFFS columns
+    gsl_matrix *model_matrix_GSL = gsl_matrix_alloc(NUM_GRID_PTS2, N_COEFFS);
+    // covariance matrix. It has N_COEFFS rows and N_COEFFS columns
+    gsl_matrix *covariance_GSL = gsl_matrix_alloc(N_COEFFS, N_COEFFS);
+    // vector to store the data of the outside potential
+    gsl_vector *V_out_GSL = gsl_vector_alloc(NUM_GRID_PTS2);
+    // vector to store the coefficients of the fitting
+    gsl_vector *coeff_vector_GSL = gsl_vector_alloc(N_COEFFS);
+    // vector to store the weights in the fitting
+    gsl_vector *weights_vector_GSL = gsl_vector_alloc(NUM_GRID_PTS2);
+
+    // Filling these matrices
+    for (size_t i = 0; i < NUM_GRID_PTS2; i++)
+    {
+        gsl_matrix_set(model_matrix_GSL, i, 0, 1.0);
+        gsl_matrix_set(model_matrix_GSL, i, 1, r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 2, r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 3, z[i] * z[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 4, r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 5, z[i] * z[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 6, r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 7, z[i] * z[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 8, z[i] * z[i] * z[i] * z[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 9, r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 10, z[i] * z[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 11, z[i] * z[i] * z[i] * z[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 12, r[i] * r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 13, z[i] * z[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 14, z[i] * z[i] * z[i] * z[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 15, z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 16, r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 17, z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 18, z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 19, z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 20, r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 21, z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 22, z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 23, z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]);
+        gsl_matrix_set(model_matrix_GSL, i, 24, z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
+        gsl_vector_set(V_out_GSL, i, V[i]);         // Electric potential
+        gsl_vector_set(weights_vector_GSL, i, 1.0); // weights
+    }
+
+    // this function allocates a workspace for fitting a model to a maximum of NUM_GRID_PTS2 observations using a maximum of N_COEFFS parameters.
+    gsl_multifit_linear_workspace *workspace = gsl_multifit_linear_alloc(NUM_GRID_PTS2, N_COEFFS);
+
+    // performing the fitting
+    gsl_multifit_wlinear(model_matrix_GSL, weights_vector_GSL, V_out_GSL, coeff_vector_GSL, covariance_GSL, &error, workspace);
+
+    // saving the coefficients in the outside_coeff array
+    for (int i = 0; i < N_COEFFS; i++)
+    {
+        outside_coeff[plasma_counter * N_COEFFS + i] = gsl_vector_get(coeff_vector_GSL, i);
+    }
+
+    // Releasing memory
+    gsl_matrix_free(model_matrix_GSL);
+    gsl_matrix_free(covariance_GSL);
+    gsl_vector_free(V_out_GSL);
+    gsl_vector_free(coeff_vector_GSL);
+}
+
+/*
+* Name: outside_potential_eval_101
+* Created: 04/17/2025
+*
+* Editors
+*	Name: Diana Jimenez
+*	Contact: diana_jimenez1@baylor.edu
+*
+* Description:
+*	Evaluates the polynomial obtained from the outside potential fitting in the ion grid
+*
+Input:
+*	gridPos:positions in the r-z plane
+* 	Vout_fitting: pointer where will be stored the potential obtained by evaluated the fitted polynomial in the ions grid GRID_POS
+*	outside_coeff: pointer where are stored the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*	NUM_GRID_PTS: number of points in xz-plane for the ion grid
+*	plasma_counter: index to track evolving plasma conditions
+*	N_COEFFS: number of coefficients in the polynomial = order of the polynomial used for the fitting
+*
+* Output (void):
+*	outside_coeff: pointer to store the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*
+*/
+
+void outside_potential_eval_101(float2 *gridPos, float *Vout_fitting, float *outside_coeff, int NUM_GRID_PTS, int plasma_counter, int N_COEFFS)
+{
+    int page_coeff = plasma_counter * N_COEFFS;
+    float r[NUM_GRID_PTS], z[NUM_GRID_PTS];
+
+    for (int i = 0; i < NUM_GRID_PTS; i++)
+    {
+        r[i] = abs(gridPos[i].x);
+        z[i] = gridPos[i].y;
+    }
+
+    for (int i = 0; i < NUM_GRID_PTS; i++)
+    {
+        Vout_fitting[i] = (outside_coeff[page_coeff + 0]) +
+                          (outside_coeff[page_coeff + 1] * r[i]) +
+                          (outside_coeff[page_coeff + 2] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 3] * z[i] * z[i]) +
+                          (outside_coeff[page_coeff + 4] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 5] * z[i] * z[i] * r[i]) +
+                          (outside_coeff[page_coeff + 6] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 7] * z[i] * z[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 8] * z[i] * z[i] * z[i] * z[i]) +
+                          (outside_coeff[page_coeff + 9] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 10] * z[i] * z[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 11] * z[i] * z[i] * z[i] * z[i] * r[i]) +
+                          (outside_coeff[page_coeff + 12] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 13] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 14] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 15] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]) +
+                          (outside_coeff[page_coeff + 16] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 17] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 18] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 19] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i]) +
+                          (outside_coeff[page_coeff + 20] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 21] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 22] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 23] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]) +
+                          (outside_coeff[page_coeff + 24] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
+    }
+}
+
+/*
+* Name: outside_electric_field_eval_101
+* Created: 04/17/2025
+*
+* Editors
+*	Name: Diana Jimenez
+*	Contact: diana_jimenez1@baylor.edu
+*
+* Description:
+*	Evaluates the polynomial obtained from the outside potential fitting in the ion grid
+*
+Input:
+*	Er:pointer to store the outside radial electric field
+*	Ez:pointer to store the outside axial electric field
+*	outside_coeff: pointer where are stored the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*	gridPos: points in the ion grid
+*	NUM_GRID_PTS: number of points in xz-plane for the ion grid
+*	N_COEFFS: number of coefficients in the polynomial = order of the polynomial used for the fitting
+*	plasma_counter: index to track evolving plasma conditions
+*
+* Output (void):
+*	outside_coeff: pointer to store the coefficients obtained from the polynomial fitting for the TIME_EVOL conditions
+*
+*/
+void outside_electric_field_eval_101(float *Er, float *Ez, float *outside_coeff, float2 *gridPos, int NUM_GRID_PTS, int N_COEFFS, int plasma_counter)
+{
+    int page_coeff = plasma_counter * N_COEFFS;
+    float r[NUM_GRID_PTS], z[NUM_GRID_PTS];
+
+    for (int i = 0; i < NUM_GRID_PTS; i++)
+    {
+        r[i] = abs(gridPos[i].x);
+        z[i] = gridPos[i].y;
+    }
+
+    for (int i = 0; i < NUM_GRID_PTS; i++)
+    {
+        Er[i] = (outside_coeff[page_coeff + 1] * 1.0) +
+                (outside_coeff[page_coeff + 2] * r[i] * 2.0) +
+                (outside_coeff[page_coeff + 4] * r[i] * r[i] * 3.0) +
+                (outside_coeff[page_coeff + 5] * z[i] * z[i] * 1.0) +
+                (outside_coeff[page_coeff + 6] * r[i] * r[i] * r[i] * 4.0) +
+                (outside_coeff[page_coeff + 7] * z[i] * z[i] * r[i] * 2.0) +
+                (outside_coeff[page_coeff + 9] * r[i] * r[i] * r[i] * r[i] * 5.0) +
+                (outside_coeff[page_coeff + 10] * z[i] * z[i] * r[i] * r[i] * 3.0) +
+                (outside_coeff[page_coeff + 11] * z[i] * z[i] * z[i] * z[i] * 1.0) +
+                (outside_coeff[page_coeff + 12] * r[i] * r[i] * r[i] * r[i] * r[i] * 6.0) +
+                (outside_coeff[page_coeff + 13] * z[i] * z[i] * r[i] * r[i] * r[i] * 4.0) +
+                (outside_coeff[page_coeff + 14] * z[i] * z[i] * z[i] * z[i] * r[i] * 2.0) +
+                (outside_coeff[page_coeff + 16] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 7.0) +
+                (outside_coeff[page_coeff + 17] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * 5.0) +
+                (outside_coeff[page_coeff + 18] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * 3.0) +
+                (outside_coeff[page_coeff + 19] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * 1.0) +
+                (outside_coeff[page_coeff + 20] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 8.0) +
+                (outside_coeff[page_coeff + 21] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 6.0) +
+                (outside_coeff[page_coeff + 22] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * 4.0) +
+                (outside_coeff[page_coeff + 23] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * 2.0);
+
+        Ez[i] = (outside_coeff[page_coeff + 3] * 2.0 * z[i]) +
+                (outside_coeff[page_coeff + 5] * 2.0 * z[i] * r[i]) +
+                (outside_coeff[page_coeff + 7] * 2.0 * z[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 8] * 4.0 * z[i] * z[i] * z[i]) +
+                (outside_coeff[page_coeff + 10] * 2.0 * z[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 11] * 4.0 * z[i] * z[i] * z[i] * r[i]) +
+                (outside_coeff[page_coeff + 13] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 14] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 15] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i]) +
+                (outside_coeff[page_coeff + 17] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 18] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 19] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i] * r[i]) +
+                (outside_coeff[page_coeff + 21] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 22] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 23] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]) +
+                (outside_coeff[page_coeff + 24] * 8.0 * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
+    }
 }
 
 /*

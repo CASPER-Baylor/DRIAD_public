@@ -380,8 +380,11 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
     timeStep = *d_TIME_STEP / timeStepFactor;
     halfTimeStep = timeStep * 0.5;
 
-    // Kick for 1/2 a timestep to get started
-    kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
+    if (*d_NUM_DUST > 0)
+    {
+        // Kick for 1/2 a timestep to get started
+        kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
+    }
 
     // now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
     int depth = 1;
@@ -408,25 +411,28 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
                                            d_HT_CYL);
         }
 
-        // check if any ions are inside a dust particle
-        checkIonDustBounds_100_dev(posIon + threadID, velIon + threadID, d_boundsIon + threadID,
-                                   d_RAD_DUST, d_NUM_DUST, d_posDust, oldIonPos, d_RAD_COLL_MULT);
-
-        if (d_boundsIon[threadID] == 0)
+        if (*d_NUM_DUST > 0)
         {
-            // calculate the acceleration due to ion-dust interactions
-            calcIonDustAcc_100_dev(posIon + threadID, ionDustAcc + threadID, d_posDust, d_NUM_ION,
-                                   d_NUM_DUST, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT);
+            // check if any ions are inside a dust particle
+            checkIonDustBounds_100_dev(posIon + threadID, velIon + threadID, d_boundsIon + threadID,
+                                       d_RAD_DUST, d_NUM_DUST, d_posDust, oldIonPos, d_RAD_COLL_MULT);
 
-            // Kick with IonDust accels for deltat/2^(m-1)
-            if (depth == timeStepFactor)
+            if (d_boundsIon[threadID] == 0)
             {
-                // on last time step, do a half kick
-                kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
-            }
-            else
-            {
-                kick_dev(velIon + threadID, ionDustAcc + threadID, timeStep);
+                // calculate the acceleration due to ion-dust interactions
+                calcIonDustAcc_100_dev(posIon + threadID, ionDustAcc + threadID, d_posDust, d_NUM_ION,
+                                       d_NUM_DUST, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT);
+
+                // Kick with IonDust accels for deltat/2^(m-1)
+                if (depth == timeStepFactor)
+                {
+                    // on last time step, do a half kick
+                    kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
+                }
+                else
+                {
+                    kick_dev(velIon + threadID, ionDustAcc + threadID, timeStep);
+                }
             }
         }
     } // end for loop over depth
@@ -735,8 +741,8 @@ __device__ void checkIonDustBounds_100_dev(float4 *d_posIon, float4 *d_velIon, i
                     }
                 }
             } // close else
-        }     // forloop over dust
-    }         // if for checking if ions in bounds
+        } // for loop over dust
+    } // if for checking if ions in bounds
 } // close function
 
 /*

@@ -115,6 +115,14 @@ int main(int argc, char *argv[])
     fileName = dataDirName + runName + "_outside_potential.txt";
     std::ofstream ionPotOutsideFile(fileName.c_str());
 
+    // open an output file for outputting the outside radial electric field
+    fileName = dataDirName + runName + "_outside_Er.txt";
+    std::ofstream ErOutsideFile(fileName.c_str());
+
+    // open an output file for outputting the outside axial electric field
+    fileName = dataDirName + runName + "_outside_Ez.txt";
+    std::ofstream EzOutsideFile(fileName.c_str());
+
     // open an output file for outputting the xac values
     fileName = dataDirName + runName + "_xac.txt";
     std::ofstream xacFile(fileName.c_str());
@@ -182,6 +190,9 @@ int main(int argc, char *argv[])
     // Pi
     const float PI = 3.141593;
 
+    // Number of terms in the polynomial fitting
+    const int N_COEFFS = 25;
+
     // Number of threads per block
     // has a limit of 1024 and should be a multiple of warp size
     const unsigned int DIM_BLOCK = 1024;
@@ -232,8 +243,7 @@ int main(int argc, char *argv[])
     const float SOFT_RAD = getParam_106<float>(paramFile, "SOFT_RAD");
     const float RAD_DUST = getParam_106<float>(paramFile, "RAD_DUST");
     const float M_FACTOR = getParam_106<float>(paramFile, "M_FACTOR");
-    const float CHARGE_SINGLE_ION =
-        CHARGE_ELC * getParam_106<float>(paramFile, "CHARGE_SINGLE_ION");
+    const float CHARGE_SINGLE_ION = CHARGE_ELC * getParam_106<float>(paramFile, "CHARGE_SINGLE_ION");
     const float ION_TIME_STEP = getParam_106<float>(paramFile, "ION_TIME_STEP");
     const int NUM_TIME_STEP = getParam_106<int>(paramFile, "NUM_TIME_STEP");
     const int GEOMETRY = getParam_106<int>(paramFile, "GEOMETRY");
@@ -944,7 +954,6 @@ int main(int argc, char *argv[])
     for (int j = 0; j < NUM_GRID_PTS; j++)
     {
         ionDensOutFile << gridPos[j].x;
-        // ionDensOutFile << ", " << gridPos[j].y;
         ionDensOutFile << ", " << gridPos[j].y << std::endl;
     }
     ionDensOutFile << "" << std::endl;
@@ -958,7 +967,7 @@ int main(int argc, char *argv[])
     int blocksPerGridGrid = (NUM_GRID_PTS + 1) / DIM_BLOCK;
     /**********************/
 
-    /******  Calculations for the Table Lookup for Outside Ions  *******/
+    /******  Calculations of the Outside Ions Potential  *******/
     /** Integrate over the potential from ions
      *	inside the cylinder -- these are "subtracted" from
      *	a constant potential to get potential inside cavity. **/
@@ -970,6 +979,10 @@ int main(int argc, char *argv[])
     // VoutReverse array holds a reflection of the outside from ions, and is used to
     // average the outside ion potential over the left and right sides of the simulation
     float *VoutReverse = NULL;
+    float *Vout_fitting = NULL;
+    float *Er = NULL;
+    float *Ez = NULL;
+    float *outside_coeff = NULL;
 
     // amount of memory required for the grid variables
     // This grid only covers half the xz-plane (r > 0)
@@ -981,6 +994,10 @@ int main(int argc, char *argv[])
     GRID_POS = (float2 *)malloc(memFloat2Grid);
     Vout = (float *)malloc(memFloatGrid * num_pts);
     VoutReverse = (float *)malloc(memFloatGrid * num_pts);
+    Vout_fitting = (float *)malloc(NUM_GRID_PTS * sizeof(float));
+    Er = (float *)malloc(NUM_GRID_PTS * sizeof(float));
+    Ez = (float *)malloc(NUM_GRID_PTS * sizeof(float));
+    outside_coeff = (float *)malloc(N_COEFFS * num_pts * sizeof(float));
 
     debugFile << "Memory size Vout" << memFloatGrid * num_pts << std::endl;
     debugFile << "num_pts " << num_pts << " NUM_GRID_PTS2 " << NUM_GRID_PTS2 << "\n";
@@ -1008,12 +1025,20 @@ int main(int argc, char *argv[])
     }
 
     // output all of the grid positions such that matlab can read them in
-    for (int j = 0; j < NUM_GRID_PTS2; j++)
+    for (int j = 0; j < NUM_GRID_PTS; j++)
     {
-        ionPotOutsideFile << GRID_POS[j].x;
-        ionPotOutsideFile << ", " << GRID_POS[j].y << std::endl;
+        ionPotOutsideFile << gridPos[j].x;
+        ionPotOutsideFile << ", " << gridPos[j].y << std::endl;
+
+        ErOutsideFile << gridPos[j].x;
+        ErOutsideFile << ", " << gridPos[j].y << std::endl;
+
+        EzOutsideFile << gridPos[j].x;
+        EzOutsideFile << ", " << gridPos[j].y << std::endl;
     }
     ionPotOutsideFile << "" << std::endl;
+    ErOutsideFile << "" << std::endl;
+    EzOutsideFile << "" << std::endl;
 
     // amount of memory required for the positions within cylinder
     int RESXc = RESX;
@@ -1506,6 +1531,7 @@ int main(int argc, char *argv[])
     constCUDAvar<float> d_dr(&dr, 1);
     constCUDAvar<float> d_dz(&dz, 1);
     constCUDAvar<float> d_kq_in_box(&kq_in_box, 1);
+    constCUDAvar<int> d_N_COEFFS(&N_COEFFS, 1);
 
     // create device pointers
     CUDAvar<int> d_boundsIon(boundsIon, NUM_ION);
@@ -1533,6 +1559,7 @@ int main(int argc, char *argv[])
     CUDAvar<float4> d_GCYL_POS(GCYL_POS, NUM_CYL_PTS);
     CUDAvar<float> d_Vout(Vout, NUM_GRID_PTS2 * num_pts);
     CUDAvar<float> d_VoutReverse(VoutReverse, NUM_GRID_PTS2 * num_pts);
+    CUDAvar<float> d_outside_coeff(outside_coeff, N_COEFFS * num_pts);
     CUDAvar<curandState_t> randStates(NUM_ION);
 
     float hardDist = 0;
@@ -1685,17 +1712,32 @@ int main(int argc, char *argv[])
         }
     }
 
+    // fitting the outside potential to a polynomial. Saves the coefficients in outside_coeff
     for (int p = 0; p < num_pts; p++)
     {
-        // output potential at the grid positions such that matlab can read them in
-        for (int j = 0; j < NUM_GRID_PTS2; j++)
-        {
-            ionPotOutsideFile << Vout[p * NUM_GRID_PTS2 + j] << std::endl;
-        }
-        ionPotOutsideFile << "" << std::endl;
+        outside_potential_fitting_101(GRID_POS, Vout, outside_coeff, p, NUM_GRID_PTS2, N_COEFFS);
     }
 
-    d_Vout.hostToDev();
+    for (int p = 0; p < num_pts; p++)
+    {
+        outside_potential_eval_101(gridPos, Vout_fitting, outside_coeff, NUM_GRID_PTS, p, N_COEFFS);
+
+        outside_electric_field_eval_101(Er, Ez, outside_coeff, gridPos, NUM_GRID_PTS, N_COEFFS, p);
+
+        // output potential at the grid positions such that matlab can read them in
+        for (int j = 0; j < NUM_GRID_PTS; j++)
+        {
+            // ionPotOutsideFile << Vout[p * NUM_GRID_PTS2 + j] << std::endl;
+            ionPotOutsideFile << Vout_fitting[j] << std::endl;
+            EzOutsideFile << Ez[j] << std::endl;
+            ErOutsideFile << Er[j] << std::endl;
+        }
+        ionPotOutsideFile << "" << std::endl;
+        EzOutsideFile << "" << std::endl;
+        ErOutsideFile << "" << std::endl;
+    }
+
+    d_outside_coeff.hostToDev();
     // Set the potential and density of ions on the grid to zero
     zeroIonDensityPotential_102<<<blocksPerGridGrid, DIM_BLOCK>>>(d_ionPotential.getDevPtr(),
                                                                   d_ionDensity.getDevPtr());
@@ -1807,10 +1849,10 @@ int main(int argc, char *argv[])
         d_posIon.getDevPtr(), // <--
         d_accIon.getDevPtr(), // <-->
         d_NUM_ION.getDevPtr(), d_SOFT_RAD_SQRD.getDevPtr(), d_ION_ION_ACC_MULT.getDevPtr(),
-        d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(), d_Vout.getDevPtr(),
+        d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(), d_outside_coeff.getDevPtr(),
         d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(), d_dr.getDevPtr(),
         d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction, plasma_counter, GEOMETRY,
-        d_EXTERN_ELC_MULT.getDevPtr());
+        d_EXTERN_ELC_MULT.getDevPtr(), d_N_COEFFS.getDevPtr());
 
     roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
 
@@ -1979,9 +2021,9 @@ int main(int argc, char *argv[])
                 d_accIon.getDevPtr(), // <-->
                 d_NUM_ION.getDevPtr(), d_SOFT_RAD_SQRD.getDevPtr(), d_ION_ION_ACC_MULT.getDevPtr(),
                 d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(),
-                d_Vout.getDevPtr(), d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(),
+                d_outside_coeff.getDevPtr(), d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(),
                 d_dr.getDevPtr(), d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction,
-                plasma_counter, GEOMETRY, d_EXTERN_ELC_MULT.getDevPtr());
+                plasma_counter, GEOMETRY, d_EXTERN_ELC_MULT.getDevPtr(), d_N_COEFFS.getDevPtr());
 
             roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
 

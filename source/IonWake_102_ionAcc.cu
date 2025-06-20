@@ -77,9 +77,9 @@
 __global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const d_NUM_ION,
                                   float *const d_SOFT_RAD_SQRD, float *const d_ION_ION_ACC_MULT,
                                   float *const d_INV_DEBYE, float *d_Q_DIV_M, float *const d_HT_CYL,
-                                  float *d_Vout, int *d_NUMR, int *d_RESZ, float *d_dz, float *d_dr,
+                                  float *d_outside_coeff, int *d_NUMR, int *d_RESZ, float *d_dz, float *d_dr,
                                   float *d_E_FIELD, float *d_E_FIELDR, int E_dir,
-                                  int plasma_counter, int GEOMETRY, float *const d_EXTERN_ELC_MULT)
+                                  int plasma_counter, int GEOMETRY, float *const d_EXTERN_ELC_MULT, int *const d_N_COEFFS)
 {
 
     // index of the current ion
@@ -191,140 +191,61 @@ __global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const
     }
     else if (GEOMETRY == 1)
     {
-        // *** Force from ions outside cylinder -- Table lookup *** //
+        // *** Force from ions outside cylinder *** //
         // local variables
-        float temp, x1, frac_r, z1, frac_z;
-        int page;
-        int pt0, pt1, pt2, pt3, pt4, pt5, pt6, pt7, ptA, ptB, ptC, ptD;
-        float Ex, Ez;
 
-        // determine the offset for table lookup based on the plasma condition
-        page = plasma_counter * *d_NUMR * *d_RESZ;
+        float Er, Ez;
+        int page_coeff = plasma_counter * *d_N_COEFFS;
 
         // get the radius of the ion from the center axis of the
         // simulation cylinder. The center is assumed to be (0,0,z)
-        float rad =
+        float r =
             __fsqrt_rn((d_posIon[ID].x * d_posIon[ID].x) + (d_posIon[ID].y * d_posIon[ID].y));
 
         // get the z position of the ion
         float z = d_posIon[ID].z;
 
-        // find the column index of xg to left of r
-        //  The table limits run from -2dr:dr:RAD_CYL, so
-        //  add one to the table index for +r.
-        temp = rad / *d_dr + 1;
-        x1 = static_cast<int>(temp);
-        // fractional remainder
-        frac_r = temp - x1;
+        Er = (d_outside_coeff[page_coeff + 1] * 1.0) +
+             (d_outside_coeff[page_coeff + 2] * r * 2.0) +
+             (d_outside_coeff[page_coeff + 4] * r * r * 3.0) +
+             (d_outside_coeff[page_coeff + 5] * z * z * 1.0) +
+             (d_outside_coeff[page_coeff + 6] * r * r * r * 4.0) +
+             (d_outside_coeff[page_coeff + 7] * z * z * r * 2.0) +
+             (d_outside_coeff[page_coeff + 9] * r * r * r * r * 5.0) +
+             (d_outside_coeff[page_coeff + 10] * z * z * r * r * 3.0) +
+             (d_outside_coeff[page_coeff + 11] * z * z * z * z * 1.0) +
+             (d_outside_coeff[page_coeff + 12] * r * r * r * r * r * 6.0) +
+             (d_outside_coeff[page_coeff + 13] * z * z * r * r * r * 4.0) +
+             (d_outside_coeff[page_coeff + 14] * z * z * z * z * r * 2.0) +
+             (d_outside_coeff[page_coeff + 16] * r * r * r * r * r * r * 7.0) +
+             (d_outside_coeff[page_coeff + 17] * z * z * r * r * r * r * 5.0) +
+             (d_outside_coeff[page_coeff + 18] * z * z * z * z * r * r * 3.0) +
+             (d_outside_coeff[page_coeff + 19] * z * z * z * z * z * z * 1.0) +
+             (d_outside_coeff[page_coeff + 20] * r * r * r * r * r * r * r * 8.0) +
+             (d_outside_coeff[page_coeff + 21] * z * z * r * r * r * r * r * 6.0) +
+             (d_outside_coeff[page_coeff + 22] * z * z * z * z * r * r * r * 4.0) +
+             (d_outside_coeff[page_coeff + 23] * z * z * z * z * z * z * r * 2.0);
 
-        // Add HT_CYL to pos.z to make it a positive distance.
-        // Find the row index of zg below z.
-        temp = (z + *d_HT_CYL) / *d_dz;
-        // integer part -- tells how many rows up
-        z1 = static_cast<int>(temp);
-        // fractional remainder
-        frac_z = temp - z1;
-
-        // Find the four grid points surrounding the ion position. Will also
-        // need the grid points to the left and right of these for Ex and
-        //  the points above and below these for Ez.
-        // First, the gridpoints on the row below pos_Ion
-        pt1 = x1 + z1 * *d_NUMR; // pt below and to the left
-        pt2 = pt1 + 1;           // pt below and to the right
-        pt0 = pt1 - 1;           // pt to the left of pt1
-        pt3 = pt1 + 2;           // pt to the right of pt2
-        // Next, the grid points on the row above pos_Ion
-        pt4 = pt0 + *d_NUMR;
-        pt5 = pt1 + *d_NUMR;
-        pt6 = pt2 + *d_NUMR;
-        pt7 = pt3 + *d_NUMR;
-        // Points above 5 & 6 and below 1 & 2
-        ptA = pt5 + *d_NUMR;
-        ptB = pt6 + *d_NUMR;
-        ptC = pt1 - *d_NUMR;
-        ptD = pt2 - *d_NUMR;
-
-        // Calculate Ex at the posIon by taking the gradient of the potential
-        // known on the grid points.
-        // Treat special cases for positions which are on edges of grid.
-        if (x1 == 0)
-        {
-            // on the left edge
-            // This case should never be met since the minimum r-index
-            // is now 1.
-            Ex = ((d_Vout[page + pt2] - d_Vout[page + pt1]) * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + pt5]) * frac_z) /
-                 (*d_dr);
-        }
-        else if (x1 == (*d_NUMR - 2))
-        {
-            // on the right edge
-            Ex = ((d_Vout[page + pt2] - d_Vout[page + pt1]) * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + pt5]) * frac_z) /
-                 (*d_dr);
-        }
-        else
-        {
-            // in the middle of the grid
-            // Determine the electric field at the four points
-            // surrounding ionPos.
-            // Ex1 = -(*d_Vout[pt2] - *d_Vout[pt0]) / (2 * *d_dr);
-            // Ex2 = -(*d_Vout[pt3] - *d_Vout[pt1]) / (2 * *d_dr);
-            // Ex3 = -(*d_Vout[pt6] - *d_Vout[pt4]) / (2 * *d_dr);
-            // Ex4 = -(*d_Vout[pt7] - *d_Vout[pt5]) / (2 * *d_dr);
-
-            // Use an areal-weighting scheme to perform
-            // the 2D table lookup.
-            Ex = ((d_Vout[page + pt2] - d_Vout[page + pt0]) * (1.0 - frac_r) * (1.0 - frac_z) +
-                  (d_Vout[page + pt3] - d_Vout[page + pt1]) * frac_r * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + pt4]) * (1.0 - frac_r) * frac_z +
-                  (d_Vout[page + pt7] - d_Vout[page + pt5]) * frac_r * frac_z) /
-                 (2.0 * *d_dr);
-        }
-
-        // Calculate Ez at the posIon by taking the gradient of the potential
-        // known on the grid points.
-        // Treat special cases for positions which are on edges of grid.
-        if (z1 == 0)
-        {
-            // on the top edge
-            Ez = ((d_Vout[page + pt5] - d_Vout[page + pt1]) * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + pt2]) * frac_z) /
-                 (*d_dz);
-        }
-        else if (z1 == (*d_RESZ - 2))
-        {
-            // on the bottom edge
-            Ez = ((d_Vout[page + pt5] - d_Vout[page + pt1]) * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + pt2]) * frac_z) /
-                 (*d_dz);
-        }
-        else
-        {
-            // in the middle of the grid
-            // Determine the electric field at the four points
-            // surrounding ionPos.
-            // Ez1 = -(*d_Vout[page + pt5] - *d_Vout[page + ptC]) / (2 * *d_dz);
-            // Ez2 = -(*d_Vout[page + pt6] - *d_Vout[page + ptD]) / (2 * *d_dz);
-            // Ez3 = -(*d_Vout[page + ptA] - *d_Vout[page + pt1]) / (2 * *d_dz);
-            // Ez4 = -(*d_Vout[page + ptB] - *d_Vout[page + pt2]) / (2 * *d_dz);
-
-            // Use an areal-weighting scheme to perform
-            // the 2D table lookup.
-            Ez = ((d_Vout[page + pt5] - d_Vout[page + ptC]) * (1.0 - frac_r) * (1.0 - frac_z) +
-                  (d_Vout[page + pt6] - d_Vout[page + ptD]) * frac_r * (1.0 - frac_z) +
-                  (d_Vout[page + ptA] - d_Vout[page + pt1]) * (1.0 - frac_r) * frac_z +
-                  (d_Vout[page + ptB] - d_Vout[page + pt2]) * frac_r * frac_z) /
-                 (2.0 * *d_dz);
-        }
-
-        // Add acceleration of ions from time-evolving radial E field
-        // DEBUG -- this was too big, so commented out
-        Ex += *d_E_FIELDR / 2000;
+        Ez = (d_outside_coeff[page_coeff + 3] * 2.0 * z) +
+             (d_outside_coeff[page_coeff + 5] * 2.0 * z * r) +
+             (d_outside_coeff[page_coeff + 7] * 2.0 * z * r * r) +
+             (d_outside_coeff[page_coeff + 8] * 4.0 * z * z * z) +
+             (d_outside_coeff[page_coeff + 10] * 2.0 * z * r * r * r) +
+             (d_outside_coeff[page_coeff + 11] * 4.0 * z * z * z * r) +
+             (d_outside_coeff[page_coeff + 13] * 2.0 * z * r * r * r * r) +
+             (d_outside_coeff[page_coeff + 14] * 4.0 * z * z * z * r * r) +
+             (d_outside_coeff[page_coeff + 15] * 6.0 * z * z * z * z * z) +
+             (d_outside_coeff[page_coeff + 17] * 2.0 * z * r * r * r * r * r) +
+             (d_outside_coeff[page_coeff + 18] * 4.0 * z * z * z * r * r * r) +
+             (d_outside_coeff[page_coeff + 19] * 6.0 * z * z * z * z * z * r) +
+             (d_outside_coeff[page_coeff + 21] * 2.0 * z * r * r * r * r * r * r) +
+             (d_outside_coeff[page_coeff + 22] * 4.0 * z * z * z * r * r * r * r) +
+             (d_outside_coeff[page_coeff + 23] * 6.0 * z * z * z * z * z * r * r) +
+             (d_outside_coeff[page_coeff + 24] * 8.0 * z * z * z * z * z * z * z);
 
         // Scale from radial accel to Cartesian xy-coordinates
-        d_accIon[ID].x += Ex * *d_Q_DIV_M * d_posIon[ID].x / rad;
-        d_accIon[ID].y += Ex * *d_Q_DIV_M * d_posIon[ID].y / rad;
+        d_accIon[ID].x += Er * *d_Q_DIV_M * d_posIon[ID].x / (r + 1e-12);
+        d_accIon[ID].y += Er * *d_Q_DIV_M * d_posIon[ID].y / (r + 1e-12);
 
         // add in acceleration by Ez
         d_accIon[ID].z += Ez * *d_Q_DIV_M;
@@ -529,7 +450,7 @@ __global__ void calcIonDustAcc_102(float4 *d_posIon, float4 *d_accIon, float4 *d
     // Set initial minimum distance to dust particle to large number
     float min_dist = 1000;
 
-    // reset the accelerationa
+    // reset the accelerations
     d_accIon[IDcrntIon].x = 0;
     d_accIon[IDcrntIon].y = 0;
     d_accIon[IDcrntIon].z = 0;

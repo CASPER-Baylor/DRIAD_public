@@ -12,6 +12,10 @@ project( IonWake LANGUAGES CXX CUDA )
 
 find_package(CUDA REQUIRED)
 
+# find GSL (GNU Scientific Library)
+find_package(GSL REQUIRED)
+link_libraries(GSL::gsl GSL::gslcblas)
+
 # set all targets to use C++14
 set( CMAKE_CXX_STANDARD 14 )
 # it is an error if C++14 is not available 
@@ -49,4 +53,10 @@ CUDA_ADD_EXECUTABLE(IonWake.exe ${CUDA_FILES} ${CPP_FILES})
 
 target_compile_features(IonWake.exe PUBLIC cxx_std_14)
 set_target_properties(IonWake.exe PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
+# Link GSL to the executable
+#target_link_libraries(IonWake.exe PUBLIC GSL::gsl GSL::gslcblas)
+
+# Include GSL headers
+#target_include_directories(IonWake.exe PUBLIC ${GSL_INCLUDE_DIRS})
 

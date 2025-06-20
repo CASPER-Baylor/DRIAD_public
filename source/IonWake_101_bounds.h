@@ -22,6 +22,7 @@
  *	boundaryEField_101()
  *	tile_calculation()
  *	pointPointPotential()
+ *  outside_potential_fitting_101()
  *
  * Includes:
  *	checkIonDustBounds_101()
@@ -137,6 +138,16 @@
  * 	std::string
  */
 #include <string>
+
+/*
+ * Required By:
+ * outside_potential_fitting_101()
+ * For:
+ * 	gsl_multifit_wlinear
+ */
+#include <gsl/gsl_multifit.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_vector.h>
 
 /*
  * checkIonDustBounds_101
@@ -523,6 +534,45 @@ __device__ float invertFind_101(float *const, int, float);
 
 __global__ void boundaryEField_101(float2 *, float4 *, int *const, int *const, float *const,
                                    float *const, float *, int);
+
+/*
+ * Name: outside_potential_fitting_101
+ * Created: 04/17/2025
+ *
+ * Editors
+ *	Name: Diana Jimenez
+ *	Contact: diana_jimenez1@baylor.edu
+ *
+ * Description:
+ *	Fits the outside electric potential to a polynomial
+ */
+void outside_potential_fitting_101(float2 *, float *, float *, int, int, int);
+
+/*
+ * Name: outside_potential_eval_101
+ * Created: 04/17/2025
+ *
+ * Editors
+ *	Name: Diana Jimenez
+ *	Contact: diana_jimenez1@baylor.edu
+ *
+ * Description:
+ *	Evaluates the polynomial obtained from the outside potential fitting in the ion grid
+ */
+void outside_potential_eval_101(float2 *, float *, float *, int, int, int);
+
+/*
+ * Name: outside_electric_field_eval_101
+ * Created: 04/17/2025
+ *
+ * Editors
+ *	Name: Diana Jimenez
+ *	Contact: diana_jimenez1@baylor.edu
+ *
+ * Description:
+ *	Evaluates the polynomial obtained from the outside potential fitting in the ion grid
+ */
+void outside_electric_field_eval_101(float *, float *, float *, float2 *, int, int, int);
 
 /*
  * Name:tile_calculation_101
