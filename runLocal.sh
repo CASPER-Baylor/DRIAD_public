@@ -8,7 +8,7 @@ echo "./qsub_run_script.sh $1" >> qsub_submit_script.sh
 
 ./IonWake.exe $1_input/ $1_output/ $1  echo $! > $1_output/$1_jobID.txt
 
-#./IonWake.exe $1_input/ $1_output/ $1 & echo $! > $1_output/$1_jobID.txt) > $1_output/qsub_stdout.txt 2> $1_output/qsub_stderr.txt
+#./IonWake.exe $1_input/ $1_output/ $1 & echo $! > $1_output/$1_jobID.txt > $1_output/qsub_stdout.txt 2> $1_output/qsub_stderr.txt
 
 
 # Profile with ncu
