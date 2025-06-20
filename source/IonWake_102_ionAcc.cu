@@ -74,32 +74,30 @@
  *	device_launch_parameters.h
  *
  */
-__global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const d_NUM_ION,
-                                  float *const d_SOFT_RAD_SQRD, float *const d_ION_ION_ACC_MULT,
-                                  float *const d_INV_DEBYE, float *d_Q_DIV_M, float *const d_HT_CYL,
-                                  float *d_outside_coeff, int *d_NUMR, int *d_RESZ, float *d_dz, float *d_dr,
+__global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_velIon, float4 *d_accIon,
+                                  int *const d_NUM_ION, float *const d_SOFT_RAD_SQRD,
+                                  float *const d_ION_ION_ACC_MULT, float *const d_INV_DEBYE,
+                                  float *d_Q_DIV_M, float *const d_HT_CYL, float *d_outside_coeff,
+                                  int *d_NUMR, int *d_RESZ, float *d_dz, float *d_dr,
                                   float *d_E_FIELD, float *d_E_FIELDR, int E_dir,
+                                  float *d_B_FIELD_X, float *d_B_FIELD_Y, float *d_B_FIELD_Z,
                                   int plasma_counter, int GEOMETRY, float *const d_EXTERN_ELC_MULT, int *const d_N_COEFFS)
 {
-
     // index of the current ion
     int ID = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // initialize variables
-    float3 dist;
-    float3 accCrntIon = {0, 0, 0};
-    float distSquared;
-    float hardDist;
-    float softDist;
-    float linForce;
-    int tileThreadID;
-
-    // Initialize all accelerations to zero
-    d_accIon[ID].x = 0;
-    d_accIon[ID].y = 0;
-    d_accIon[ID].z = 0;
+    if (ID >= *d_NUM_ION)
+    {
+        return; // out of bounds
+    }
 
     // ****  Acceleration due to ions inside cylinder: N-body calculation *** //
+
+    // initialize variables
+    float4 accCrntIon = {0, 0, 0, 0};
+
+    // position of current ion
+    float4 posIon = d_posIon[ID];
 
     // allocate shared memory
     extern __shared__ float4 sharedPos[];
@@ -112,54 +110,78 @@ __global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const
     {
         // the index of the ion for the thread to load
         // for the current tile
-        tileThreadID = tileOffset + threadIdx.x;
+        int tileThreadID = tileOffset + threadIdx.x;
 
-        // load in an ion position and charge
-        sharedPos[threadIdx.x].x = d_posIon[tileThreadID].x;
-        sharedPos[threadIdx.x].y = d_posIon[tileThreadID].y;
-        sharedPos[threadIdx.x].z = d_posIon[tileThreadID].z;
-        sharedPos[threadIdx.x].w = d_posIon[tileThreadID].w;
+        if (tileThreadID < *d_NUM_ION)
+        {
+            //  load in an ion position and charge
+            sharedPos[threadIdx.x] = d_posIon[tileThreadID];
+        }
 
         // wait for all threads to load the current position
         __syncthreads();
 
-        // loop over all of the ions loaded in the tile
+        //  loop over all of the ions loaded in the tile
         for (int h = 0; h < blockDim.x; h++)
         {
-
             // calculate the distance between the ion in shared
             // memory and the current thread's ion
-            dist.x = d_posIon[ID].x - sharedPos[h].x;
-            dist.y = d_posIon[ID].y - sharedPos[h].y;
-            dist.z = d_posIon[ID].z - sharedPos[h].z;
+            float3 distance;
+            distance.x = posIon.x - sharedPos[h].x;
+            distance.y = posIon.y - sharedPos[h].y;
+            distance.z = posIon.z - sharedPos[h].z;
 
-            // calculate the distance squared
-            distSquared = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
+            // find the squared distance between the ions
+            float distSquared = __fmaf_rn(distance.x, distance.x, __fmaf_rn(distance.y, distance.y, __fmul_rn(distance.z, distance.z)));
 
-            // calculate the hard distance
-            hardDist = __fsqrt_rn(distSquared);
+            // exclude the self-interaction
+            if (distSquared == 0)
+            {
+                // if the ions are the same, there is no force
+                continue;
+            }
 
-            // calculate the soft distance
-            softDist = __fsqrt_rn(distSquared + *d_SOFT_RAD_SQRD);
+            //  find the inverse of the squared root of the squared distance. invDistance = 1/√r²
+            float invDistance = rsqrtf(distSquared);
 
-            // calculate a scalar intermediate
-            linForce = *d_ION_ION_ACC_MULT * sharedPos[h].w * (1.0 + (hardDist * *d_INV_DEBYE)) *
-                       __expf(-hardDist * *d_INV_DEBYE) / (softDist * softDist * softDist);
+            // find the distance between the ions. r = r² * 1/√r²(it is faster than sqrt)
+            float hardDistance = __fmul_rn(distSquared, invDistance);
+
+            // define the soft distance to avoid singularity
+            float softDistance = hardDistance + 1e-9f;
+
+            // find the inverse of the soft distance
+            float invSoftDistance = 1.0f / softDistance;
+
+            // find the inverse of the soft distance cubed
+            float invSoftDistance3 = __fmul_rn(invSoftDistance, __fmul_rn(invSoftDistance, invSoftDistance));
+
+            // define a coefficient to write shorter expressions
+            float coeff = __fmul_rn(hardDistance, *d_INV_DEBYE);
+
+            // get the exponential term
+            float expTerm = __expf(-coeff);
+
+            // find the term: (coeff+1) * exp(-coeff)
+            float coeff2 = __fmaf_rn(coeff + 1.0f, expTerm, 0.0f);
+
+            // linForce = w * (coeff+1) * exp(-coeff) / r^3
+            float linForce = __fmul_rn(sharedPos[h].w, __fmul_rn(coeff2, invSoftDistance3));
 
             // add the acceleration to the current ion's acceleration
-            accCrntIon.x += linForce * dist.x;
-            accCrntIon.y += linForce * dist.y;
-            accCrntIon.z += linForce * dist.z;
+            accCrntIon.x = __fmaf_rn(linForce, distance.x, accCrntIon.x);
+            accCrntIon.y = __fmaf_rn(linForce, distance.y, accCrntIon.y);
+            accCrntIon.z = __fmaf_rn(linForce, distance.z, accCrntIon.z);
         } // end loop over ion in tile
 
         // wait for all threads to finish calculations
         __syncthreads();
     } // end loop over tiles
 
-    // save to global memory
-    d_accIon[ID].x += accCrntIon.x;
-    d_accIon[ID].y += accCrntIon.y;
-    d_accIon[ID].z += accCrntIon.z;
+    // scale the acceleration
+    accCrntIon.x = __fmul_rn(*d_ION_ION_ACC_MULT, accCrntIon.x);
+    accCrntIon.y = __fmul_rn(*d_ION_ION_ACC_MULT, accCrntIon.y);
+    accCrntIon.z = __fmul_rn(*d_ION_ION_ACC_MULT, accCrntIon.z);
 
     // *** forces from ions outside the boundary *** //
     if (GEOMETRY == 0)
@@ -168,8 +190,8 @@ __global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const
         //  get the radius of the ion from the center of the
         //  simulation sphere. The center is assumed to be (0,0,0)
         float rad =
-            __fsqrt_rn((d_posIon[ID].x * d_posIon[ID].x) + (d_posIon[ID].y * d_posIon[ID].y) +
-                       (d_posIon[ID].z * d_posIon[ID].z));
+            __fsqrt_rn((posIon.x * posIon.x) + (posIon.y * posIon.y) +
+                       (posIon.z * posIon.z));
 
         // calculate an intermediate value for use in the
         // acceleration calculation
@@ -185,83 +207,129 @@ __global__ void calcIonAccels_102(float4 *d_posIon, float4 *d_accIon, int *const
         // multiply by the vector distance to the center of
         // the simulation radius and add it to the ion
         // acceleration
-        d_accIon[ID].x += d_posIon[ID].x * linForce;
-        d_accIon[ID].y += d_posIon[ID].y * linForce;
-        d_accIon[ID].z += d_posIon[ID].z * linForce;
+        d_accIon[ID].x += posIon.x * linForce;
+        d_accIon[ID].y += posIon.y * linForce;
+        d_accIon[ID].z += posIon.z * linForce;
     }
     else if (GEOMETRY == 1)
     {
-        // *** Force from ions outside cylinder *** //
+        // * Force from ions outside cylinder * //
         // local variables
-
-        float Er, Ez;
-        int page_coeff = plasma_counter * *d_N_COEFFS;
+        int page_coeff = __fmul_rn(plasma_counter, *d_N_COEFFS);
 
         // get the radius of the ion from the center axis of the
         // simulation cylinder. The center is assumed to be (0,0,z)
         float r =
-            __fsqrt_rn((d_posIon[ID].x * d_posIon[ID].x) + (d_posIon[ID].y * d_posIon[ID].y));
+            __fsqrt_rn(__fmaf_rn(posIon.x, posIon.x, __fmul_rn(posIon.y, posIon.y)));
 
         // get the z position of the ion
-        float z = d_posIon[ID].z;
+        float z = posIon.z;
+        float r2 = r * r;
+        float r4 = r2 * r2;
+        float z2 = z * z;
+        float z4 = z2 * z2;
 
-        Er = (d_outside_coeff[page_coeff + 1] * 1.0) +
-             (d_outside_coeff[page_coeff + 2] * r * 2.0) +
-             (d_outside_coeff[page_coeff + 4] * r * r * 3.0) +
-             (d_outside_coeff[page_coeff + 5] * z * z * 1.0) +
-             (d_outside_coeff[page_coeff + 6] * r * r * r * 4.0) +
-             (d_outside_coeff[page_coeff + 7] * z * z * r * 2.0) +
-             (d_outside_coeff[page_coeff + 9] * r * r * r * r * 5.0) +
-             (d_outside_coeff[page_coeff + 10] * z * z * r * r * 3.0) +
-             (d_outside_coeff[page_coeff + 11] * z * z * z * z * 1.0) +
-             (d_outside_coeff[page_coeff + 12] * r * r * r * r * r * 6.0) +
-             (d_outside_coeff[page_coeff + 13] * z * z * r * r * r * 4.0) +
-             (d_outside_coeff[page_coeff + 14] * z * z * z * z * r * 2.0) +
-             (d_outside_coeff[page_coeff + 16] * r * r * r * r * r * r * 7.0) +
-             (d_outside_coeff[page_coeff + 17] * z * z * r * r * r * r * 5.0) +
-             (d_outside_coeff[page_coeff + 18] * z * z * z * z * r * r * 3.0) +
-             (d_outside_coeff[page_coeff + 19] * z * z * z * z * z * z * 1.0) +
-             (d_outside_coeff[page_coeff + 20] * r * r * r * r * r * r * r * 8.0) +
-             (d_outside_coeff[page_coeff + 21] * z * z * r * r * r * r * r * 6.0) +
-             (d_outside_coeff[page_coeff + 22] * z * z * z * z * r * r * r * 4.0) +
-             (d_outside_coeff[page_coeff + 23] * z * z * z * z * z * z * r * 2.0);
+        // using the read only cache
+        float outside_coeff1 = __ldg(&d_outside_coeff[page_coeff + 1]);
+        float outside_coeff2 = __ldg(&d_outside_coeff[page_coeff + 2]);
+        float outside_coeff3 = __ldg(&d_outside_coeff[page_coeff + 3]);
+        float outside_coeff4 = __ldg(&d_outside_coeff[page_coeff + 4]);
+        float outside_coeff5 = __ldg(&d_outside_coeff[page_coeff + 5]);
+        float outside_coeff6 = __ldg(&d_outside_coeff[page_coeff + 6]);
+        float outside_coeff7 = __ldg(&d_outside_coeff[page_coeff + 7]);
+        float outside_coeff8 = __ldg(&d_outside_coeff[page_coeff + 8]);
+        float outside_coeff9 = __ldg(&d_outside_coeff[page_coeff + 9]);
+        float outside_coeff10 = __ldg(&d_outside_coeff[page_coeff + 10]);
+        float outside_coeff11 = __ldg(&d_outside_coeff[page_coeff + 11]);
+        float outside_coeff12 = __ldg(&d_outside_coeff[page_coeff + 12]);
+        float outside_coeff13 = __ldg(&d_outside_coeff[page_coeff + 13]);
+        float outside_coeff14 = __ldg(&d_outside_coeff[page_coeff + 14]);
+        float outside_coeff15 = __ldg(&d_outside_coeff[page_coeff + 15]);
+        float outside_coeff16 = __ldg(&d_outside_coeff[page_coeff + 16]);
+        float outside_coeff17 = __ldg(&d_outside_coeff[page_coeff + 17]);
+        float outside_coeff18 = __ldg(&d_outside_coeff[page_coeff + 18]);
+        float outside_coeff19 = __ldg(&d_outside_coeff[page_coeff + 19]);
+        float outside_coeff20 = __ldg(&d_outside_coeff[page_coeff + 20]);
+        float outside_coeff21 = __ldg(&d_outside_coeff[page_coeff + 21]);
+        float outside_coeff22 = __ldg(&d_outside_coeff[page_coeff + 22]);
+        float outside_coeff23 = __ldg(&d_outside_coeff[page_coeff + 23]);
+        float outside_coeff24 = __ldg(&d_outside_coeff[page_coeff + 24]);
 
-        Ez = (d_outside_coeff[page_coeff + 3] * 2.0 * z) +
-             (d_outside_coeff[page_coeff + 5] * 2.0 * z * r) +
-             (d_outside_coeff[page_coeff + 7] * 2.0 * z * r * r) +
-             (d_outside_coeff[page_coeff + 8] * 4.0 * z * z * z) +
-             (d_outside_coeff[page_coeff + 10] * 2.0 * z * r * r * r) +
-             (d_outside_coeff[page_coeff + 11] * 4.0 * z * z * z * r) +
-             (d_outside_coeff[page_coeff + 13] * 2.0 * z * r * r * r * r) +
-             (d_outside_coeff[page_coeff + 14] * 4.0 * z * z * z * r * r) +
-             (d_outside_coeff[page_coeff + 15] * 6.0 * z * z * z * z * z) +
-             (d_outside_coeff[page_coeff + 17] * 2.0 * z * r * r * r * r * r) +
-             (d_outside_coeff[page_coeff + 18] * 4.0 * z * z * z * r * r * r) +
-             (d_outside_coeff[page_coeff + 19] * 6.0 * z * z * z * z * z * r) +
-             (d_outside_coeff[page_coeff + 21] * 2.0 * z * r * r * r * r * r * r) +
-             (d_outside_coeff[page_coeff + 22] * 4.0 * z * z * z * r * r * r * r) +
-             (d_outside_coeff[page_coeff + 23] * 6.0 * z * z * z * z * z * r * r) +
-             (d_outside_coeff[page_coeff + 24] * 8.0 * z * z * z * z * z * z * z);
+        float Er = (outside_coeff1 * 1.0f) +                // independent term
+                   (outside_coeff2 * r * 2.0f) +            // r
+                   (outside_coeff4 * r2 * 3.0f) +           // r^2
+                   (outside_coeff5 * z2 * 1.0f) +           // z^2
+                   (outside_coeff6 * r2 * r * 4.0f) +       // r^3
+                   (outside_coeff7 * z2 * r * 2.0f) +       // z^2 r
+                   (outside_coeff9 * r4 * 5.0f) +           // r^4
+                   (outside_coeff10 * z2 * r2 * 3.0f) +     // z^2 r^2
+                   (outside_coeff11 * z4 * 1.0f) +          // z^4
+                   (outside_coeff12 * r4 * r * 6.0f) +      // r^5
+                   (outside_coeff13 * z2 * r2 * r * 4.0f) + // z^2 r^3
+                   (outside_coeff14 * z4 * r * 2.0f) +      // z^4 r
+                   (outside_coeff16 * r4 * r2 * 7.0f) +     // r^6
+                   (outside_coeff17 * z2 * r4 * 5.0f) +     // z^2 r^4
+                   (outside_coeff18 * z4 * r2 * 3.0f) +     // z^4 r^2
+                   (outside_coeff19 * z4 * z2 * 1.0f) +     // z^6
+                   (outside_coeff20 * r4 * r2 * r * 8.0f) + // r^7
+                   (outside_coeff21 * z2 * r4 * r * 6.0f) + // z^2 r^5
+                   (outside_coeff22 * z4 * r2 * r * 4.0f) + // z^4 r^3
+                   (outside_coeff23 * z4 * z2 * r * 2.0f);  // z^6 r
+
+        float Ez = (outside_coeff3 * 2.0f * z) +                // z
+                   (outside_coeff5 * 2.0f * z * r) +            // z r
+                   (outside_coeff7 * 2.0f * z * r2) +           // z r^2
+                   (outside_coeff8 * 4.0f * z2 * z) +           // z^3
+                   (outside_coeff10 * 2.0f * z * r2 * r) +      // z r^3
+                   (outside_coeff11 * 4.0f * z2 * z * r) +      // z^3 r
+                   (outside_coeff13 * 2.0f * z * r4) +          // z r^4
+                   (outside_coeff14 * 4.0f * z2 * z * r2) +     // z^3 r^2
+                   (outside_coeff15 * 6.0f * z4 * z) +          // z^5
+                   (outside_coeff17 * 2.0f * z * r4 * r) +      // z r^5
+                   (outside_coeff18 * 4.0f * z2 * z * r2 * r) + // z^3 r^3
+                   (outside_coeff19 * 6.0f * z4 * z * r) +      // z^5 r
+                   (outside_coeff21 * 2.0f * z * r4 * r2) +     // z r^6
+                   (outside_coeff22 * 4.0f * z2 * z * r4) +     // z^3 r^4
+                   (outside_coeff23 * 6.0f * z4 * z * r2) +     // z^5 r^2
+                   (outside_coeff24 * 8.0f * z4 * z2 * z);      // z^7
+
+        // Add acceleration of ions from time-evolving radial E field
+        // DEBUG -- this was too big, so commented out
+        // Er += *d_E_FIELDR / 2000;
+
+        // calculate the term Er * *d_Q_DIV_M / r
+        float Er_Q_DIV_M_r = Er * *d_Q_DIV_M / (r + 1e-12f);
 
         // Scale from radial accel to Cartesian xy-coordinates
-        d_accIon[ID].x += Er * *d_Q_DIV_M * d_posIon[ID].x / (r + 1e-12);
-        d_accIon[ID].y += Er * *d_Q_DIV_M * d_posIon[ID].y / (r + 1e-12);
-
-        // add in acceleration by Ez
-        d_accIon[ID].z += Ez * *d_Q_DIV_M;
+        accCrntIon.x = __fmaf_rn(Er_Q_DIV_M_r, posIon.x, accCrntIon.x);
+        accCrntIon.y = __fmaf_rn(Er_Q_DIV_M_r, posIon.y, accCrntIon.y);
+        accCrntIon.z = __fmaf_rn(Ez, *d_Q_DIV_M, accCrntIon.z);
 
     } // end if on GEOMETRY
 
     // *** add acceleration of ions by external electric field *** //
     if (*d_E_FIELD > 0)
     {
-        d_accIon[ID].z += E_dir * *d_Q_DIV_M * *d_E_FIELD;
+        accCrntIon.z = __fmaf_rn(E_dir, __fmul_rn(*d_Q_DIV_M, *d_E_FIELD), accCrntIon.z);
     }
     else
     {
-        d_accIon[ID].z -= E_dir * *d_Q_DIV_M * *d_E_FIELD;
+        accCrntIon.z = __fmaf_rn(-E_dir, __fmul_rn(*d_Q_DIV_M, *d_E_FIELD), accCrntIon.z);
     }
-    d_accIon[ID].w = 0.0;
+
+    //*** add aceleration of ions by external B_field ***//
+    if (*d_B_FIELD_X != 0 || *d_B_FIELD_Y != 0 || *d_B_FIELD_Z != 0)
+    {
+        // velocity of current ion
+        float4 velIon = d_velIon[ID];
+
+        accCrntIon.x = __fmaf_rn(*d_Q_DIV_M, __fmaf_rn(velIon.y, *d_B_FIELD_Z, __fmul_rn(-velIon.z, *d_B_FIELD_Y)), accCrntIon.x);
+        accCrntIon.y = __fmaf_rn(*d_Q_DIV_M, __fmaf_rn(velIon.z, *d_B_FIELD_X, __fmul_rn(-velIon.x, *d_B_FIELD_Z)), accCrntIon.y);
+        accCrntIon.z = __fmaf_rn(*d_Q_DIV_M, __fmaf_rn(velIon.x, *d_B_FIELD_Y, __fmul_rn(-velIon.y, *d_B_FIELD_X)), accCrntIon.z);
+    }
+
+    // save to global memory
+    d_accIon[ID] = accCrntIon;
 }
 
 /*

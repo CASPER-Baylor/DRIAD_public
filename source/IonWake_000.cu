@@ -255,6 +255,9 @@ int main(int argc, char *argv[])
     const float PRESSURE = getParam_106<float>(paramFile, "PRESSURE");
     const float FREQ = getParam_106<double>(paramFile, "FREQ");
     float E_FIELD = getParam_106<float>(paramFile, "E_FIELD");
+    float B_FIELD_X = getParam_106<float>(paramFile, "B_FIELD_X");
+    float B_FIELD_Y = getParam_106<float>(paramFile, "B_FIELD_Y");
+    float B_FIELD_Z = getParam_106<float>(paramFile, "B_FIELD_Z");
     const float OMEGA1 = getParam_106<float>(paramFile, "OMEGA1");
     const float OMEGA2 = getParam_106<float>(paramFile, "OMEGA2");
     const float RADIAL_CONF = getParam_106<float>(paramFile, "RADIAL_CONF");
@@ -618,6 +621,9 @@ int main(int argc, char *argv[])
                   << "RAD_CYL_DEBYE     " << RAD_CYL_DEBYE << '\n'
                   << "HT_CYL_DEBYE      " << HT_CYL_DEBYE << '\n'
                   << "E_FIELD           " << E_FIELD << '\n'
+                  << "B_FIELD_X           " << B_FIELD_X << '\n'
+                  << "B_FIELD_Y           " << B_FIELD_Y << '\n'
+                  << "B_FIELD_Z           " << B_FIELD_Z << '\n'
                   << "FREQ              " << FREQ << '\n'
                   << "OMEGA1			  " << OMEGA1 << '\n'
                   << "OMEGA2			  " << OMEGA2 << '\n'
@@ -730,6 +736,9 @@ int main(int argc, char *argv[])
                  << std::setw(14) << PRESSURE << " % PRESSURE" << '\n'
                  << std::setw(14) << FREQ << " % FREQ  " << '\n'
                  << std::setw(14) << E_FIELD << " % E_FIELD" << '\n'
+                 << std::setw(14) << B_FIELD_X << " % B_FIELD_X" << '\n'
+                 << std::setw(14) << B_FIELD_Y << " % B_FIELD_Y" << '\n'
+                 << std::setw(14) << B_FIELD_Z << " % B_FIELD_Z" << '\n'
                  << std::setw(14) << OMEGA1 << " % OMEGA1" << '\n'
                  << std::setw(14) << OMEGA2 << " % OMEGA2" << '\n'
                  << std::setw(14) << RADIAL_CONF << " % RADIAL_CONF" << '\n'
@@ -965,6 +974,42 @@ int main(int argc, char *argv[])
 
     // number of blocks per grid for density and potential grid points
     int blocksPerGridGrid = (NUM_GRID_PTS + 1) / DIM_BLOCK;
+
+    /**********************/
+
+    // store the device id and number of SMs
+    int deviceId;
+    int numberOfSMs;
+
+    // get the device id and number of SMs
+    cudaGetDevice(&deviceId);
+    cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, deviceId);
+
+    /**********************/
+
+    // this configuration is for the calcIonAccels_102 kernel only
+
+    // calculate the maximum number of blocks per SM for the calcIonAccels_102 kernel
+    int blocksPerSm;
+
+    // set the number of threads per block
+    int threadsPerBlock = 128;
+
+    // calculate the maximum number of blocks per SM for the calcIonAccels_102 kernel
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSm, calcIonAccels_102, threadsPerBlock, sizeof(float4) * threadsPerBlock);
+
+    // calculate the maximum number of blocks that can be running at the same time in the GPU
+    int waveSize = numberOfSMs * blocksPerSm;
+
+    // set the minimum number of blocks to coverage all the ions
+    int minimumNumberOfBlocks = (NUM_ION + 1) / threadsPerBlock;
+
+    // set the number of wave to cover all the ions
+    int numWaves = (minimumNumberOfBlocks + waveSize - 1) / waveSize;
+
+    // set the number of blocks to cover all the ions and to avoid partial waves
+    int numberOfBlocks = waveSize * numWaves;
+
     /**********************/
 
     /******  Calculations of the Outside Ions Potential  *******/
@@ -1631,6 +1676,9 @@ int main(int argc, char *argv[])
     CUDAvar<float> d_INV_DEBYE(&INV_DEBYE, 1);
     CUDAvar<float> d_E_FIELD(&E_FIELD, 1);
     CUDAvar<float> d_E_FIELDR(&E_FIELDR, 1);
+    CUDAvar<float> d_B_FIELD_X(&B_FIELD_X, 1);
+    CUDAvar<float> d_B_FIELD_Y(&B_FIELD_Y, 1);
+    CUDAvar<float> d_B_FIELD_Z(&B_FIELD_Z, 1);
     CUDAvar<float> d_TEMP_ION(&TEMP_ION, 1);
     CUDAvar<float> d_CHARGE_ION(&CHARGE_ION, 1);
     CUDAvar<float> d_DRIFT_VEL_ION(&DRIFT_VEL_ION, 1);
@@ -1646,6 +1694,9 @@ int main(int argc, char *argv[])
     d_INV_DEBYE.hostToDev();
     d_E_FIELD.hostToDev();
     d_E_FIELDR.hostToDev();
+    d_B_FIELD_X.hostToDev();
+    d_B_FIELD_Y.hostToDev();
+    d_B_FIELD_Z.hostToDev();
     d_TEMP_ION.hostToDev();
     d_CHARGE_ION.hostToDev();
     d_DRIFT_VEL_ION.hostToDev();
@@ -1845,13 +1896,15 @@ int main(int argc, char *argv[])
     roadBlock_104(statusFile, __LINE__, __FILE__, "resetIonBounds_101", print);
 
     // Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
-    calcIonAccels_102<<<blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK>>>(
+    calcIonAccels_102<<<numberOfBlocks, threadsPerBlock, sizeof(float4) * threadsPerBlock>>>(
         d_posIon.getDevPtr(), // <--
+        d_velIon.getDevPtr(),
         d_accIon.getDevPtr(), // <-->
         d_NUM_ION.getDevPtr(), d_SOFT_RAD_SQRD.getDevPtr(), d_ION_ION_ACC_MULT.getDevPtr(),
         d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(), d_outside_coeff.getDevPtr(),
         d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(), d_dr.getDevPtr(),
-        d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction, plasma_counter, GEOMETRY,
+        d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction, d_B_FIELD_X.getDevPtr(),
+        d_B_FIELD_Y.getDevPtr(), d_B_FIELD_Z.getDevPtr(), plasma_counter, GEOMETRY,
         d_EXTERN_ELC_MULT.getDevPtr(), d_N_COEFFS.getDevPtr());
 
     roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
@@ -2016,14 +2069,16 @@ int main(int argc, char *argv[])
             // E_direction = -1;
 
             // Calculate ion-ion, ion-outside ion, and E_FIELD accelerations
-            calcIonAccels_102<<<blocksPerGridIon, DIM_BLOCK, sizeof(float4) * DIM_BLOCK>>>(
+            calcIonAccels_102<<<numberOfBlocks, threadsPerBlock, sizeof(float4) * threadsPerBlock>>>(
                 d_posIon.getDevPtr(), // <--
+                d_velIon.getDevPtr(),
                 d_accIon.getDevPtr(), // <-->
                 d_NUM_ION.getDevPtr(), d_SOFT_RAD_SQRD.getDevPtr(), d_ION_ION_ACC_MULT.getDevPtr(),
-                d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(),
-                d_outside_coeff.getDevPtr(), d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(),
-                d_dr.getDevPtr(), d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction,
-                plasma_counter, GEOMETRY, d_EXTERN_ELC_MULT.getDevPtr(), d_N_COEFFS.getDevPtr());
+                d_INV_DEBYE.getDevPtr(), d_Q_DIV_M.getDevPtr(), d_HT_CYL.getDevPtr(), d_outside_coeff.getDevPtr(),
+                d_NUMR.getDevPtr(), d_RESZ.getDevPtr(), d_dz.getDevPtr(), d_dr.getDevPtr(),
+                d_E_FIELD.getDevPtr(), d_E_FIELDR.getDevPtr(), E_direction, d_B_FIELD_X.getDevPtr(),
+                d_B_FIELD_Y.getDevPtr(), d_B_FIELD_Z.getDevPtr(), plasma_counter, GEOMETRY,
+                d_EXTERN_ELC_MULT.getDevPtr(), d_N_COEFFS.getDevPtr());
 
             roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonAccels_102", print);
 
@@ -2246,6 +2301,9 @@ int main(int argc, char *argv[])
                     d_INV_DEBYE.devToHost();
                     d_E_FIELD.devToHost();
                     d_E_FIELDR.devToHost();
+                    d_B_FIELD_X.devToHost();
+                    d_B_FIELD_Y.devToHost();
+                    d_B_FIELD_Z.devToHost();
                     d_TEMP_ION.devToHost();
                     d_CHARGE_ION.devToHost();
                     d_DRIFT_VEL_ION.devToHost();
@@ -2290,6 +2348,9 @@ int main(int argc, char *argv[])
                     d_INV_DEBYE.hostToDev();
                     d_E_FIELD.hostToDev();
                     d_E_FIELDR.hostToDev();
+                    d_B_FIELD_X.hostToDev();
+                    d_B_FIELD_Y.hostToDev();
+                    d_B_FIELD_Z.hostToDev();
                     d_TEMP_ION.hostToDev();
                     d_CHARGE_ION.hostToDev();
                     d_DRIFT_VEL_ION.hostToDev();

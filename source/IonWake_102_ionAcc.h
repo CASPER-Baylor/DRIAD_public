@@ -115,11 +115,13 @@
  *
  */
 
-__global__ void calcIonAccels_102(float4 *, float4 *, int *const,
+__global__ void calcIonAccels_102(float4 *, float4 *, float4 *,
+                                  int *const, float *const,
                                   float *const, float *const,
-                                  float *const, float *, float *const,
-                                  float *, int *, int *, float *, float *,
+                                  float *, float *const, float *,
+                                  int *, int *, float *, float *,
                                   float *, float *, int,
+                                  float *, float *, float *,
                                   int, int, float *const, int *const);
 
 /*
