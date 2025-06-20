@@ -28,6 +28,9 @@ N_IONDT_PER_PLASMADT   100
              FREQ_DT   0
                FREQ2   0
 	           E_FIELD   -100	    ! const electric field in axial (z) direction
+           B_FIELD_X   0        ! magnetic field in x direction
+           B_FIELD_Y   0        ! magnetic field in y direction
+           B_FIELD_Z   0        ! magnetic field in z direction
   	          OMEGA1   3.96e6	
   	          OMEGA2   7.92e8	  ! Confinement force for dust at RADIAL_CONF
   	     RADIAL_CONF   0.6	    ! Max excursion for dust as fraction of RAD_CYL
