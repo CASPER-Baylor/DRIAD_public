@@ -327,8 +327,10 @@ __global__ void calcExtrnElcAccCyl_102(float4 *, float4 *, float *, float *const
  *	device_launch_parameters.h
  *
  */
-__global__ void calcIonDensityPotential_102(float2 *, float4 *, float *const, float *const,
-                                            int *const, float *, float *);
+__global__ void calcIonDensityPotential_102(const int, float2 *, float4 *,
+                                            float *const, float *const,
+                                            int *const, float *,
+                                            float *);
 
 /*
  *  Name: zeroIonDensityPotential_102

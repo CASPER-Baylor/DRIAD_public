@@ -1012,6 +1012,31 @@ int main(int argc, char *argv[])
 
     /**********************/
 
+    // this configuration is for the calcIonDensityPotential_102 kernel only
+
+    // calculate the maximum number of blocks per SM for the calcIonDensityPotential_102 kernel
+    int blocksPerSm2;
+
+    // set the number of threads per block
+    int threadsPerBlock2 = 64;
+
+    // calculate the maximum number of blocks per SM for the calcIonDensityPotential_102 kernel
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSm2, calcIonDensityPotential_102, threadsPerBlock2, sizeof(float4) * threadsPerBlock2);
+
+    // calculate the maximum number of blocks that can be running at the same time in the GPU
+    int waveSize2 = numberOfSMs * blocksPerSm2;
+
+    // set the minimum number of blocks to coverage all the grid points
+    int minimumNumberOfBlocks2 = (NUM_GRID_PTS + 1) / threadsPerBlock2;
+
+    // set the number of wave to cover all the grid points
+    int numWaves2 = (minimumNumberOfBlocks2 + waveSize2 - 1) / waveSize2;
+
+    // set the number of blocks to cover all the grid points and to avoid partial waves
+    int numberOfBlocks2 = waveSize2 * numWaves2;
+
+    /**********************/
+
     /******  Calculations of the Outside Ions Potential  *******/
     /** Integrate over the potential from ions
      *	inside the cylinder -- these are "subtracted" from
@@ -1973,11 +1998,12 @@ int main(int argc, char *argv[])
             }
 
             // calc ion number density and ion potential
-            calcIonDensityPotential_102<<<blocksPerGridGrid, DIM_BLOCK,
-                                          sizeof(float4) * DIM_BLOCK>>>(
-                d_gridPos.getDevPtr(), // {{{
-                d_posIon.getDevPtr(), d_COULOMB_CONST.getDevPtr(), d_INV_DEBYE.getDevPtr(),
-                d_NUM_ION.getDevPtr(), d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
+            calcIonDensityPotential_102<<<numberOfBlocks2, threadsPerBlock2,
+                                          sizeof(float4) * threadsPerBlock2>>>(NUM_GRID_PTS,
+                                                                               d_gridPos.getDevPtr(), // {{{
+                                                                               d_posIon.getDevPtr(), d_COULOMB_CONST.getDevPtr(), d_INV_DEBYE.getDevPtr(),
+                                                                               d_NUM_ION.getDevPtr(), d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
+
             roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", print);
 
             // polarity switching of electric field
