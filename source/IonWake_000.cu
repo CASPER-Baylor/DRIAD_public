@@ -975,67 +975,17 @@ int main(int argc, char *argv[])
     // number of blocks per grid for density and potential grid points
     int blocksPerGridGrid = (NUM_GRID_PTS + 1) / DIM_BLOCK;
 
-    /**********************/
-
-    // store the device id and number of SMs
-    int deviceId;
-    int numberOfSMs;
-
-    // get the device id and number of SMs
-    cudaGetDevice(&deviceId);
-    cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, deviceId);
-
-    /**********************/
-
-    // this configuration is for the calcIonAccels_102 kernel only
-
-    // calculate the maximum number of blocks per SM for the calcIonAccels_102 kernel
-    int blocksPerSm;
-
-    // set the number of threads per block
+    // set the number of threads per block for the calcIonAccels_102 kernel
     int threadsPerBlock = 128;
 
-    // calculate the maximum number of blocks per SM for the calcIonAccels_102 kernel
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSm, calcIonAccels_102, threadsPerBlock, sizeof(float4) * threadsPerBlock);
-
-    // calculate the maximum number of blocks that can be running at the same time in the GPU
-    int waveSize = numberOfSMs * blocksPerSm;
-
-    // set the minimum number of blocks to coverage all the ions
-    int minimumNumberOfBlocks = (NUM_ION + 1) / threadsPerBlock;
-
-    // set the number of wave to cover all the ions
-    int numWaves = (minimumNumberOfBlocks + waveSize - 1) / waveSize;
-
-    // set the number of blocks to cover all the ions and to avoid partial waves
-    int numberOfBlocks = waveSize * numWaves;
-
-    /**********************/
-
-    // this configuration is for the calcIonDensityPotential_102 kernel only
-
-    // calculate the maximum number of blocks per SM for the calcIonDensityPotential_102 kernel
-    int blocksPerSm2;
-
-    // set the number of threads per block
+    // set the number of threads per block for the calcIonDensityPotential_102 kernel
     int threadsPerBlock2 = 64;
 
-    // calculate the maximum number of blocks per SM for the calcIonDensityPotential_102 kernel
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSm2, calcIonDensityPotential_102, threadsPerBlock2, sizeof(float4) * threadsPerBlock2);
+    // optimum number of blocks for the calcIonAccels_102 kernel
+    int numberOfBlocks = findMaxNumberOfBlocksForKernel(threadsPerBlock, NUM_ION, reinterpret_cast<const void *>(calcIonAccels_102), sizeof(float4) * threadsPerBlock);
 
-    // calculate the maximum number of blocks that can be running at the same time in the GPU
-    int waveSize2 = numberOfSMs * blocksPerSm2;
-
-    // set the minimum number of blocks to coverage all the grid points
-    int minimumNumberOfBlocks2 = (NUM_GRID_PTS + 1) / threadsPerBlock2;
-
-    // set the number of wave to cover all the grid points
-    int numWaves2 = (minimumNumberOfBlocks2 + waveSize2 - 1) / waveSize2;
-
-    // set the number of blocks to cover all the grid points and to avoid partial waves
-    int numberOfBlocks2 = waveSize2 * numWaves2;
-
-    /**********************/
+    // optimum number of blocks for the calcIonDensityPotential_102 kernel
+    int numberOfBlocks2 = findMaxNumberOfBlocksForKernel(threadsPerBlock2, NUM_GRID_PTS, reinterpret_cast<const void *>(calcIonDensityPotential_102), sizeof(float4) * threadsPerBlock2);
 
     /******  Calculations of the Outside Ions Potential  *******/
     /** Integrate over the potential from ions
@@ -2423,7 +2373,13 @@ int main(int argc, char *argv[])
                     simCharge[k] = 0.95 * simCharge[k] + 0.05 * tempCharge[k] / N_IONDT_PER_DUSTDT;
 
                     // print all the dust charges to the trace file
-                    dustChargeFile << simCharge[k] << ", ";
+                    dustChargeFile << simCharge[k];
+
+                    // print a delimiter except for the last dust grain
+                    if (k < NUM_DUST - 1)
+                    {
+                        dustChargeFile << ", ";
+                    }
 
                     // reset the tempCharge to zero
                     tempCharge[k] = 0;
