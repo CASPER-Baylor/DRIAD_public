@@ -188,3 +188,34 @@ float normRand_106()
 
     return cos(2 * 3.14159 * x2) * sqrt(-2 * log(x1));
 }
+
+int findMaxNumberOfBlocksForKernel(int threadsPerBlock, int numberElements, const void *kernelPtr, size_t sharedMemBytes)
+{
+    // store the device id and number of SMs
+    int deviceId;
+    int numberOfSMs;
+
+    // get the device id and number of SMs
+    cudaGetDevice(&deviceId);
+    cudaDeviceGetAttribute(&numberOfSMs, cudaDevAttrMultiProcessorCount, deviceId);
+
+    // calculate the maximum number of blocks per SM for a given kernel
+    int blocksPerSm;
+
+    // calculate the maximum number of blocks per SM for the calcIonAccels_102 kernel
+    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&blocksPerSm, kernelPtr, threadsPerBlock, sharedMemBytes);
+
+    // calculate the maximum number of blocks that can be running at the same time in the GPU
+    int waveSize = numberOfSMs * blocksPerSm;
+
+    // set the minimum number of blocks to coverage all the ions
+    int minimumNumberOfBlocks = (numberElements + 1) / threadsPerBlock;
+
+    // set the number of wave to cover all the ions
+    int numWaves = (minimumNumberOfBlocks + waveSize - 1) / waveSize;
+
+    // set the number of blocks to cover all the ions and to avoid partial waves
+    int numberOfBlocks = waveSize * numWaves;
+
+    return numberOfBlocks;
+}
