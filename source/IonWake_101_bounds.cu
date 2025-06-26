@@ -379,7 +379,7 @@ __global__ void injectIonCylinder_101(
 
         float velScale = __fsqrt_rn(3.0 * (*d_BOLTZMANN) * (*d_TEMP_ION) / *d_MASS_SINGLE_ION);
 
-        float driftVelIon = (*d_SOUND_SPEED) * (*d_MACH);
+        float driftVelIon = (*d_SOUND_SPEED) * abs(*d_MACH);
 
         float normDriftVel = driftVelIon / velScale;
 
@@ -487,38 +487,20 @@ __global__ void injectIonCylinder_101(
                 d_posIon[IDion].y = (randNum * 2.0 - 1.0) * *d_RAD_CYL;
 
                 // See if this position is inside the cylinder
-                dist =
-                    d_posIon[IDion].x * d_posIon[IDion].x + d_posIon[IDion].y * d_posIon[IDion].y;
+                dist = d_posIon[IDion].x * d_posIon[IDion].x + d_posIon[IDion].y * d_posIon[IDion].y;
             }
         }
 
-        // polarity switching
-        if (xac == 1)
-        {
-            // d_posIon[IDion].z *= -1.0;
-            // d_velIon[IDion].z *= -1.0;
-            // xac == 1 means Ez points to -z, so need the
-            // position for injection to be at +z and velocity
-            // to point to -z.  Position will be positive as
-            // allocated above, so just need to check that
-            // velocity is negative
-            if (d_velIon[IDion].z > 0)
-            {
-                d_velIon[IDion].z = -d_velIon[IDion].z;
-            }
-        }
-        else
+        if (xac == 0)
         {
             // xac == 0 means Ez points to +z, so need the
             // position for injection to be at -z and velocity
-            // to point to +z.  Position will be positive as
-            // allocated above, so need to reset and check
-            // that velocity is positive
-            if (d_velIon[IDion].z < 0)
-            {
-                d_velIon[IDion].z = -d_velIon[IDion].z;
-            }
+            // to point to +z.  Position will be mostly positive
+            // and z components of the velocity will be mostrly negative as
+            // allocated above, so need to set that velocity is positive and
+            // position is negative for injection at bottom of the cylinder
             d_posIon[IDion].z = -d_posIon[IDion].z;
+            d_velIon[IDion].z = -d_velIon[IDion].z;
         }
 
         // reset the acceleration
@@ -1408,53 +1390,86 @@ Input:
 void outside_electric_field_eval_101(float *Er, float *Ez, float *outside_coeff, float2 *gridPos, int NUM_GRID_PTS, int N_COEFFS, int plasma_counter)
 {
     int page_coeff = plasma_counter * N_COEFFS;
-    float r[NUM_GRID_PTS], z[NUM_GRID_PTS];
+    float rho[NUM_GRID_PTS], Z[NUM_GRID_PTS];
 
     for (int i = 0; i < NUM_GRID_PTS; i++)
     {
-        r[i] = abs(gridPos[i].x);
-        z[i] = gridPos[i].y;
+        rho[i] = abs(gridPos[i].x);
+        Z[i] = gridPos[i].y;
     }
 
+    float outside_coeff1 = outside_coeff[page_coeff + 1];
+    float outside_coeff2 = outside_coeff[page_coeff + 2];
+    float outside_coeff3 = outside_coeff[page_coeff + 3];
+    float outside_coeff4 = outside_coeff[page_coeff + 4];
+    float outside_coeff5 = outside_coeff[page_coeff + 5];
+    float outside_coeff6 = outside_coeff[page_coeff + 6];
+    float outside_coeff7 = outside_coeff[page_coeff + 7];
+    float outside_coeff8 = outside_coeff[page_coeff + 8];
+    float outside_coeff9 = outside_coeff[page_coeff + 9];
+    float outside_coeff10 = outside_coeff[page_coeff + 10];
+    float outside_coeff11 = outside_coeff[page_coeff + 11];
+    float outside_coeff12 = outside_coeff[page_coeff + 12];
+    float outside_coeff13 = outside_coeff[page_coeff + 13];
+    float outside_coeff14 = outside_coeff[page_coeff + 14];
+    float outside_coeff15 = outside_coeff[page_coeff + 15];
+    float outside_coeff16 = outside_coeff[page_coeff + 16];
+    float outside_coeff17 = outside_coeff[page_coeff + 17];
+    float outside_coeff18 = outside_coeff[page_coeff + 18];
+    float outside_coeff19 = outside_coeff[page_coeff + 19];
+    float outside_coeff20 = outside_coeff[page_coeff + 20];
+    float outside_coeff21 = outside_coeff[page_coeff + 21];
+    float outside_coeff22 = outside_coeff[page_coeff + 22];
+    float outside_coeff23 = outside_coeff[page_coeff + 23];
+    float outside_coeff24 = outside_coeff[page_coeff + 24];
+
     for (int i = 0; i < NUM_GRID_PTS; i++)
     {
-        Er[i] = (outside_coeff[page_coeff + 1] * 1.0) +
-                (outside_coeff[page_coeff + 2] * r[i] * 2.0) +
-                (outside_coeff[page_coeff + 4] * r[i] * r[i] * 3.0) +
-                (outside_coeff[page_coeff + 5] * z[i] * z[i] * 1.0) +
-                (outside_coeff[page_coeff + 6] * r[i] * r[i] * r[i] * 4.0) +
-                (outside_coeff[page_coeff + 7] * z[i] * z[i] * r[i] * 2.0) +
-                (outside_coeff[page_coeff + 9] * r[i] * r[i] * r[i] * r[i] * 5.0) +
-                (outside_coeff[page_coeff + 10] * z[i] * z[i] * r[i] * r[i] * 3.0) +
-                (outside_coeff[page_coeff + 11] * z[i] * z[i] * z[i] * z[i] * 1.0) +
-                (outside_coeff[page_coeff + 12] * r[i] * r[i] * r[i] * r[i] * r[i] * 6.0) +
-                (outside_coeff[page_coeff + 13] * z[i] * z[i] * r[i] * r[i] * r[i] * 4.0) +
-                (outside_coeff[page_coeff + 14] * z[i] * z[i] * z[i] * z[i] * r[i] * 2.0) +
-                (outside_coeff[page_coeff + 16] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 7.0) +
-                (outside_coeff[page_coeff + 17] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * 5.0) +
-                (outside_coeff[page_coeff + 18] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * 3.0) +
-                (outside_coeff[page_coeff + 19] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * 1.0) +
-                (outside_coeff[page_coeff + 20] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 8.0) +
-                (outside_coeff[page_coeff + 21] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * 6.0) +
-                (outside_coeff[page_coeff + 22] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * 4.0) +
-                (outside_coeff[page_coeff + 23] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * 2.0);
+        float r = rho[i];
+        float r2 = r * r;
+        float r4 = r2 * r2;
 
-        Ez[i] = (outside_coeff[page_coeff + 3] * 2.0 * z[i]) +
-                (outside_coeff[page_coeff + 5] * 2.0 * z[i] * r[i]) +
-                (outside_coeff[page_coeff + 7] * 2.0 * z[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 8] * 4.0 * z[i] * z[i] * z[i]) +
-                (outside_coeff[page_coeff + 10] * 2.0 * z[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 11] * 4.0 * z[i] * z[i] * z[i] * r[i]) +
-                (outside_coeff[page_coeff + 13] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 14] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 15] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i]) +
-                (outside_coeff[page_coeff + 17] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 18] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 19] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i] * r[i]) +
-                (outside_coeff[page_coeff + 21] * 2.0 * z[i] * r[i] * r[i] * r[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 22] * 4.0 * z[i] * z[i] * z[i] * r[i] * r[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 23] * 6.0 * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]) +
-                (outside_coeff[page_coeff + 24] * 8.0 * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
+        float z = Z[i];
+        float z2 = z * z;
+        float z4 = z2 * z2;
+
+        Er[i] = (outside_coeff1 * 1.0f) +                // independent term
+                (outside_coeff2 * r * 2.0f) +            // r
+                (outside_coeff4 * r2 * 3.0f) +           // r^2
+                (outside_coeff5 * z2 * 1.0f) +           // z^2
+                (outside_coeff6 * r2 * r * 4.0f) +       // r^3
+                (outside_coeff7 * z2 * r * 2.0f) +       // z^2 r
+                (outside_coeff9 * r4 * 5.0f) +           // r^4
+                (outside_coeff10 * z2 * r2 * 3.0f) +     // z^2 r^2
+                (outside_coeff11 * z4 * 1.0f) +          // z^4
+                (outside_coeff12 * r4 * r * 6.0f) +      // r^5
+                (outside_coeff13 * z2 * r2 * r * 4.0f) + // z^2 r^3
+                (outside_coeff14 * z4 * r * 2.0f) +      // z^4 r
+                (outside_coeff16 * r4 * r2 * 7.0f) +     // r^6
+                (outside_coeff17 * z2 * r4 * 5.0f) +     // z^2 r^4
+                (outside_coeff18 * z4 * r2 * 3.0f) +     // z^4 r^2
+                (outside_coeff19 * z4 * z2 * 1.0f) +     // z^6
+                (outside_coeff20 * r4 * r2 * r * 8.0f) + // r^7
+                (outside_coeff21 * z2 * r4 * r * 6.0f) + // z^2 r^5
+                (outside_coeff22 * z4 * r2 * r * 4.0f) + // z^4 r^3
+                (outside_coeff23 * z4 * z2 * r * 2.0f);  // z^6 r
+
+        Ez[i] = (outside_coeff3 * 2.0f * z) +                // z
+                (outside_coeff5 * 2.0f * z * r) +            // z r
+                (outside_coeff7 * 2.0f * z * r2) +           // z r^2
+                (outside_coeff8 * 4.0f * z2 * z) +           // z^3
+                (outside_coeff10 * 2.0f * z * r2 * r) +      // z r^3
+                (outside_coeff11 * 4.0f * z2 * z * r) +      // z^3 r
+                (outside_coeff13 * 2.0f * z * r4) +          // z r^4
+                (outside_coeff14 * 4.0f * z2 * z * r2) +     // z^3 r^2
+                (outside_coeff15 * 6.0f * z4 * z) +          // z^5
+                (outside_coeff17 * 2.0f * z * r4 * r) +      // z r^5
+                (outside_coeff18 * 4.0f * z2 * z * r2 * r) + // z^3 r^3
+                (outside_coeff19 * 6.0f * z4 * z * r) +      // z^5 r
+                (outside_coeff21 * 2.0f * z * r4 * r2) +     // z r^6
+                (outside_coeff22 * 4.0f * z2 * z * r4) +     // z^3 r^4
+                (outside_coeff23 * 6.0f * z4 * z * r2) +     // z^5 r^2
+                (outside_coeff24 * 8.0f * z4 * z2 * z);      // z^7
     }
 }
 
