@@ -975,6 +975,115 @@ __global__ void calcIonDensityPotential_102(const int NUM_GRID_PTS, float2 *d_gr
     d_ionDensityXZ[IDgrid] = __fmaf_rn(densCrntGridXZ, invVolume, d_ionDensityXZ[IDgrid]);
 }
 
+__global__ void calcIonDensityPotential_3D_102(const int NUM_GRID_PTS_3D, float3 *d_gridPos3D, float4 *d_posIon,
+                                               float *const d_COULOMB_CONST, float *const d_INV_DEBYE,
+                                               int *const d_NUM_ION, float *d_ionPotential3D,
+                                               float *d_ionDensity3D)
+
+{
+    //  This is done for every grid point, so threadIdx, blockDim, and blockIdx
+    // need to be calculated based on the number of grid points.
+    // grid point ID
+    int IDgrid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    // check if the thread is out of bounds
+    if (IDgrid >= NUM_GRID_PTS_3D)
+    {
+        return; // out of bounds
+    }
+
+    // get the current grid point coordinates
+    float3 gridPos3D = d_gridPos3D[IDgrid];
+
+    // initialize variables
+    float potCrntGrid = 0;
+    float densCrntGrid = 0;
+    int tileThreadID;
+    float r_dens = 1.0f / (6.0f * *d_INV_DEBYE);
+    float volume = 4.0f / 3.0f * 3.141593f * r_dens * r_dens * r_dens;
+    float invVolume = 1.0f / volume;
+
+    // allocate shared memory
+    extern __shared__ float4 sharedPos[];
+
+    // loop over all of the ions by using tiles, where each tile is a section
+    // of the ions that is loaded into shared memory. Each tile consists of
+    // as many ions as the block size. Each thread is responsible for loading
+    // one ion position for the tile.
+    for (int tileOffset = 0; tileOffset < *d_NUM_ION; tileOffset += blockDim.x)
+    {
+        // the index of the ion for the thread to load
+        // for the current tile
+        tileThreadID = tileOffset + threadIdx.x;
+
+        // load in an ion position
+        if (tileThreadID < *d_NUM_ION)
+        {
+            sharedPos[threadIdx.x] = d_posIon[tileThreadID];
+        }
+
+        // wait for all threads to load the current position
+        __syncthreads();
+
+        // loop over all of the ions loaded in the tile
+        for (int h = 0; h < blockDim.x; h++)
+        {
+            // calculate the distance between the ion in shared
+            // memory and the current grid point.
+
+            // get the charge of the current ion
+            float ionCharge = sharedPos[h].w;
+
+            // Calculating the ion potential and density in 3D
+            float3 dist;
+            dist.x = gridPos3D.x - sharedPos[h].x;
+            dist.y = gridPos3D.y - sharedPos[h].y;
+            dist.z = gridPos3D.z - sharedPos[h].z;
+
+            // calculate the distance squared between the ion and the current grid point
+            float distSquared = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
+
+            //  find the inverse of the squared root of the squared distance in the XZ plane. invDistanceXZ = 1/√r²
+            float invDistance = rsqrtf(distSquared);
+
+            // find the distance between the ion and the current grid point. r = r² * 1/√r²(it is faster than sqrt)
+            float hardDistance = __fmul_rn(distSquared, invDistance);
+
+            // define the soft distance to avoid singularity
+            float softDistance = hardDistance + 1e-9f;
+
+            // find the inverse of the soft distance
+            float invSoftDistance = 1.0f / softDistance;
+
+            // define a coefficient to write shorter expressions
+            float coeff = __fmul_rn(hardDistance, *d_INV_DEBYE);
+
+            // get the exponential term
+            float expTerm = __expf(-coeff);
+
+            // Calculate the potential
+            potCrntGrid = __fmaf_rn(ionCharge, __fmul_rn(expTerm, invSoftDistance), potCrntGrid);
+
+            if (hardDistance <= r_dens)
+            {
+                // Update density.  sharedPos[h].w is the total charge on
+                // this super-ion=SUPER_ION_MULT*CHARGE_SINGLE_ION. The density
+                // is SUPER_ION_MULT*DEN_IONS. Need to divide by
+                // CHARGE_SINGLE_ION before printing.
+                densCrntGrid += ionCharge;
+            }
+
+        } // end loop over ion in tile
+
+        // wait for all threads to finish calculations
+        __syncthreads();
+    } // end loop over tiles
+
+    // save to global memory
+    d_ionPotential3D[IDgrid] = __fmaf_rn(*d_COULOMB_CONST, potCrntGrid, d_ionPotential3D[IDgrid]);
+    d_ionDensity3D[IDgrid] = __fmaf_rn(densCrntGrid, invVolume, d_ionDensity3D[IDgrid]);
+}
+
 /*
  * Name: zeroIonDensityPotential_102
  * Created: 5/21/2018
@@ -1006,13 +1115,18 @@ __global__ void calcIonDensityPotential_102(const int NUM_GRID_PTS, float2 *d_gr
  *
  */
 
-__global__ void zeroIonDensityPotential_102(float *d_ionPotential, float *d_ionDensity)
+__global__ void zeroIonDensityPotential_102(int gridPoints, float *d_ionPotential, float *d_ionDensity)
 {
 
     //  This is done for every grid point, so threadIdx, blockDim, and blockIdx
     // need to be calculated based on the number of grid points.
     // grid point ID
     int IDgrid = threadIdx.x + blockDim.x * blockIdx.x;
+
+    if (IDgrid >= gridPoints)
+    {
+        return; // out of bounds
+    }
 
     d_ionDensity[IDgrid] = 0;
     d_ionPotential[IDgrid] = 0;

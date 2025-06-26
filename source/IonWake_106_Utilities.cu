@@ -219,3 +219,55 @@ int findMaxNumberOfBlocksForKernel(int threadsPerBlock, int numberElements, cons
 
     return numberOfBlocks;
 }
+
+std::vector<float3> create3DMesh(float3 centerCube, float3 gridHalfSize, int3 gridResolution)
+{
+    // get the cube center
+    float centerCubeX = centerCube.x;
+    float centerCubeY = centerCube.y;
+    float centerCubeZ = centerCube.z;
+
+    // get the grid half size in x, y, and z directions
+    float gridHalfSizeX = gridHalfSize.x;
+    float gridHalfSizeY = gridHalfSize.y;
+    float gridHalfSizeZ = gridHalfSize.z;
+
+    // get the grid resolution in x, y, and z directions
+    int gridResolutionX = gridResolution.x;
+    int gridResolutionY = gridResolution.y;
+    int gridResolutionZ = gridResolution.z;
+
+    // increment in x, y, and z directions
+    float incrementX = 2 * gridHalfSizeX / (gridResolutionX - 1);
+    float incrementY = 2 * gridHalfSizeY / (gridResolutionY - 1);
+    float incrementZ = 2 * gridHalfSizeZ / (gridResolutionZ - 1);
+
+    // create the  3D mesh centered around the grain
+    std::vector<float3> mesh3D;
+
+    // loop over the z direction
+    for (int k = 0; k < gridResolutionZ; k++)
+    {
+        // node in the z direction
+        float z = -gridHalfSizeZ + k * incrementZ + centerCubeZ;
+
+        // loop over the j direction
+        for (int j = 0; j < gridResolutionY; j++)
+        {
+            // node in the x direction
+            float y = -gridHalfSizeY + j * incrementY + centerCubeY;
+
+            // loop over the x direction
+            for (int i = 0; i < gridResolutionX; i++)
+            {
+                // node in the x direction
+                float x = -gridHalfSizeX + i * incrementX + centerCubeX;
+
+                // add the node to the mesh
+                mesh3D.push_back(make_float3(x, y, z));
+            }
+        }
+    }
+
+    return mesh3D;
+}

@@ -111,6 +111,10 @@ int main(int argc, char *argv[])
     fileName = dataDirName + runName + "_ion_den.txt";
     std::ofstream ionDensOutFile(fileName.c_str());
 
+    // open an output file for outputting the grid data in 3D (grid points, ion density and ion potential)
+    fileName = dataDirName + runName + "_ion_den_3D.txt";
+    std::ofstream ionDens3DOutFile(fileName.c_str());
+
     // open an output file for outputting the outside ion boundary data
     fileName = dataDirName + runName + "_outside_potential.txt";
     std::ofstream ionPotOutsideFile(fileName.c_str());
@@ -939,6 +943,10 @@ int main(int argc, char *argv[])
     float *ionDensity = NULL;
     float *ionPotential = NULL;
 
+    // pointer for grid positions, potentials, and ion density in 3D
+    float *ionDensity3D = NULL;
+    float *ionPotential3D = NULL;
+
     // amount of memory required for the grid variables
     int memFloat2Grid = NUM_GRID_PTS * sizeof(float2);
     int memFloatGrid = NUM_GRID_PTS * sizeof(float);
@@ -954,10 +962,32 @@ int main(int argc, char *argv[])
         for (int x = 0; x < RESX; x++)
         {
             gridPos[RESX * z + x].x = (-(RAD_CYL * grid_factor) + dx / 2.0 + dx * x);
-            // gridPos[RESX* z + x].y = 0;
             gridPos[RESX * z + x].y = (-HT_CYL * grid_factor + dz / 2.0 + dz * z);
         }
     }
+
+    // define the center of the cube
+    float3 centerCube = make_float3(0.0, 0.0, 0.0);
+
+    // define the side of the grid in x, y, and z directions
+    float3 gridHalfSize;
+    gridHalfSize.x = RAD_CYL * grid_factor;
+    gridHalfSize.y = gridHalfSize.x;
+    gridHalfSize.z = HT_CYL * grid_factor;
+
+    // define the resolution of the grid
+    int3 gridResolution = make_int3(RESX, RESX, RESZ);
+
+    //  create the 3D mesh to calculate the ion number density and ion potential
+    std::vector<float3> gridPos3D = create3DMesh(centerCube, gridHalfSize, gridResolution);
+
+    // get the number of points in the 3D grid inside the cylinder
+    int NUM_GRID_PTS_3D = gridPos3D.size();
+    int memFloatGrid_3D = NUM_GRID_PTS_3D * sizeof(float);
+
+    // allocate memory for the 3D grid variables
+    ionDensity3D = (float *)malloc(memFloatGrid_3D);
+    ionPotential3D = (float *)malloc(memFloatGrid_3D);
 
     // output all of the grid positions such that matlab can read them in
     for (int j = 0; j < NUM_GRID_PTS; j++)
@@ -967,13 +997,20 @@ int main(int argc, char *argv[])
     }
     ionDensOutFile << "" << std::endl;
 
+    // output all of the 3D grid positions
+    for (int j = 0; j < NUM_GRID_PTS_3D; j++)
+    {
+        ionDens3DOutFile << gridPos3D[j].x;
+        ionDens3DOutFile << ", " << gridPos3D[j].y;
+        ionDens3DOutFile << ", " << gridPos3D[j].z << std::endl;
+    }
+    ionDens3DOutFile << "" << std::endl;
+
     paramOutFile << std::setw(14) << NUM_GRID_PTS << " % NUM_GRID_PTS\n";
+    paramOutFile << std::setw(14) << NUM_GRID_PTS_3D << " % NUM_GRID_PTS_3D\n";
     paramOutFile << std::setw(14) << RESX << " % RESX\n";
     paramOutFile << std::setw(14) << RESZ << " % RESZ\n";
     paramOutFile.flush();
-
-    // number of blocks per grid for density and potential grid points
-    int blocksPerGridGrid = (NUM_GRID_PTS + 1) / DIM_BLOCK;
 
     // set the number of threads per block for the calcIonAccels_102 kernel
     int threadsPerBlock = 128;
@@ -981,11 +1018,17 @@ int main(int argc, char *argv[])
     // set the number of threads per block for the calcIonDensityPotential_102 kernel
     int threadsPerBlock2 = 64;
 
+    // set the number of threads per block for the calcIonDensityPotential_3D_102 kernel
+    int threadsPerBlock3 = 128;
+
     // optimum number of blocks for the calcIonAccels_102 kernel
     int numberOfBlocks = findMaxNumberOfBlocksForKernel(threadsPerBlock, NUM_ION, reinterpret_cast<const void *>(calcIonAccels_102), sizeof(float4) * threadsPerBlock);
 
     // optimum number of blocks for the calcIonDensityPotential_102 kernel
     int numberOfBlocks2 = findMaxNumberOfBlocksForKernel(threadsPerBlock2, NUM_GRID_PTS, reinterpret_cast<const void *>(calcIonDensityPotential_102), sizeof(float4) * threadsPerBlock2);
+
+    // optimum number of blocks for the calcIonDensityPotential_3D_102 kernel
+    int numberOfBlocks3 = findMaxNumberOfBlocksForKernel(threadsPerBlock3, NUM_GRID_PTS_3D, reinterpret_cast<const void *>(calcIonDensityPotential_3D_102), sizeof(float4) * threadsPerBlock3);
 
     /******  Calculations of the Outside Ions Potential  *******/
     /** Integrate over the potential from ions
@@ -1570,6 +1613,9 @@ int main(int argc, char *argv[])
     CUDAvar<float2> d_gridPos(gridPos, NUM_GRID_PTS);
     CUDAvar<float> d_ionPotential(ionPotential, NUM_GRID_PTS);
     CUDAvar<float> d_ionDensity(ionDensity, NUM_GRID_PTS);
+    CUDAvar<float3> d_gridPos3D(gridPos3D.data(), NUM_GRID_PTS_3D);
+    CUDAvar<float> d_ionPotential3D(ionPotential3D, NUM_GRID_PTS_3D);
+    CUDAvar<float> d_ionDensity3D(ionDensity3D, NUM_GRID_PTS_3D);
     CUDAvar<float> d_SIGMA_I1(sigma_i1, I_CS_RANGES + 1);
     CUDAvar<float> d_SIGMA_I2(sigma_i2, I_CS_RANGES + 1);
     CUDAvar<float> d_SIGMA_I_TOT(sigma_i_tot, I_CS_RANGES + 1);
@@ -1605,6 +1651,9 @@ int main(int argc, char *argv[])
     d_gridPos.hostToDev();
     d_ionPotential.hostToDev();
     d_ionDensity.hostToDev();
+    d_gridPos3D.hostToDev();
+    d_ionPotential3D.hostToDev();
+    d_ionDensity3D.hostToDev();
     d_SIGMA_I1.hostToDev();
     d_SIGMA_I2.hostToDev();
     d_SIGMA_I_TOT.hostToDev();
@@ -1765,10 +1814,15 @@ int main(int argc, char *argv[])
 
     d_outside_coeff.hostToDev();
     // Set the potential and density of ions on the grid to zero
-    zeroIonDensityPotential_102<<<blocksPerGridGrid, DIM_BLOCK>>>(d_ionPotential.getDevPtr(),
-                                                                  d_ionDensity.getDevPtr());
+    zeroIonDensityPotential_102<<<numberOfBlocks2, threadsPerBlock2>>>(
+        NUM_GRID_PTS, d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
 
     roadBlock_104(statusFile, __LINE__, __FILE__, "zeroIonDensityPotential", print);
+
+    // zeroIonDensityPotential_102<<<numberOfBlocks3, threadsPerBlock3>>>(NUM_GRID_PTS_3D, d_ionPotential3D.getDevPtr(),
+    //                                                                    d_ionDensity3D.getDevPtr());
+
+    // roadBlock_104(statusFile, __LINE__, __FILE__, "zeroIonDensityPotential3D", print);
 
     // zero the ionDustAcc
     zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK>>>(
@@ -1955,6 +2009,16 @@ int main(int argc, char *argv[])
                                                                                d_NUM_ION.getDevPtr(), d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
 
             roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential", print);
+
+            // calc ion number density and ion potential in 3D
+            // calcIonDensityPotential_3D_102<<<numberOfBlocks3, threadsPerBlock3,
+            //                                  sizeof(float4) * threadsPerBlock3>>>(
+            //     NUM_GRID_PTS_3D,
+            //     d_gridPos3D.getDevPtr(),
+            //     d_posIon.getDevPtr(), d_COULOMB_CONST.getDevPtr(), d_INV_DEBYE.getDevPtr(),
+            //     d_NUM_ION.getDevPtr(), d_ionPotential3D.getDevPtr(), d_ionDensity3D.getDevPtr());
+
+            // roadBlock_104(statusFile, __LINE__, __FILE__, "ionDensityPotential3D", print);
 
             // polarity switching of electric field
             // Need to track dust_time + ion_time
@@ -2624,6 +2688,8 @@ int main(int argc, char *argv[])
             // copy ion density and potential to host
             d_ionDensity.devToHost();
             d_ionPotential.devToHost();
+            d_ionDensity3D.devToHost();
+            d_ionPotential3D.devToHost();
 
             roadBlock_104(statusFile, __LINE__, __FILE__,
                           "Copy d_ionDensity and d_ionPotential to Host", print);
@@ -2640,11 +2706,23 @@ int main(int argc, char *argv[])
             }
             ionDensOutFile << std::endl;
 
+            for (int j = 0; j < NUM_GRID_PTS_3D; j++)
+            {
+                ionDens3DOutFile << ionDensity3D[j] / N / N_IONDT_PER_DUSTDT / CHARGE_SINGLE_ION;
+                ionDens3DOutFile << ", " << ionPotential3D[j] / N / N_IONDT_PER_DUSTDT;
+                ionDens3DOutFile << std::endl;
+            }
+
             // reset the potential and density to zero
-            zeroIonDensityPotential_102<<<blocksPerGridGrid, DIM_BLOCK>>>(
-                d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
+            zeroIonDensityPotential_102<<<numberOfBlocks2, threadsPerBlock2>>>(
+                NUM_GRID_PTS, d_ionPotential.getDevPtr(), d_ionDensity.getDevPtr());
 
             roadBlock_104(statusFile, __LINE__, __FILE__, "zeroIonDensityPotential_102", print);
+
+            // zeroIonDensityPotential_102<<<numberOfBlocks3, threadsPerBlock3>>>(
+            //     NUM_GRID_PTS_3D, d_ionPotential3D.getDevPtr(), d_ionDensity3D.getDevPtr());
+
+            // roadBlock_104(statusFile, __LINE__, __FILE__, "zeroIonDensityPotential3D_102", print);
         }
 
         // ****** Print the Ion Forces on the Dust ****** //

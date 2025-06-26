@@ -332,6 +332,25 @@ __global__ void calcIonDensityPotential_102(const int, float2 *, float4 *,
                                             int *const, float *,
                                             float *);
 
+/**
+ * @brief calculate the ion density and potential on the 3D grid
+ *
+ * @param NUM_GRID_PTS_3D
+ * @param d_gridPos3D
+ * @param d_posIon
+ * @param d_COULOMB_CONST
+ * @param d_INV_DEBYE
+ * @param d_NUM_ION
+ * @param d_ionPotential3D
+ * @param d_ionDensity3D
+ * @return __global__
+ */
+
+__global__ void calcIonDensityPotential_3D_102(const int, float3 *, float4 *,
+                                               float *const, float *const,
+                                               int *const, float *,
+                                               float *);
+
 /*
  *  Name: zeroIonDensityPotential_102
  *  Created: 5/21/2018
@@ -362,5 +381,5 @@ __global__ void calcIonDensityPotential_102(const int, float2 *, float4 *,
  *	device_launch_parameters.h
  *
  */
-__global__ void zeroIonDensityPotential_102(float *, float *);
+__global__ void zeroIonDensityPotential_102(int, float *, float *);
 #endif

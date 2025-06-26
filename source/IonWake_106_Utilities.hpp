@@ -32,6 +32,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 /*
  * Name: findMax_106
@@ -142,5 +143,12 @@ float normRand_106();
  *
  */
 int findMaxNumberOfBlocksForKernel(int, int, const void *, size_t);
+
+/**
+ * @brief function to create a tridimensional mesh
+ *
+ * @return std::vector<float3>
+ */
+std::vector<float3> create3DMesh(float3, float3, int3);
 
 #endif // IONWAKE_106_UTILITIES
