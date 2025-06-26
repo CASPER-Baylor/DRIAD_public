@@ -1,3 +1,10 @@
+# options to run the code locally
+run_local_gpu0: SHELL := /bin/bash
+run_local_gpu0: .SHELLFLAGS := -i -c
+
+run_local_gpu1: SHELL := /bin/bash
+run_local_gpu1: .SHELLFLAGS := -i -c
+
 # variable to store the build directory
 buildDirectory:=build
 # variable to store the source directory
@@ -60,6 +67,23 @@ run_local:
 	./setup_run.sh $$name && \
 	./runLocal.sh $$name &&\
 	echo "------Code running------"
+
+# function to run the code into a job
+run_local_gpu0:
+	# set job name, copy binary file and run the binary file
+	@read -p "Name of Job: " name &&  \
+	cd ../DRIAD_run_scripts && \
+	./setup_run.sh $$name && \
+	tsgpu0 ./runLocal.sh $$name &&\
+	echo "------Code running in GPU 0------"
+
+run_local_gpu1:
+	# set job name, copy binary file and run the binary file
+	@read -p "Name of Job: " name &&  \
+	cd ../DRIAD_run_scripts && \
+	./setup_run.sh $$name && \
+	tsgpu1 ./runLocal.sh $$name &&\
+	echo "------Code running in GPU 1------"
 	
 # check the status of a job
 status:
@@ -78,3 +102,7 @@ kill_job:
 kill_local:
 	@read -p "Name of Job: " name && \
 	cd ../DRIAD_run_scripts && ./deleteLocal.sh $$name	
+
+kill_all:
+	cd ../DRIAD_run_scripts && ./deleteAll.sh
+	echo "------All the jobs were deleted------"

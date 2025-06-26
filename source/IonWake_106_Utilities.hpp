@@ -60,7 +60,8 @@
 float findMax_106(float val[], int numVals);
 int findMax_106(int val[], int numVals);
 
-template <typename T> T getParam_106(std::ifstream &file, std::string param_name)
+template <typename T>
+T getParam_106(std::ifstream &file, std::string param_name)
 {
     // holds lines from the file
     std::string string_line;
@@ -135,5 +136,11 @@ int findMin_106(int val[], int numVals);
  */
 
 float normRand_106();
+
+/**
+ * @brief function to get the maximum number of blocks for a kernel
+ *
+ */
+int findMaxNumberOfBlocksForKernel(int, int, const void *, size_t);
 
 #endif // IONWAKE_106_UTILITIES
