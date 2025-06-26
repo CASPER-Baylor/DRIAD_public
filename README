@@ -6,9 +6,9 @@ CMakeList:
 
 
 MakeFile:
-	For compiling, running and checking the code, you need to open the Terminal in the IonWake folder and write the word make from the Terminal  and selecting one of the options below.
+	For compiling, running and checking the code, you need to open the Terminal in the IonWake folder and write the word "make" in the Terminal window and selecting one of the options below.
 
-	Makefile options:
+	Makefile options:(preface all these commands with "make")
 	
 		build_debug: function to build the code in debug mode(slower but more detailed).
 
@@ -16,12 +16,29 @@ MakeFile:
 
 		clean: function to remove the build directory.
 
-		run: function to run the code.
+		run_job: function to run the code in a job(KODIAK).
+
+		run_local: function to run the code in a stand alone machine.
+
+		run_local_gpu0: function to run the code in a standalone machine(QUEUE)
+
+		run_local_gpu1: function to run the code in a standalone machine(QUEUE)
+
+		kill_job: function to delete the job(KODIAK).
+
+		kill_local: function to delete the job in a standalone.
+
+		kill_all: function to kill all your jobs(KODIAK).
 
 		status: check the status of a job.
 
 		info: get errors and extra informations of the job.
 
+		tsgpu0 -K or tsgpu1 -K: it deletes your pending jobs in the standalone specific gpu.
+		
+		tsgpu0 or tsgpu1: it returns the job manager.
+
+		tsgpu0 piD(job ID/ process ID) or tsgpu1 piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
 
 Input Files
 	
