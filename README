@@ -4,6 +4,9 @@ CMakeList:
 	Important:
 	If it is used templates in some file, you CANNOT include this file in the CMakelist otherwise you will obtain a duplicate definition error. Also, if you split the implementation(.h or .hpp) from the definition(.cu or .cpp) you must include in the main file the .cu or cpp directly instead of include the .h or .hpp.
 
+	To run code locally, it must be comment out in the CMakeLists.txt the line:
+	set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.3/toolkit/12.3.2/bin/nvcc")
+
 
 MakeFile:
 	For compiling, running and checking the code, you need to open the Terminal in the IonWake folder and write the word "make" in the Terminal window and selecting one of the options below.
@@ -18,7 +21,7 @@ MakeFile:
 
 		run_job: function to run the code in a job(KODIAK).
 
-		run_local: function to run the code in a stand alone machine.
+		run_local: function to run the code in a standalone machine.
 
 		run_local_gpu0: function to run the code in a standalone machine(QUEUE)
 
@@ -34,11 +37,15 @@ MakeFile:
 
 		info: get errors and extra informations of the job.
 
-		tsgpu0 -K or tsgpu1 -K: it deletes your pending jobs in the standalone specific gpu.
-		
-		tsgpu0 or tsgpu1: it returns the job manager.
+QUEUE commands for the local PCs:
 
-		tsgpu0 piD(job ID/ process ID) or tsgpu1 piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
+	tsgpu0 or tsgpu1: it returns the queue manager.
+
+	tsgpu0 -K or tsgpu1 -K: it deletes your pending code executions in the standalone specific gpu.
+		
+	tsgpu0 piD(job ID/ process ID) or tsgpu1 piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
+
+	tsgpu0 -C or tsgpu1 -C: it cleans from queue manager the fnished code exections.
 
 Input Files
 	
