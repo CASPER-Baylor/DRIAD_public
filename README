@@ -43,9 +43,11 @@ QUEUE commands for the local PCs:
 
 	tsgpu0 -K or tsgpu1 -K: it deletes your pending code executions in the standalone specific gpu.
 		
-	tsgpu0 piD(job ID/ process ID) or tsgpu1 piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
+	tsgpu0 -k piD(job ID/ process ID) or tsgpu1 -k piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
 
-	tsgpu0 -C or tsgpu1 -C: it cleans from queue manager the fnished code exections.
+	tsgpu0 -C or tsgpu1 -C: it cleans the finished code exections from the queue manager.
+
+	For more information: https://github.com/justanhduc/task-spooler#manual
 
 Input Files
 	
