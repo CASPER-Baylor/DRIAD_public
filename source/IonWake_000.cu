@@ -1957,7 +1957,6 @@ int main(int argc, char *argv[])
     roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", print);
 
     /****** Time Step Loop ******/
-    float flip_Ez = 1.0; // for changing dir of Ez with DC switch
 
     for (int i = 1; i <= NUM_TIME_STEP; i++)
     // NUM_TIME_STEP is the number of dust time steps
@@ -2334,7 +2333,6 @@ int main(int argc, char *argv[])
                     if (plasma_counter == TIME_EVOL)
                     {
                         plasma_counter = 0;
-                        flip_Ez = flip_Ez * (-1.0);
                     }
 
                     // copy variables to the host
@@ -2360,7 +2358,6 @@ int main(int argc, char *argv[])
                     DEN_IONS = evolni[plasma_counter];
                     MACH = evolMach[plasma_counter];
                     E_FIELD = evolEz[plasma_counter];
-                    E_FIELD = E_FIELD * flip_Ez;
                     DRIFT_VEL_ION = evolVz[plasma_counter];
                     E_FIELDR = evolEr[plasma_counter];
 
@@ -2704,7 +2701,6 @@ int main(int argc, char *argv[])
                 ionDensOutFile << ", " << ionPotential[j] / N / N_IONDT_PER_DUSTDT;
                 ionDensOutFile << std::endl;
             }
-            ionDensOutFile << std::endl;
 
             for (int j = 0; j < NUM_GRID_PTS_3D; j++)
             {
