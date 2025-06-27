@@ -1957,7 +1957,6 @@ int main(int argc, char *argv[])
     roadBlock_104(statusFile, __LINE__, __FILE__, "calcIonDustAcc_102 line 1734", print);
 
     /****** Time Step Loop ******/
-    float flip_Ez = 1.0; // for changing dir of Ez with DC switch
 
     for (int i = 1; i <= NUM_TIME_STEP; i++)
     // NUM_TIME_STEP is the number of dust time steps
