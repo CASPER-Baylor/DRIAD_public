@@ -2334,7 +2334,6 @@ int main(int argc, char *argv[])
                     if (plasma_counter == TIME_EVOL)
                     {
                         plasma_counter = 0;
-                        flip_Ez = flip_Ez * (-1.0);
                     }
 
                     // copy variables to the host
@@ -2360,7 +2359,6 @@ int main(int argc, char *argv[])
                     DEN_IONS = evolni[plasma_counter];
                     MACH = evolMach[plasma_counter];
                     E_FIELD = evolEz[plasma_counter];
-                    E_FIELD = E_FIELD * flip_Ez;
                     DRIFT_VEL_ION = evolVz[plasma_counter];
                     E_FIELDR = evolEr[plasma_counter];
 
@@ -2704,7 +2702,6 @@ int main(int argc, char *argv[])
                 ionDensOutFile << ", " << ionPotential[j] / N / N_IONDT_PER_DUSTDT;
                 ionDensOutFile << std::endl;
             }
-            ionDensOutFile << std::endl;
 
             for (int j = 0; j < NUM_GRID_PTS_3D; j++)
             {
