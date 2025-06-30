@@ -319,11 +319,12 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 
     // local variables
-    int mtemp, timeStepFactor;
+    int mtemp;
     float v2, speed;
     int max_depth = 8; // Maximum division of timestep = 2^8
     float timeStep, halfTimeStep;
     float3 oldIonPos;
+    int timeStepFactor = 1;
 
     // Reset the ion bounds flag to 0
     d_boundsIon[threadID] = 0;
@@ -342,37 +343,38 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
      * 30 is a factor which initial tests showed to work well  *
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-    // ion speed squared
-    v2 = velIon[threadID].x * velIon[threadID].x + velIon[threadID].y * velIon[threadID].y +
-         velIon[threadID].z * velIon[threadID].z;
-
-    // ion speed
-    speed = __fsqrt_rn(v2);
-
-    // v2 is being used to as an intermediat step in calculating m
-    v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / (d_minDistDust[threadID] - *d_RAD_DUST)) /
-         __logf(2.0);
-
-    // timestep depth
-    mtemp = ceil(v2);
-
-    // check that the timestep depth is within allowed bounds
-    if (mtemp < 0)
+    if (*d_NUM_DUST > 0)
     {
-        mtemp = 0;
-    }
-    else if (mtemp > max_depth)
-    {
-        mtemp = max_depth;
-    }
+        // ion speed squared
+        v2 = velIon[threadID].x * velIon[threadID].x + velIon[threadID].y * velIon[threadID].y +
+             velIon[threadID].z * velIon[threadID].z;
 
-    // calculate 2^(time step depth)
-    timeStepFactor = 1;
-    for (int i = 0; i < mtemp; i++)
-    {
-        timeStepFactor = timeStepFactor * 2;
-    }
+        // ion speed
+        speed = __fsqrt_rn(v2);
 
+        // v2 is being used to as an intermediat step in calculating m
+        v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / (d_minDistDust[threadID] - *d_RAD_DUST)) /
+             __logf(2.0);
+
+        // timestep depth
+        mtemp = ceil(v2);
+
+        // check that the timestep depth is within allowed bounds
+        if (mtemp < 0)
+        {
+            mtemp = 0;
+        }
+        else if (mtemp > max_depth)
+        {
+            mtemp = max_depth;
+        }
+
+        // calculate 2^(time step depth)
+        for (int i = 0; i < mtemp; i++)
+        {
+            timeStepFactor = timeStepFactor * 2;
+        }
+    }
     // Kick a one timestep with all forces except ion-dust force
     kick_dev(velIon + threadID, accIon + threadID, *d_TIME_STEP);
 
