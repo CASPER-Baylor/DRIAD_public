@@ -998,13 +998,13 @@ int main(int argc, char *argv[])
     ionDensOutFile << "" << std::endl;
 
     // output all of the 3D grid positions
-    for (int j = 0; j < NUM_GRID_PTS_3D; j++)
-    {
-        ionDens3DOutFile << gridPos3D[j].x;
-        ionDens3DOutFile << ", " << gridPos3D[j].y;
-        ionDens3DOutFile << ", " << gridPos3D[j].z << std::endl;
-    }
-    ionDens3DOutFile << "" << std::endl;
+    // for (int j = 0; j < NUM_GRID_PTS_3D; j++)
+    // {
+    //     ionDens3DOutFile << gridPos3D[j].x;
+    //     ionDens3DOutFile << ", " << gridPos3D[j].y;
+    //     ionDens3DOutFile << ", " << gridPos3D[j].z << std::endl;
+    // }
+    // ionDens3DOutFile << "" << std::endl;
 
     paramOutFile << std::setw(14) << NUM_GRID_PTS << " % NUM_GRID_PTS\n";
     paramOutFile << std::setw(14) << NUM_GRID_PTS_3D << " % NUM_GRID_PTS_3D\n";
@@ -2702,12 +2702,12 @@ int main(int argc, char *argv[])
                 ionDensOutFile << std::endl;
             }
 
-            for (int j = 0; j < NUM_GRID_PTS_3D; j++)
-            {
-                ionDens3DOutFile << ionDensity3D[j] / N / N_IONDT_PER_DUSTDT / CHARGE_SINGLE_ION;
-                ionDens3DOutFile << ", " << ionPotential3D[j] / N / N_IONDT_PER_DUSTDT;
-                ionDens3DOutFile << std::endl;
-            }
+            // for (int j = 0; j < NUM_GRID_PTS_3D; j++)
+            // {
+            //     ionDens3DOutFile << ionDensity3D[j] / N / N_IONDT_PER_DUSTDT / CHARGE_SINGLE_ION;
+            //     ionDens3DOutFile << ", " << ionPotential3D[j] / N / N_IONDT_PER_DUSTDT;
+            //     ionDens3DOutFile << std::endl;
+            // }
 
             // reset the potential and density to zero
             zeroIonDensityPotential_102<<<numberOfBlocks2, threadsPerBlock2>>>(
