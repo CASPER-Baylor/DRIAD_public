@@ -2404,6 +2404,10 @@ int main(int argc, char *argv[])
 
         if (NUM_DUST > 0)
         {
+            // the kernel sumDustIonAcc_103 to get the total ion acceleration over each dust grain
+            // is coded assuming that DIM_BLOCK=1024. If DIM_BLOCK is changed the kernel will
+            // NOT work properly
+
             sumDustIonAcc_103<<<NUM_DUST, DIM_BLOCK, sizeof(float4) * DIM_BLOCK>>>(
                 d_accDustIon.getDevPtr(), d_NUM_DUST.getDevPtr(), d_NUM_ION.getDevPtr());
 

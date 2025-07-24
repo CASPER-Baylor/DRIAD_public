@@ -114,54 +114,84 @@ __global__ void calcDustIonAcc_103(float4 *d_posIon, float4 *d_posDust, float4 *
 
 __global__ void sumDustIonAcc_103(float4 *d_accDustIon, int *const d_NUM_DUST, int *const d_NUM_ION)
 {
-    // accDustIon is NUM_DUST * NUM_ION long, with the accel for each dust grain aggregating to the
-    //		location accDustIon[dustID * NUM_ION] array positions
-    extern __shared__ float4 sumData[];
-    int tid = threadIdx.x;
+    // the kernel sumDustIonAcc_103 to get the total ion acceleration over each dust grain
+    // is coded assuming that DIM_BLOCK=1024. If DIM_BLOCK is changed the kernel will
+    // NOT work properly
 
-    sumData[tid].x = 0.0;
-    sumData[tid].y = 0.0;
-    sumData[tid].z = 0.0;
+    extern __shared__ float4 sumData[];
+
+    int tid = threadIdx.x;
     int i = blockIdx.x * *d_NUM_ION + threadIdx.x;
     int blockSize = blockDim.x;
-    int t = blockSize;
 
+    // Add data from all of the blocks of ions into first block
     while (i < (blockIdx.x + 1) * *d_NUM_ION)
     {
-        sumData[tid].x += d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
-        sumData[tid].y += d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
-        sumData[tid].z += d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
+        sumData[tid].x = d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
+        sumData[tid].y = d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
+        sumData[tid].z = d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
         i += 2 * blockSize;
+    }
+
+    __syncthreads();
+
+    if (tid < 512)
+    {
+        sumData[tid].x += sumData[tid + 512].x;
+        sumData[tid].y += sumData[tid + 512].y;
+        sumData[tid].z += sumData[tid + 512].z;
+    }
+    __syncthreads();
+    if (tid < 256)
+    {
+        sumData[tid].x += sumData[tid + 256].x;
+        sumData[tid].y += sumData[tid + 256].y;
+        sumData[tid].z += sumData[tid + 256].z;
+    }
+    __syncthreads();
+    if (tid < 128)
+    {
+        sumData[tid].x += sumData[tid + 128].x;
+        sumData[tid].y += sumData[tid + 128].y;
+        sumData[tid].z += sumData[tid + 128].z;
+    }
+    __syncthreads();
+    if (tid < 64)
+    {
+        sumData[tid].x += sumData[tid + 64].x;
+        sumData[tid].y += sumData[tid + 64].y;
+        sumData[tid].z += sumData[tid + 64].z;
     }
     __syncthreads();
 
-    while (t % 2 == 0)
+    if (tid < 32)
     {
-        t = t / 2;
-        if (tid < t)
-        {
-            sumData[tid].x += sumData[tid + t].x;
-            sumData[tid].y += sumData[tid + t].y;
-            sumData[tid].z += sumData[tid + t].z;
-        }
-        __syncthreads();
+        sumData[tid].x += sumData[tid + 32].x;
+        sumData[tid].y += sumData[tid + 32].y;
+        sumData[tid].z += sumData[tid + 32].z;
+        sumData[tid].x += sumData[tid + 16].x;
+        sumData[tid].y += sumData[tid + 16].y;
+        sumData[tid].z += sumData[tid + 16].z;
+        sumData[tid].x += sumData[tid + 8].x;
+        sumData[tid].y += sumData[tid + 8].y;
+        sumData[tid].z += sumData[tid + 8].z;
+        sumData[tid].x += sumData[tid + 4].x;
+        sumData[tid].y += sumData[tid + 4].y;
+        sumData[tid].z += sumData[tid + 4].z;
+        sumData[tid].x += sumData[tid + 2].x;
+        sumData[tid].y += sumData[tid + 2].y;
+        sumData[tid].z += sumData[tid + 2].z;
+        sumData[tid].x += sumData[tid + 1].x;
+        sumData[tid].y += sumData[tid + 1].y;
+        sumData[tid].z += sumData[tid + 1].z;
     }
+
     if (tid == 0)
     {
-        while (t > 1)
-        {
-            sumData[tid].x += sumData[t - 1].x;
-            sumData[tid].y += sumData[t - 1].y;
-            sumData[tid].z += sumData[t - 1].z;
-            t = t - 1;
-        }
         d_accDustIon[blockIdx.x * *d_NUM_ION].x = sumData[0].x;
         d_accDustIon[blockIdx.x * *d_NUM_ION].y = sumData[0].y;
         d_accDustIon[blockIdx.x * *d_NUM_ION].z = sumData[0].z;
     }
-
-    // i = tid + *d_NUM_ION;
-    //}
 }
 
 /*
