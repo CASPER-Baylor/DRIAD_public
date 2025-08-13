@@ -68,7 +68,7 @@ __global__ void calcDustIonAcc_103(float4 *d_posIon, float4 *d_posDust, float4 *
         dist.z = posIon.z - d_posDust[i].z;
 
         // distance between the ion and dust particle
-        sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z);
+        sDist = __fsqrt_rn(dist.x * dist.x + dist.y * dist.y + dist.z * dist.z) + 1e-9f;
 
         // calculate a scalar intermediate
         linForce = *d_DUST_ION_ACC_MULT * d_posDust[i].w * posIon.w / (sDist * sDist * sDist) *
@@ -124,12 +124,15 @@ __global__ void sumDustIonAcc_103(float4 *d_accDustIon, int *const d_NUM_DUST, i
     int i = blockIdx.x * *d_NUM_ION + threadIdx.x;
     int blockSize = blockDim.x;
 
+    // initialize shared memory
+    sumData[tid] = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
+
     // Add data from all of the blocks of ions into first block
     while (i < (blockIdx.x + 1) * *d_NUM_ION)
     {
-        sumData[tid].x = d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
-        sumData[tid].y = d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
-        sumData[tid].z = d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
+        sumData[tid].x += d_accDustIon[i].x + d_accDustIon[i + blockSize].x;
+        sumData[tid].y += d_accDustIon[i].y + d_accDustIon[i + blockSize].y;
+        sumData[tid].z += d_accDustIon[i].z + d_accDustIon[i + blockSize].z;
         i += 2 * blockSize;
     }
 
@@ -166,24 +169,34 @@ __global__ void sumDustIonAcc_103(float4 *d_accDustIon, int *const d_NUM_DUST, i
 
     if (tid < 32)
     {
+        // this last step occurs in the first warp.
+        // The operation intra-warp are not synchronized.
+        // Then, it must be synchronized before the next step.
+
         sumData[tid].x += sumData[tid + 32].x;
         sumData[tid].y += sumData[tid + 32].y;
         sumData[tid].z += sumData[tid + 32].z;
+        __syncwarp();
         sumData[tid].x += sumData[tid + 16].x;
         sumData[tid].y += sumData[tid + 16].y;
         sumData[tid].z += sumData[tid + 16].z;
+        __syncwarp();
         sumData[tid].x += sumData[tid + 8].x;
         sumData[tid].y += sumData[tid + 8].y;
         sumData[tid].z += sumData[tid + 8].z;
+        __syncwarp();
         sumData[tid].x += sumData[tid + 4].x;
         sumData[tid].y += sumData[tid + 4].y;
         sumData[tid].z += sumData[tid + 4].z;
+        __syncwarp();
         sumData[tid].x += sumData[tid + 2].x;
         sumData[tid].y += sumData[tid + 2].y;
         sumData[tid].z += sumData[tid + 2].z;
+        __syncwarp();
         sumData[tid].x += sumData[tid + 1].x;
         sumData[tid].y += sumData[tid + 1].y;
         sumData[tid].z += sumData[tid + 1].z;
+        __syncwarp();
     }
 
     if (tid == 0)
