@@ -14,7 +14,7 @@ set(CMAKE_CUDA_ARCHITECTURES 60 70 75)
 #set(CMAKE_CUDA_ARCHITECTURES 60 70 75 80)
 
 # path to the compiler in KODIAK
-set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.3/toolkit/12.3.2/bin/nvcc")
+set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.8/toolkit/12.8.0/bin/nvcc")
 
 # set the project language to C++
 project(IonWake LANGUAGES CUDA CXX)

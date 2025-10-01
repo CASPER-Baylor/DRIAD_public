@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     // open input file for evolving plasma parameters
     fileName = inputDirName + "_plasma_params.txt";
     std::ifstream plasmaParamFile(fileName.c_str());
-    if (!paramFile)
+    if (!plasmaParamFile)
     {
         fprintf(stderr, "ERROR on line number %d in file %s\n", __LINE__, __FILE__);
         fprintf(stderr, "ERROR: plasmaParamFile not open\n");
