@@ -2508,6 +2508,9 @@ int main(int argc, char *argv[])
                     }
 
                     // dustTraceFile << "j " << j << "\n";
+                }
+                for (int j = 0; j < NUM_DUST; j++)
+                {
 
                     // zero the acceleration
                     accDust[j].x = 0;
