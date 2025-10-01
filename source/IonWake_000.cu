@@ -516,6 +516,8 @@ int main(int argc, char *argv[])
     // external confinement
     const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
     const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
+    float Ez_sum = 0;   // in TIME_EVOL, it stores the axial electric over the ion time steps
+    float Ez_div_m = 0; // in TIME_EVOL, it stores the average axial electric field over the dust mass
     float Er_sum = 0;   // in TIME_EVOL used to apply avg radial Er
     float Er_div_m = 0; // in TIME_EVOL used to apply avg radial Er
     float dtdust_dtplasma = N_IONDT_PER_PLASMADT / N_IONDT_PER_DUSTDT;
@@ -1691,6 +1693,7 @@ int main(int argc, char *argv[])
         EXTERN_ELC_MULT = ((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
                           (CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) * (Q_DIV_M) /
                           (PERM_FREE_SPACE);
+        Ez_sum += E_FIELD;
         Er_sum += E_FIELDR;
         debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
     }
@@ -2376,7 +2379,7 @@ int main(int argc, char *argv[])
                     EXTERN_ELC_MULT = ((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
                                       (CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) * (Q_DIV_M) /
                                       (PERM_FREE_SPACE);
-
+                    Ez_sum += E_FIELD;
                     Er_sum += E_FIELDR;
 
                     // debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
@@ -2460,7 +2463,12 @@ int main(int argc, char *argv[])
                     // Average electric field gradient acting on dust
                     if (TIME_EVOL > 0)
                     {
+                        Ez_div_m = Ez_sum * dtdust_dtplasma / MASS_DUST;
                         Er_div_m = Er_sum * dtdust_dtplasma / MASS_DUST;
+
+                        // set to zero to start the average over the next dust time step
+                        Ez_sum = 0;
+                        Er_sum = 0;
                     }
                 }
 
@@ -2479,7 +2487,7 @@ int main(int argc, char *argv[])
                 d_posDust.devToHost();
 
                 dust_time += dust_dt;
-                dustTraceFile << dust_time << std::endl;
+                // dustTraceFile << dust_time << std::endl;
 
                 // loop over dust particles
                 for (int j = 0; j < NUM_DUST; j++)
@@ -2618,13 +2626,15 @@ int main(int argc, char *argv[])
                     }
 
                     // polarity switching
-                    q_div_m = (simCharge[j]) / MASS_DUST;
                     accDust[j].z +=
-                        q_div_m * E_FIELD *
+                        simCharge[j] * Ez_div_m *
                         (4.0 * floor(FREQ * dust_time) - 2.0 * floor(2.0 * FREQ * dust_time) + 1.);
 
                     if (USE_GRAV == 1)
                     {
+                        // auxialiary varible
+                        q_div_m = (simCharge[j]) / MASS_DUST;
+
                         // force due to gravity
                         accDust[j].z -= 9.81;
 
