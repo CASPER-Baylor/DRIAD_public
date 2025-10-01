@@ -2611,7 +2611,7 @@ int main(int argc, char *argv[])
 
                     // polarity switching
                     q_div_m = (simCharge[j]) / MASS_DUST;
-                    accDust[j].z -=
+                    accDust[j].z +=
                         q_div_m * E_FIELD *
                         (4.0 * floor(FREQ * dust_time) - 2.0 * floor(2.0 * FREQ * dust_time) + 1.);
 
