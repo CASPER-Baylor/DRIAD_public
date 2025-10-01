@@ -1220,9 +1220,10 @@ Input:
 
 void outside_potential_fitting_101(float2 *GRID_POS, float *Vout, float *outside_coeff, int plasma_counter, int NUM_GRID_PTS2, int N_COEFFS)
 {
-    float r[NUM_GRID_PTS2],
-        z[NUM_GRID_PTS2],
-        V[NUM_GRID_PTS2];
+    // create dynamic arrays
+    float *r = new float[NUM_GRID_PTS2];
+    float *z = new float[NUM_GRID_PTS2];
+    float *V = new float[NUM_GRID_PTS2];
 
     double error;
 
@@ -1296,6 +1297,10 @@ void outside_potential_fitting_101(float2 *GRID_POS, float *Vout, float *outside
     gsl_matrix_free(covariance_GSL);
     gsl_vector_free(V_out_GSL);
     gsl_vector_free(coeff_vector_GSL);
+
+    delete[] r;
+    delete[] z;
+    delete[] V;
 }
 
 /*
@@ -1325,7 +1330,9 @@ Input:
 void outside_potential_eval_101(float2 *gridPos, float *Vout_fitting, float *outside_coeff, int NUM_GRID_PTS, int plasma_counter, int N_COEFFS)
 {
     int page_coeff = plasma_counter * N_COEFFS;
-    float r[NUM_GRID_PTS], z[NUM_GRID_PTS];
+
+    float *r = new float[NUM_GRID_PTS];
+    float *z = new float[NUM_GRID_PTS];
 
     for (int i = 0; i < NUM_GRID_PTS; i++)
     {
@@ -1361,6 +1368,10 @@ void outside_potential_eval_101(float2 *gridPos, float *Vout_fitting, float *out
                           (outside_coeff[page_coeff + 23] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * r[i] * r[i]) +
                           (outside_coeff[page_coeff + 24] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i] * z[i]);
     }
+
+    // Releasing memory
+    delete[] r;
+    delete[] z;
 }
 
 /*
@@ -1390,7 +1401,8 @@ Input:
 void outside_electric_field_eval_101(float *Er, float *Ez, float *outside_coeff, float2 *gridPos, int NUM_GRID_PTS, int N_COEFFS, int plasma_counter)
 {
     int page_coeff = plasma_counter * N_COEFFS;
-    float rho[NUM_GRID_PTS], Z[NUM_GRID_PTS];
+    float *rho = new float[NUM_GRID_PTS];
+    float *Z = new float[NUM_GRID_PTS];
 
     for (int i = 0; i < NUM_GRID_PTS; i++)
     {
@@ -1471,6 +1483,10 @@ void outside_electric_field_eval_101(float *Er, float *Ez, float *outside_coeff,
                 (outside_coeff23 * 6.0f * z4 * z * r2) +     // z^5 r^2
                 (outside_coeff24 * 8.0f * z4 * z2 * z);      // z^7
     }
+
+    // Releasing memory
+    delete[] rho;
+    delete[] Z;
 }
 
 /*
