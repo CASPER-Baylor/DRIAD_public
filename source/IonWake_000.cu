@@ -2379,6 +2379,8 @@ int main(int argc, char *argv[])
                     EXTERN_ELC_MULT = ((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
                                       (CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) * (Q_DIV_M) /
                                       (PERM_FREE_SPACE);
+
+                    mom_const = MASS_ION / MASS_DUST * dust_dt / (2 * N_IONDT_PER_DUSTDT * ION_TIME_STEP);
                     Ez_sum += E_FIELD;
                     Er_sum += E_FIELDR;
 
