@@ -516,10 +516,10 @@ int main(int argc, char *argv[])
     // external confinement
     const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
     const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
-    float Ez_sum = 0;   // in TIME_EVOL, it stores the axial electric over the ion time steps
-    float Ez_div_m = 0; // in TIME_EVOL, it stores the average axial electric field over the dust mass
-    float Er_sum = 0;   // in TIME_EVOL used to apply avg radial Er
-    float Er_div_m = 0; // in TIME_EVOL used to apply avg radial Er
+    float Ez_sum = 0;                     // in TIME_EVOL, it stores the axial electric over the ion time steps
+    float Ez_div_m = E_FIELD / MASS_DUST; // in TIME_EVOL, it stores the average axial electric field over the dust mass
+    float Er_sum = 0;                     // in TIME_EVOL used to apply avg radial Er
+    float Er_div_m = 0;                   // in TIME_EVOL used to apply avg radial Er
     float dtdust_dtplasma = N_IONDT_PER_PLASMADT / N_IONDT_PER_DUSTDT;
     float radialConfine = RADIAL_CONF * RAD_CYL; // limit position of dust in cyl
     float axialConfine = AXIAL_CONF * HT_CYL;    // limit axial position of dust in cyl
