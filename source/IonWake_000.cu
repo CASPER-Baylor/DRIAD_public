@@ -516,11 +516,8 @@ int main(int argc, char *argv[])
     // external confinement
     const float OMEGA_DIV_M = OMEGA1 / MASS_DUST;
     const float OMEGA2_DIV_M = OMEGA2 / MASS_DUST;
-    float Ez_sum = 0;                     // in TIME_EVOL, it stores the axial electric over the ion time steps
-    float Ez_div_m = E_FIELD / MASS_DUST; // in TIME_EVOL, it stores the average axial electric field over the dust mass
-    float Er_sum = 0;                     // in TIME_EVOL used to apply avg radial Er
-    float Er_div_m = 0;                   // in TIME_EVOL used to apply avg radial Er
-    float dtdust_dtplasma = N_IONDT_PER_PLASMADT / N_IONDT_PER_DUSTDT;
+    float Ez_div_m = E_FIELD / MASS_DUST;        // in TIME_EVOL, it stores the average axial electric field over the dust mass
+    float Er_div_m = 0;                          // in TIME_EVOL used to apply avg radial Er
     float radialConfine = RADIAL_CONF * RAD_CYL; // limit position of dust in cyl
     float axialConfine = AXIAL_CONF * HT_CYL;    // limit axial position of dust in cyl
     float dust_dt = 1e-4;                        // N * 500 * ION_TIME_STEP;
@@ -1693,8 +1690,6 @@ int main(int argc, char *argv[])
         EXTERN_ELC_MULT = ((RAD_SPH / DEBYE) + 1.0) * exp(-RAD_SPH / DEBYE) *
                           (CHARGE_SINGLE_ION * DEN_FAR_PLASMA * DEBYE) * (Q_DIV_M) /
                           (PERM_FREE_SPACE);
-        Ez_sum += E_FIELD;
-        Er_sum += E_FIELDR;
         debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
     }
 
@@ -1967,9 +1962,17 @@ int main(int argc, char *argv[])
         // print the time step number to the status file
         statusFile << i << ": " << std::endl;
 
+        // restarting the variables to start the average over the next dust time step
+        float Ez_sum = 0; // in TIME_EVOL, it stores the axial electric over the ion time steps
+        float Er_sum = 0; // in TIME_EVOL used to apply avg radial Er
+
         // Ion Time Step Loop
         for (int j = 1; j <= N_IONDT_PER_DUSTDT; j++)
         {
+
+            // store the electric field applied over the ions to be used in averaged electric field acting over dust grains
+            Ez_sum += E_FIELD;
+            Er_sum += E_FIELDR;
 
             // KDK using just the ion-dust acceleration for s^m iterations
             if (GEOMETRY == 0)
@@ -2381,8 +2384,6 @@ int main(int argc, char *argv[])
                                       (PERM_FREE_SPACE);
 
                     mom_const = MASS_ION / MASS_DUST * dust_dt / (2 * N_IONDT_PER_DUSTDT * ION_TIME_STEP);
-                    Ez_sum += E_FIELD;
-                    Er_sum += E_FIELDR;
 
                     // debugFile << plasma_counter << ", " << CHARGE_ION << std::endl;
 
@@ -2461,17 +2462,6 @@ int main(int argc, char *argv[])
 
                     // reset the tempCharge to zero
                     tempCharge[k] = 0;
-
-                    // Average electric field gradient acting on dust
-                    if (TIME_EVOL > 0)
-                    {
-                        Ez_div_m = Ez_sum * dtdust_dtplasma / MASS_DUST;
-                        Er_div_m = Er_sum * dtdust_dtplasma / MASS_DUST;
-
-                        // set to zero to start the average over the next dust time step
-                        Ez_sum = 0;
-                        Er_sum = 0;
-                    }
                 }
 
                 dustChargeFile << std::endl;
@@ -2490,6 +2480,13 @@ int main(int argc, char *argv[])
 
                 dust_time += dust_dt;
                 // dustTraceFile << dust_time << std::endl;
+
+                // Average electric field gradient acting on dust
+                if (TIME_EVOL > 0)
+                {
+                    Ez_div_m = Ez_sum / (MASS_DUST * N_IONDT_PER_DUSTDT);
+                    Er_div_m = Er_sum / (MASS_DUST * N_IONDT_PER_DUSTDT);
+                }
 
                 // loop over dust particles
                 for (int j = 0; j < NUM_DUST; j++)
@@ -2767,8 +2764,6 @@ int main(int argc, char *argv[])
             momIonDust[j].z = 0;
         }
 
-        // copy back to the device
-        d_accIonDust.hostToDev();
         roadBlock_104(statusFile, __LINE__, __FILE__, "Copy d_accDustIon to device ", print);
         // zero the ionDustAcc
         zeroDustIonAcc_103<<<blocksPerGridIon, DIM_BLOCK>>>(
