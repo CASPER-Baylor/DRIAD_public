@@ -1020,6 +1020,9 @@ int main(int argc, char *argv[])
     // set the number of threads per block for the calcIonDensityPotential_3D_102 kernel
     int threadsPerBlock3 = 128;
 
+    // set the number of threads per block for the KDK_100  kernel
+    int threadsPerBlock4 = 256;
+
     // optimum number of blocks for the calcIonAccels_102 kernel
     int numberOfBlocks = findMaxNumberOfBlocksForKernel(threadsPerBlock, NUM_ION, reinterpret_cast<const void *>(calcIonAccels_102), sizeof(float4) * threadsPerBlock);
 
@@ -1028,6 +1031,9 @@ int main(int argc, char *argv[])
 
     // optimum number of blocks for the calcIonDensityPotential_3D_102 kernel
     int numberOfBlocks3 = findMaxNumberOfBlocksForKernel(threadsPerBlock3, NUM_GRID_PTS_3D, reinterpret_cast<const void *>(calcIonDensityPotential_3D_102), sizeof(float4) * threadsPerBlock3);
+
+    // optimum number of blocks for the KDK_100 kernel
+    int numberOfBlocks4 = findMaxNumberOfBlocksForKernel(threadsPerBlock4, NUM_ION, reinterpret_cast<const void *>(KDK_100), 0);
 
     /******  Calculations of the Outside Ions Potential  *******/
     /** Integrate over the potential from ions
@@ -1994,7 +2000,7 @@ int main(int argc, char *argv[])
             }
             else if (GEOMETRY == 1)
             {
-                KDK_100<<<blocksPerGridIon, DIM_BLOCK>>>(
+                KDK_100<<<numberOfBlocks4, threadsPerBlock4>>>(
                     d_posIon.getDevPtr(), d_velIon.getDevPtr(), d_accIon.getDevPtr(),
                     d_accIonDust.getDevPtr(), d_boundsIon.getDevPtr(), d_minDistDust.getDevPtr(),
                     d_M_FACTOR.getDevPtr(), d_ION_TIME_STEP.getDevPtr(), GEOMETRY,

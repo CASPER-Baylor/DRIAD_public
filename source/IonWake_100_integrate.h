@@ -218,7 +218,7 @@ __global__ void KDK_100(float4 *, float4 *, float4 *, float4 *, int *, float *, 
  *	device_launch_parameters.h
  *
  */
-__device__ void kick_dev(float4 *, float4 *, float);
+__device__ void kick_dev(float4 &, float4 &, float);
 
 /*
  * Name: drift_dev
@@ -248,7 +248,7 @@ __device__ void kick_dev(float4 *, float4 *, float);
  *	device_launch_parameters.h
  *
  */
-__device__ void drift_dev(float4 *, float4 *, float);
+__device__ void drift_dev(float4 &, float4 &, float);
 /*
  * Name: checkIonSphereBounds_100_dev
  * Created: 3/17/2018
@@ -280,7 +280,8 @@ __device__ void drift_dev(float4 *, float4 *, float);
  *
  */
 
-__device__ void checkIonSphereBounds_100_dev(float4 *const, int *, const float *);
+__device__ void checkIonSphereBounds_100_dev(float4 &, int &,
+                                             const float *);
 
 /*
  * Name: checkIonCylinderBounds_100_dev
@@ -315,7 +316,8 @@ __device__ void checkIonSphereBounds_100_dev(float4 *const, int *, const float *
  *	device_launch_parameters.h
  *
  */
-__device__ void checkIonCylinderBounds_100_dev(float4 *const, int *, const float *, const float *);
+__device__ void checkIonCylinderBounds_100_dev(float4 &, int &,
+                                               const float *, const float *);
 
 /*
  * Name: checkIonDustBounds_100_dev
@@ -350,8 +352,10 @@ __device__ void checkIonCylinderBounds_100_dev(float4 *const, int *, const float
  *   The number of ions is a multiple of the block size
  *
  */
-__device__ void checkIonDustBounds_100_dev(float4 *const, float4 *const, int *, const float *,
-                                           const int *, float4 *const, float3 const, const float *);
+__device__ void checkIonDustBounds_100_dev(float4 &, int &,
+                                           const float *, const int *,
+                                           float4 *const, float4,
+                                           const float *);
 /*
  * Name: calcIonDustAcc_100_dev
  * Created: 3/20/2018
@@ -389,7 +393,9 @@ __device__ void checkIonDustBounds_100_dev(float4 *const, float4 *const, int *, 
  *	device_launch_parameters.h
  *
  */
-__device__ void calcIonDustAcc_100_dev(float4 *, float4 *, float4 *, const int *, const int *,
-                                       const float *, const float *);
+__device__ void calcIonDustAcc_100_dev(float4 &, float4 &, float4 *,
+                                       const int *, const int *,
+                                       const float *,
+                                       const float *);
 
 #endif // IONWAKE_100

@@ -318,16 +318,17 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
     // thread ID
     int threadID = blockIdx.x * blockDim.x + threadIdx.x;
 
+    if (threadID >= *d_NUM_ION)
+    {
+        return; // out of bounds
+    }
+
     // local variables
     int mtemp;
     float v2, speed;
     int max_depth = 8; // Maximum division of timestep = 2^8
     float timeStep, halfTimeStep;
-    float3 oldIonPos;
     int timeStepFactor = 1;
-
-    // Reset the ion bounds flag to 0
-    d_boundsIon[threadID] = 0;
 
     // Calculate the time step depth.  The timestep will be divided by a multiple
     // of two depending on its speed and distance from dust.
@@ -343,18 +344,25 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
      * 30 is a factor which initial tests showed to work well  *
      * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+    // Reset the ion bounds flag to 0
+    int currentBoundIon = 0;
+
+    // get the position, velocity and accelerations for the current ion
+    float4 currentPosIon = posIon[threadID];
+    float4 currentVelIon = velIon[threadID];
+    float4 currentAccIon = accIon[threadID];
+    float4 currentIonDustAcc = ionDustAcc[threadID];
+
     if (*d_NUM_DUST > 0)
     {
         // ion speed squared
-        v2 = velIon[threadID].x * velIon[threadID].x + velIon[threadID].y * velIon[threadID].y +
-             velIon[threadID].z * velIon[threadID].z;
+        v2 = __fmaf_rn(currentVelIon.x, currentVelIon.x, __fmaf_rn(currentVelIon.y, currentVelIon.y, currentVelIon.z * currentVelIon.z));
 
         // ion speed
         speed = __fsqrt_rn(v2);
 
         // v2 is being used to as an intermediat step in calculating m
-        v2 = __logf(*d_M_FACTOR * *d_TIME_STEP * speed / (d_minDistDust[threadID] - *d_RAD_DUST)) /
-             __logf(2.0);
+        v2 = __log2f(*d_M_FACTOR * *d_TIME_STEP * speed / (d_minDistDust[threadID] - *d_RAD_DUST));
 
         // timestep depth
         mtemp = ceil(v2);
@@ -376,68 +384,75 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
         }
     }
     // Kick a one timestep with all forces except ion-dust force
-    kick_dev(velIon + threadID, accIon + threadID, *d_TIME_STEP);
+    kick_dev(currentVelIon, currentAccIon, *d_TIME_STEP);
 
     // Add in accel from dust in smaller steps if needed
     timeStep = *d_TIME_STEP / timeStepFactor;
-    halfTimeStep = timeStep * 0.5;
+    halfTimeStep = timeStep * 0.5f;
 
     if (*d_NUM_DUST > 0)
     {
         // Kick for 1/2 a timestep to get started
-        kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
+        kick_dev(currentVelIon, currentIonDustAcc, halfTimeStep);
     }
 
     // now do Drift, check, calc_accels, Kick, for tsf = 2^(m-1) times
     int depth = 1;
-    while (d_boundsIon[threadID] == 0 && depth <= timeStepFactor)
+    while (currentBoundIon == 0 && depth <= timeStepFactor)
     {
 
         depth++;
-        oldIonPos.x = posIon[threadID].x;
-        oldIonPos.y = posIon[threadID].y;
-        oldIonPos.z = posIon[threadID].z;
 
-        drift_dev(posIon + threadID, velIon + threadID, timeStep);
+        // save the current ion position before the drift
+        float4 oldIonPos = currentPosIon;
+
+        // update the current ion position
+        drift_dev(currentPosIon, currentVelIon, timeStep);
 
         // Check outside bounds
         if (GEOMETRY == 0)
         {
             // check if any ions are outside of the simulation sphere
-            checkIonSphereBounds_100_dev(posIon + threadID, d_boundsIon + threadID, d_bndry_sqrd);
+            checkIonSphereBounds_100_dev(currentPosIon, currentBoundIon, d_bndry_sqrd);
         }
         else if (GEOMETRY == 1)
         {
             // check if any ions are outside of the simulation cylinder
-            checkIonCylinderBounds_100_dev(posIon + threadID, d_boundsIon + threadID, d_bndry_sqrd,
+            checkIonCylinderBounds_100_dev(currentPosIon, currentBoundIon, d_bndry_sqrd,
                                            d_HT_CYL);
         }
 
         if (*d_NUM_DUST > 0)
         {
             // check if any ions are inside a dust particle
-            checkIonDustBounds_100_dev(posIon + threadID, velIon + threadID, d_boundsIon + threadID,
+            checkIonDustBounds_100_dev(currentPosIon, currentBoundIon,
                                        d_RAD_DUST, d_NUM_DUST, d_posDust, oldIonPos, d_RAD_COLL_MULT);
 
-            if (d_boundsIon[threadID] == 0)
+            if (currentBoundIon == 0)
             {
                 // calculate the acceleration due to ion-dust interactions
-                calcIonDustAcc_100_dev(posIon + threadID, ionDustAcc + threadID, d_posDust, d_NUM_ION,
+                calcIonDustAcc_100_dev(currentPosIon, currentIonDustAcc, d_posDust, d_NUM_ION,
                                        d_NUM_DUST, d_SOFT_RAD_SQRD, d_ION_DUST_ACC_MULT);
 
                 // Kick with IonDust accels for deltat/2^(m-1)
                 if (depth == timeStepFactor)
                 {
                     // on last time step, do a half kick
-                    kick_dev(velIon + threadID, ionDustAcc + threadID, halfTimeStep);
+                    kick_dev(currentVelIon, currentIonDustAcc, halfTimeStep);
                 }
                 else
                 {
-                    kick_dev(velIon + threadID, ionDustAcc + threadID, timeStep);
+                    kick_dev(currentVelIon, currentIonDustAcc, timeStep);
                 }
             }
         }
     } // end for loop over depth
+
+    // save the ion parameters into global memory
+    d_boundsIon[threadID] = currentBoundIon;
+    posIon[threadID] = currentPosIon;
+    velIon[threadID] = currentVelIon;
+    ionDustAcc[threadID] = currentIonDustAcc;
 }
 
 /*
@@ -468,17 +483,14 @@ __global__ void KDK_100(float4 *posIon, float4 *velIon, float4 *accIon, float4 *
  *	device_launch_parameters.h
  *
  */
-__device__ void kick_dev(float4 *vel, float4 *acc, float timestep)
+__device__ void kick_dev(float4 &vel, float4 &acc, float timestep)
 {
-    // thread ID
-    // int threadID = blockIdx.x * blockDim.x + threadIdx.x;
-
     // calculate velocity
     // v = v0 + dT * a
 
-    vel->x += timestep * (acc->x);
-    vel->y += timestep * (acc->y);
-    vel->z += timestep * (acc->z);
+    vel.x = __fmaf_rn(acc.x, timestep, vel.x);
+    vel.y = __fmaf_rn(acc.y, timestep, vel.y);
+    vel.z = __fmaf_rn(acc.z, timestep, vel.z);
 }
 
 /*
@@ -509,17 +521,14 @@ __device__ void kick_dev(float4 *vel, float4 *acc, float timestep)
  *	device_launch_parameters.h
  *
  */
-__device__ void drift_dev(float4 *pos, float4 *vel, float timestep)
+__device__ void drift_dev(float4 &pos, float4 &vel, float timestep)
 {
-    // thread ID
-    // int threadID = blockIdx.x * blockDim.x + threadIdx.x;
-
     // calculate position
     // x = x0 +  dT* v(n+1/2)
 
-    pos->x += timestep * (vel->x);
-    pos->y += timestep * (vel->y);
-    pos->z += timestep * (vel->z);
+    pos.x = __fmaf_rn(vel.x, timestep, pos.x);
+    pos.y = __fmaf_rn(vel.y, timestep, pos.y);
+    pos.z = __fmaf_rn(vel.z, timestep, pos.z);
 }
 /*
  * Name: checkIonSphereBounds_100_dev
@@ -552,7 +561,7 @@ __device__ void drift_dev(float4 *pos, float4 *vel, float timestep)
  *
  */
 
-__device__ void checkIonSphereBounds_100_dev(float4 *d_posIon, int *d_boundsIon,
+__device__ void checkIonSphereBounds_100_dev(float4 &d_posIon, int &d_boundsIon,
                                              const float *d_RAD_SIM_SQRD)
 {
 
@@ -560,17 +569,17 @@ __device__ void checkIonSphereBounds_100_dev(float4 *d_posIon, int *d_boundsIon,
     float dist;
 
     // Only check ions which are in bounds
-    if (*d_boundsIon == 0)
+    if (d_boundsIon == 0)
     {
 
         // distance from the center of the simulation
-        dist = d_posIon->x * d_posIon->x + d_posIon->y * d_posIon->y + d_posIon->z * d_posIon->z;
+        dist = d_posIon.x * d_posIon.x + d_posIon.y * d_posIon.y + d_posIon.z * d_posIon.z;
 
         // check if the ion is out of the simulation sphere
         if (dist > *d_RAD_SIM_SQRD)
         {
             // flag the ion as out of the simulation sphere
-            *d_boundsIon = -1;
+            d_boundsIon = -1;
         }
     }
 }
@@ -608,29 +617,27 @@ __device__ void checkIonSphereBounds_100_dev(float4 *d_posIon, int *d_boundsIon,
  *	device_launch_parameters.h
  *
  */
-__device__ void checkIonCylinderBounds_100_dev(float4 *d_posIon, int *d_boundsIon,
+__device__ void checkIonCylinderBounds_100_dev(float4 &d_posIon, int &d_boundsIon,
                                                const float *d_RAD_CYL_SQRD, const float *d_HT_CYL)
 {
-
     // distance
     float dist;
     float distz;
 
     // Only check ions which are in bounds
-    if (*d_boundsIon == 0)
+    if (d_boundsIon == 0)
     {
-
         // radial distance from the center of the cylinder
-        dist = d_posIon->x * d_posIon->x + d_posIon->y * d_posIon->y;
+        dist = __fmaf_rn(d_posIon.x, d_posIon.x, d_posIon.y * d_posIon.y);
 
         // height from the center of the cylinder
-        distz = abs(d_posIon->z);
+        distz = fabsf(d_posIon.z);
 
         // check if the ion is out of the simulation cylinder
         if (dist > *d_RAD_CYL_SQRD || distz > *d_HT_CYL)
         {
             // flag the ion as out of the simulation sphere
-            *d_boundsIon = -1;
+            d_boundsIon = -1;
         }
     }
 }
@@ -668,18 +675,18 @@ __device__ void checkIonCylinderBounds_100_dev(float4 *d_posIon, int *d_boundsIo
  *   The number of ions is a multiple of the block size
  *
  */
-__device__ void checkIonDustBounds_100_dev(float4 *d_posIon, float4 *d_velIon, int *d_boundsIon,
+__device__ void checkIonDustBounds_100_dev(float4 &d_posIon, int &d_boundsIon,
                                            const float *d_RAD_DUST, const int *d_NUM_DUST,
-                                           float4 *const d_posDust, float3 posIon2,
+                                           float4 *const d_posDust, float4 posIon2,
                                            const float *d_RAD_COLL_MULT)
 {
 
     // distance
     float dist, b_c;
-    float tiny_num = 1e-12;
+    float tiny_num = 1e-12f;
 
     // Only check ions which are in bounds
-    if (*d_boundsIon == 0)
+    if (d_boundsIon == 0)
     {
 
         // temporary distance holders
@@ -688,33 +695,36 @@ __device__ void checkIonDustBounds_100_dev(float4 *d_posIon, float4 *d_velIon, i
         // loop over all of the dust particles
         for (int i = 0; i < *d_NUM_DUST; i++)
         {
+            // get the current dust grain
+            float4 currentPosDust = d_posDust[i];
+
             // x, y, and z distances between the current
             // ion and dust particle
-            deltaX = d_posDust[i].x - d_posIon->x;
-            deltaY = d_posDust[i].y - d_posIon->y;
-            deltaZ = d_posDust[i].z - d_posIon->z;
+            deltaX = currentPosDust.x - d_posIon.x;
+            deltaY = currentPosDust.y - d_posIon.y;
+            deltaZ = currentPosDust.z - d_posIon.z;
 
             // the squared distance between the current ion
             // and dust particle
-            dist = deltaX * deltaX + deltaY * deltaY + deltaZ * deltaZ;
+            dist = __fmaf_rn(deltaX, deltaX, __fmaf_rn(deltaY, deltaY, deltaZ * deltaZ));
 
             // check if the dust particle and ion have collided
             // calculate the collection radius
             // RAD_COLL_MULT = 2*qi/mi/vs^2 * COULOMB_CONST/RAD_DUST
-            b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * d_posDust[i].w);
+            b_c = *d_RAD_DUST * *d_RAD_DUST * (1 - *d_RAD_COLL_MULT * currentPosDust.w);
             if (dist < b_c)
             // if (dist < *d_RAD_DUST * *d_RAD_DUST)
             {
                 // flag which dust particle the ion is in
-                *d_boundsIon = (i + 1);
+                d_boundsIon = (i + 1);
             }
             else
             {
                 // Line segment of ion's trajectory
                 // The equation of point P on line is P = P1 + u*(P2-P1)
-                dpX = posIon2.x - d_posIon->x;
-                dpY = posIon2.y - d_posIon->y;
-                dpZ = posIon2.z - d_posIon->z;
+                dpX = posIon2.x - d_posIon.x;
+                dpY = posIon2.y - d_posIon.y;
+                dpZ = posIon2.z - d_posIon.z;
 
                 // Determine if line segment intersects dust.
                 // Find point P on line closest to dust center
@@ -724,22 +734,25 @@ __device__ void checkIonDustBounds_100_dev(float4 *d_posIon, float4 *d_velIon, i
                 // (posDust - P1 - u(P2-P1)) dot (P2-P1) = 0
                 //  If 0<= u <=1, and |P| <= radDust, then
                 //  line segment intersects sphere.
+                u = __fmaf_rn(deltaX, dpX, __fmaf_rn(deltaY, dpY, deltaZ * dpZ)) / __fmaf_rn(dpX, dpX, __fmaf_rn(dpY, dpY, dpZ * dpZ));
 
-                u = (deltaX * dpX + deltaY * dpY + deltaZ * dpZ) /
-                    (dpX * dpX + dpY * dpY + dpZ * dpZ);
-
-                if (u > tiny_num & u < 1)
+                if (u > tiny_num && u < 1)
                 {
                     // Closest point on line segment; check if |P| < dustRad
-                    Px = d_posIon->x + u * dpX;
-                    Py = d_posIon->y + u * dpY;
-                    Pz = d_posIon->z + u * dpZ;
-                    P_sq = Px * Px + Py * Py + Pz * Pz;
+                    Px = __fmaf_rn(u, dpX, d_posIon.x);
+                    Py = __fmaf_rn(u, dpY, d_posIon.y);
+                    Pz = __fmaf_rn(u, dpZ, d_posIon.z);
+
+                    // get the distance between the point P and the dust grain's center
+                    float dist_P_dust_x = currentPosDust.x - Px;
+                    float dist_P_dust_y = currentPosDust.y - Py;
+                    float dist_P_dust_z = currentPosDust.z - Pz;
+                    P_sq = __fmaf_rn(dist_P_dust_x, dist_P_dust_x, __fmaf_rn(dist_P_dust_y, dist_P_dust_y, dist_P_dust_z * dist_P_dust_z));
 
                     if (P_sq <= b_c)
                     {
                         // if (P_sq <= *d_RAD_DUST * *d_RAD_DUST) {
-                        *d_boundsIon = (i + 1);
+                        d_boundsIon = (i + 1);
                     }
                 }
             } // close else
@@ -784,7 +797,7 @@ __device__ void checkIonDustBounds_100_dev(float4 *d_posIon, float4 *d_velIon, i
  *	device_launch_parameters.h
  *
  */
-__device__ void calcIonDustAcc_100_dev(float4 *d_posIon, float4 *d_accIon, float4 *d_posDust,
+__device__ void calcIonDustAcc_100_dev(float4 &d_posIon, float4 &d_accIon, float4 *d_posDust,
                                        const int *d_NUM_ION, const int *d_NUM_DUST,
                                        const float *d_SOFT_RAD_SQRD,
                                        const float *d_ION_DUST_ACC_MULT)
@@ -793,38 +806,47 @@ __device__ void calcIonDustAcc_100_dev(float4 *d_posIon, float4 *d_accIon, float
     // allocate variables
     float3 dist;
     float distSquared;
-    float hardDist;
+    float invDistance;
+    float invDistance3;
     float linForce;
-    float softDistSqrd = 2.5e-13;
+    float softDistSqrd = 1e-20f;
 
     // reset the acceleration
-    d_accIon->x = 0;
-    d_accIon->y = 0;
-    d_accIon->z = 0;
+    d_accIon = make_float4(0.0f, 0.0f, 0.0f, 0.0f);
 
     // loop over all of the dust particles
     for (int h = 0; h < *d_NUM_DUST; h++)
     {
+        // get the current dust grain
+        float4 currentPosDust = d_posDust[h];
 
         // calculate the distance between the ion in shared
         // memory and the current thread's ion
-        dist.x = d_posIon->x - (d_posDust + h)->x;
-        dist.y = d_posIon->y - (d_posDust + h)->y;
-        dist.z = d_posIon->z - (d_posDust + h)->z;
+        dist.x = d_posIon.x - currentPosDust.x;
+        dist.y = d_posIon.y - currentPosDust.y;
+        dist.z = d_posIon.z - currentPosDust.z;
 
         // calculate the distance squared
-        distSquared = dist.x * dist.x + dist.y * dist.y + dist.z * dist.z;
+        distSquared = __fmaf_rn(dist.x, dist.x, __fmaf_rn(dist.y, dist.y, dist.z * dist.z)) + softDistSqrd;
 
-        // calculate the hard distance
-        hardDist = __fsqrt_rn(distSquared + softDistSqrd);
+        // calculate the inverse distance
+        invDistance = rsqrtf(distSquared);
+
+        // find the inverse of the soft distance cubed
+        invDistance3 = invDistance * invDistance * invDistance;
 
         // calculate a scalar intermediate
-        linForce = *d_ION_DUST_ACC_MULT * (d_posDust + h)->w / (hardDist * hardDist * hardDist);
+        linForce = currentPosDust.w * invDistance3;
 
         // add the acceleration to the current ion's acceleration
-        d_accIon->x += linForce * dist.x;
-        d_accIon->y += linForce * dist.y;
-        d_accIon->z += linForce * dist.z;
+        d_accIon.x = __fmaf_rn(linForce, dist.x, d_accIon.x);
+        d_accIon.y = __fmaf_rn(linForce, dist.y, d_accIon.y);
+        d_accIon.z = __fmaf_rn(linForce, dist.z, d_accIon.z);
 
     } // end loop over dust
+
+    // scale the acceleration
+    d_accIon.x = *d_ION_DUST_ACC_MULT * d_accIon.x;
+    d_accIon.y = *d_ION_DUST_ACC_MULT * d_accIon.y;
+    d_accIon.z = *d_ION_DUST_ACC_MULT * d_accIon.z;
 }
