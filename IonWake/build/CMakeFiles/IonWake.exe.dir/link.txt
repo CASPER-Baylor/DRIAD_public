@@ -1,0 +1,1 @@
+/usr/bin/g++ @CMakeFiles/IonWake.exe.dir/objects1.rsp CMakeFiles/IonWake.exe.dir/cmake_device_link.o -o /data/saenzb/Fresh/IonWake/bin/IonWake.exe @CMakeFiles/IonWake.exe.dir/linkLibs.rsp -L"/cm/shared/apps/cuda12.8/toolkit/12.8.0/targets/x86_64-linux/lib/stubs" -L"/cm/shared/apps/cuda12.8/toolkit/12.8.0/targets/x86_64-linux/lib"

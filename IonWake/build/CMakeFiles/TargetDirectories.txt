@@ -1,0 +1,3 @@
+/data/saenzb/Fresh/IonWake/build/CMakeFiles/IonWake.exe.dir
+/data/saenzb/Fresh/IonWake/build/CMakeFiles/edit_cache.dir
+/data/saenzb/Fresh/IonWake/build/CMakeFiles/rebuild_cache.dir

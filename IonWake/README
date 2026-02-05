@@ -1,0 +1,75 @@
+CMakeList:
+ In order to add new files (.cu or .cpp) to the code, it must be included their names in the corresponding sections(CUDA_FILES or CPP_FILES).
+
+	Important:
+	If it is used templates in some file, you CANNOT include this file in the CMakelist otherwise you will obtain a duplicate definition error. Also, if you split the implementation(.h or .hpp) from the definition(.cu or .cpp) you must include in the main file the .cu or cpp directly instead of include the .h or .hpp.
+
+	To run code locally, it must be comment out in the CMakeLists.txt the line:
+	set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.3/toolkit/12.3.2/bin/nvcc")
+
+
+MakeFile:
+	For compiling, running and checking the code, you need to open the Terminal in the IonWake folder and write the word "make" in the Terminal window and selecting one of the options below.
+
+	Makefile options:(preface all these commands with "make")
+	
+		build_debug: function to build the code in debug mode(slower but more detailed).
+
+		build_release: function to build the code in release mode(faster but less detailed).
+
+		clean: function to remove the build directory.
+
+		run_job: function to run the code in a job(KODIAK).
+
+		run_local: function to run the code in a standalone machine.
+
+		run_local_gpu0: function to run the code in a standalone machine(QUEUE)
+
+		run_local_gpu1: function to run the code in a standalone machine(QUEUE)
+
+		kill_job: function to delete the job(KODIAK).
+
+		kill_local: function to delete the job in a standalone.
+
+		kill_all: function to kill all your jobs(KODIAK).
+
+		status: check the status of a job.
+
+		info: get errors and extra informations of the job.
+
+QUEUE commands for the local PCs:
+
+	tsgpu0 or tsgpu1: it returns the queue manager.
+
+	tsgpu0 -K or tsgpu1 -K: it deletes your pending code executions in the standalone specific gpu.
+		
+	tsgpu0 -k piD(job ID/ process ID) or tsgpu1 -k piD(job ID/ process ID): it deletes a specific job in a stadalone pc gpu.
+
+	tsgpu0 -C or tsgpu1 -C: it cleans the finished code exections from the queue manager.
+
+	For more information: https://github.com/justanhduc/task-spooler#manual
+
+Input Files
+	
+	_dust_params.txt: Contains the initial positions and charges for the dust particles. 
+
+	_params.txt: Contains general input parameters for the simulation. Such as the timestep length and the radius of the dust particles.
+
+	_plasma_params.txt(OPTIONAL): Parameters file for time evolving conditions.
+
+	_timestep.txt: Is used to turn on and off several time step options.
+
+Timestep Options
+	TR-ion-pos
+		Prints a trace of an ion's position to the trace output file.
+	TR-ion-vel
+		Prints a trace of an ion's velocity to the trace output file.
+	TR-ion-acc
+		Prints a trace of an ion's acceleration to the trace output file.
+	CH-charge-dust
+		Allows the dust charge to be dynamicaly calculated.
+	CH-move-dust
+		Allows the dust position, velocity, and acceleration to be 
+		dynamically calculated.
+ 
+Sample parameter values from params.txt
