@@ -1,0 +1,17 @@
+*
+
+!getPaths.sh
+!check.sh
+!follow.sh
+!base_input/
+!analysis/
+!compile.sh
+!disp.sh
+!local_run_script.sh
+!qsub_run_script.sh
+!runLocal.sh
+!runJob.sh
+!deleteJob.sh
+!deleteLocal.sh
+!setup_run.sh
+!.gitignore
