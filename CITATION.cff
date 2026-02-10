@@ -1,0 +1,76 @@
+cff-version: 1.2.0
+
+title: "DRIAD"
+message: >
+  If you use this software in academic work, please cite it using the
+  information below. For the physical model and validation, see the
+  associated publication listed under preferred-citation.
+
+type: software
+
+authors:
+  - given-names: Lorin Swint 
+    family-names: Matthews
+    affiliation: Baylor University
+
+  - given-names: Benny 
+    family-names: Rodriguez Saenz
+    affiliation: Baylor University
+
+  - given-names: Diana
+    family-names: Jimenez Marti
+    affiliation: Baylor University
+
+  - given-names: Dustin  
+    family-names: Sanford
+    affiliation: Baylor University
+
+  - given-names: Katrina  
+    family-names: Vermillion
+    affiliation: Baylor University
+
+  - given-names: Alexandria  
+    family-names: Mendoza
+    affiliation: Baylor University
+
+  - given-names: Khandaker Sharmin   
+    family-names: Ashrafi
+    affiliation: Baylor University
+
+  - given-names: Evelyn   
+    family-names: Guay
+    affiliation: Baylor University
+
+  - given-names: Evdokiya G.   
+    family-names: Kostadinova
+    affiliation: Baylor University   
+
+year: 2026
+
+version: 0.1.0
+
+url: https://github.com/CASPER-Baylor/DRIAD_public.git
+
+preferred-citation:
+  type: article
+  title: "Dust Charging in Dynamic Ion Wakes"
+  authors:
+    - given-names: Lorin Swint
+      family-names: Matthews
+    - given-names: Dustin L.
+      family-names: Sanford
+    - given-names: Evdokiya G.
+      family-names: Kostadinova
+    - given-names: Khandaker Sharmin
+      family-names: Ashrafi
+    - given-names: Evelyn
+      family-names: Guay
+    - given-names: Truell W.
+      family-names: Hyde
+  journal: Physics of Plasmas
+  year: 2020
+  volume: 27
+  issue: 2
+  pages: "023703"
+  doi: 10.1063/1.5124246
+
