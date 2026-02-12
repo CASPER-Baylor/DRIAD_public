@@ -19,7 +19,13 @@ interactions are described by a Yukawa potential to account for electron
 shielding, while ion–dust interactions are treated using the Coulomb potential
 of the dust grains. Electrons are not modeled explicitly, instead, they are
 treated as a Boltzmann fluid that provides background shielding and contributes
-to dust charging through an orbital-motion-limited electron current.
+to dust charging through an orbital-motion-limited electron current. Dust-dust 
+interactions use a Coulomb potential, as the ions in the simulation provide 
+shielding of the dust and they are simulated directly.  The force of the ions
+on the dust is a Yukawa interaction using the electron Debye length, so that the
+effect of "far away" ions is shielded.  The force of "close" ions in the region 
+near the dust where the electrons are depleted do not differ much from the Coulomb
+force.
 
 The simulation employs an asymmetric time-stepping scheme in which ions are
 advanced over many small ion time steps, after which dust positions and charges
