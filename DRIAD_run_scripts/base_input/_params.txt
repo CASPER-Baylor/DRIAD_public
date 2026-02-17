@@ -24,9 +24,6 @@ N_IONDT_PER_PLASMADT   100	    ! for evolving plasma conditions if TIME_EVOl not
        RAD_CYL_DEBYE   2.0	   ! radius of cylindrical simulation region in Debye lengths
         HT_CYL_DEBYE   4.0	   ! half-height of cylindrical simulation region in Debye lengths
 	              FREQ   0 	      ! frequency of E_Field switch, in Hz
-         CHANGE_FREQ   0
-             FREQ_DT   0
-               FREQ2   0
 	           E_FIELD   -1	    ! const electric field in axial (z) direction (0 for homogeneous plasma, no ion flow)
            B_FIELD_X   0        ! magnetic field in x direction
            B_FIELD_Y   0        ! magnetic field in y direction
@@ -45,4 +42,3 @@ N_IONDT_PER_PLASMADT   100	    ! for evolving plasma conditions if TIME_EVOl not
 	         LASER_OFF   0.205 	  ! time to turn off laser push
 	         TIME_EVOL   0		    ! number of lines in plasma_params.txt, 0 disables
 	              RESX   32	      ! # of divisions in radial direction for output of density and potential on grid
-	        CHARGE_DIV   100	    ! # of timesteps used to smooth ion charging
