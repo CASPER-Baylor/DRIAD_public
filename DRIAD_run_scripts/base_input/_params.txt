@@ -1,44 +1,44 @@
              NUM_ION   75000	  ! number of super ions to simulate
-      DEN_FAR_PLASMA   1.18e15	! in m^-3
-            DEN_IONS   1.18e15	! in m^-3 used if ion and electron density not equal
+      DEN_FAR_PLASMA   1.18e15	  ! in m^-3
+            DEN_IONS   1.18e15	  ! in m^-3 used if ion and electron density not equal
             TEMP_ELC   50107	  ! in K
             TEMP_ION   466.0	  ! in K
             TEMP_GAS   290.0	  ! in K
-	          PRESSURE   60	      ! in Pa
+	        PRESSURE   60	      ! in Pa
                 MACH   0.001	  ! thermal Mach speed of ions. Set to 0.001 for no ion flow, Ez = 0
-	          GAS_TYPE   1		  ! 1 = neon, 2 = argon
+	        GAS_TYPE   1		  ! 1 = neon, 2 = argon
    CHARGE_SINGLE_ION   -1	      ! in elementary charge, (e-)
-     MASS_SINGLE_ION   3.35e-26	 ! in kg - use argon or neon
-            SOFT_RAD   1e-6		! softening radius for Coulomb/Yukawa forces - don't change
-            M_FACTOR   10		! for adaptive ion time step as ion approaches dust: 10 is good
-            RAD_DUST   4.60e-6	! radius of dust particles in m
-            DEN_DUST   1510	    ! density of dust material in kg/m^3
-       ION_TIME_STEP   1.00e-9	! in sec
-       NUM_TIME_STEP   150	    ! number of dust_steps dt = 1e-4s
-  N_IONDT_PER_DUSTDT   100	    ! N_IONDT_PER_DUSTDT * ION_TIME_STEP = 1e-6
-N_IONDT_PER_PLASMADT   100	    ! for evolving plasma conditions if TIME_EVOl not zero
-            GEOMETRY   1		    ! 0 = sphere / 1 = cylinder
-       RAD_SPH_DEBYE   1.0	   ! size of spherical simulation region in Debye lengths
-         NUM_DIV_VEL   50	   ! number of bins in in velocity, used in ion injection
-         NUM_DIV_QTH   3	   ! number of bins in polar angle, used in ion injection. Sphere->100, Cylinder->3
-       RAD_CYL_DEBYE   2.0	   ! radius of cylindrical simulation region in Debye lengths
-        HT_CYL_DEBYE   4.0	   ! half-height of cylindrical simulation region in Debye lengths
-	              FREQ   0 	      ! frequency of E_Field switch, in Hz
-	           E_FIELD   -1	    ! const electric field in axial (z) direction (0 for homogeneous plasma, no ion flow)
-           B_FIELD_X   0        ! magnetic field in x direction
-           B_FIELD_Y   0        ! magnetic field in y direction
-           B_FIELD_Z   0        ! magnetic field in z direction
-  	          OMEGA1   3.96e6	! strength of radial (linear) confinement force on dust
+     MASS_SINGLE_ION   3.35e-26	  ! in kg - use argon or neon
+            SOFT_RAD   1e-6		  ! softening radius for Coulomb/Yukawa forces - don't change
+            M_FACTOR   10		  ! for adaptive ion time step as ion approaches dust: 10 is good
+            RAD_DUST   4.60e-6	  ! radius of dust particles in m
+            DEN_DUST   1510	      ! density of dust material in kg/m^3
+       ION_TIME_STEP   1.00e-9	  ! in sec
+       NUM_TIME_STEP   150	      ! number of dust_steps dt = 1e-4s
+  N_IONDT_PER_DUSTDT   100	      ! N_IONDT_PER_DUSTDT * ION_TIME_STEP = 1e-6
+N_IONDT_PER_PLASMADT   100	      ! for evolving plasma conditions if TIME_EVOl not zero
+            GEOMETRY   1		  ! 0 = sphere / 1 = cylinder
+       RAD_SPH_DEBYE   1.0	      ! size of spherical simulation region in Debye lengths
+         NUM_DIV_VEL   50	      ! number of bins in in velocity, used in ion injection
+         NUM_DIV_QTH   3	      ! number of bins in polar angle, used in ion injection. Sphere->100, Cylinder->3
+       RAD_CYL_DEBYE   2.0	      ! radius of cylindrical simulation region in Debye lengths
+        HT_CYL_DEBYE   4.0	      ! half-height of cylindrical simulation region in Debye lengths
+	            FREQ   0 	      ! frequency of E_Field switch, in Hz
+	         E_FIELD   -1	      ! const electric field in axial (z) direction (0 for homogeneous plasma, no ion flow)
+           B_FIELD_X   0          ! magnetic field in x direction
+           B_FIELD_Y   0          ! magnetic field in y direction
+           B_FIELD_Z   0          ! magnetic field in z direction
+  	          OMEGA1   3.96e6	  ! strength of radial (linear) confinement force on dust
   	          OMEGA2   7.92e8	  ! Large confinement force for dust at RADIAL_CONF and AXIAL_CONF
-  	     RADIAL_CONF   0.6	    ! Max excursion for dust as fraction of RAD_CYL
-  	      AXIAL_CONF   0.5	    ! Max excursion for dust as fraction of HT_CYL
+  	     RADIAL_CONF   0.6	      ! Max excursion for dust as fraction of RAD_CYL
+  	      AXIAL_CONF   0.5	      ! Max excursion for dust as fraction of HT_CYL
      N_PRINT_DEN_POT   10	      ! print density and potential every N steps
-	       GRID_FACTOR   1.0	    ! fraction of simulation region to calc den, pot
-	        BOX_CENTER   0.0	    ! height above the lower electrode in m
-  	        USE_GRAV   0		    ! 0 = no gravity, 1 = grav + sheath E field
-	            E_MULT   1		    ! multiplier to steepen sheath Ez as power increases
-	        LASER_PUSH   0		    ! for laser push in simulation of lab
-	          LASER_ON   0.20	    ! time to turn on laser push (applied to particle 1)
-	         LASER_OFF   0.205 	  ! time to turn off laser push
-	         TIME_EVOL   0		    ! number of lines in plasma_params.txt, 0 disables
-	              RESX   32	      ! # of divisions in radial direction for output of density and potential on grid
+	     GRID_FACTOR   1.0	      ! fraction of simulation region to calc den, pot
+	      BOX_CENTER   0.0	      ! height above the lower electrode in m
+  	        USE_GRAV   0		  ! 0 = no gravity, 1 = grav + sheath E field
+	          E_MULT   1		  ! multiplier to steepen sheath Ez as power increases
+	      LASER_PUSH   0		  ! for laser push in simulation of lab
+	        LASER_ON   0.20	      ! time to turn on laser push (applied to particle 1)
+	       LASER_OFF   0.205 	  ! time to turn off laser push
+	       TIME_EVOL   0		  ! number of lines in plasma_params.txt, 0 disables
+	            RESX   32	      ! # of divisions in radial direction for output of density and potential on grid
