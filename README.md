@@ -237,3 +237,11 @@ qsub_run_script.sh
 Job deletion helpers: 
 deleteJob.sh 
 deleteLocal.sh
+
+# Branches
+
+stable
+- Latest stable release (recommended)
+  
+main
+- Development / experimental
