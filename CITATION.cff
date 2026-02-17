@@ -7,13 +7,18 @@ message: >
   associated publication listed under preferred-citation.
 
 type: software
+version: 1.0.0
+date-released: 2026-02-17
+license: MIT
+
+url: https://github.com/CASPER-Baylor/DRIAD_public.git
 
 authors:
-  - given-names: Lorin Swint 
+  - given-names: Lorin Swint
     family-names: Matthews
     affiliation: Baylor University
 
-  - given-names: Benny 
+  - given-names: Benny
     family-names: Rodriguez Saenz
     affiliation: Baylor University
 
@@ -21,35 +26,29 @@ authors:
     family-names: Jimenez Marti
     affiliation: Baylor University
 
-  - given-names: Dustin  
+  - given-names: Dustin
     family-names: Sanford
     affiliation: Baylor University
 
-  - given-names: Katrina  
+  - given-names: Katrina
     family-names: Vermillion
     affiliation: Baylor University
 
-  - given-names: Alexandria  
+  - given-names: Alexandria
     family-names: Mendoza
     affiliation: Baylor University
 
-  - given-names: Khandaker Sharmin   
+  - given-names: Khandaker Sharmin
     family-names: Ashrafi
     affiliation: Baylor University
 
-  - given-names: Evelyn   
+  - given-names: Evelyn
     family-names: Guay
     affiliation: Baylor University
 
-  - given-names: Evdokiya G.   
+  - given-names: Evdokiya G.
     family-names: Kostadinova
-    affiliation: Baylor University   
-
-year: 2026
-
-version: 0.1.0
-
-url: https://github.com/CASPER-Baylor/DRIAD_public.git
+    affiliation: Baylor University
 
 preferred-citation:
   type: article
@@ -73,4 +72,3 @@ preferred-citation:
   issue: 2
   pages: "023703"
   doi: 10.1063/1.5124246
-
