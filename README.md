@@ -130,6 +130,26 @@ Template-related note (important):
   .cu/.cpp directly in the main translation unit instead of only including the
   header.
 
+### Environment Setup (Required)
+
+Before running any local GPU jobs, you must execute the setup script from the root of the repository:
+
+chmod u+x *./SETUP.sh
+
+The SETUP.sh script automates the full environment configuration:
+
+- Detects whether the system is WSL or native Linux
+- Installs required build tools and dependencies
+- Installs and configures CUDA 12.4
+- Verifies NVIDIA GPU availability (nvidia-smi)
+- Sets global CUDA environment variables
+- Installs Task Spooler GPU (tsgpu)
+- Creates one queue per GPU
+- Defines global aliases:
+  tsgpu0, tsgpu1, ... , tsgpui
+- Automatically extends the Makefile with GPU-specific execution targets:
+  make run_local_gpu0, make run_local_gpu1, ... ,make run_local_gpui
+
 # Local GPU queue system (task-spooler)
 
 Local queued execution uses task-spooler:
@@ -143,18 +163,18 @@ This workflow assumes:
   tsgpu0 and tsgpu1 expand to longer task-spooler invocations bound to a
   specific GPU queue.
 
-Queue commands used on local PCs:
+Some queue commands used on local PCs:
 
-tsgpu0 or tsgpu1 
-- Returns the queue manager status for GPU 0 or GPU 1.
+tsgpui
+- Returns the queue manager status for GPU i.
 
-tsgpu0 -K or tsgpu1 -K
+tsgpui -K
 - Deletes pending code executions in the corresponding GPU queue.
 
-tsgpu0 -k PID or tsgpu1 -k PID
+tsgpui -k PID
 - Deletes a specific job in the corresponding GPU queue (PID is the job/process id).
 
-tsgpu0 -C or tsgpu1 -C
+tsgpui -C
 - Cleans finished code executions from the corresponding GPU queue.
 
 # Makefile usage
@@ -174,22 +194,6 @@ build_release
 clean
 - Removes the build directory and build artifacts.
 
-run_job
-- Prompts for a run name, prepares run directories from base_input, and submits
-  the job to an HPC scheduler using qsub-based submission.
-
-run_local
-- Prompts for a run name, prepares run directories from base_input, and runs the
-  code immediately on the local machine.
-
-run_local_gpu0
-- Prompts for a run name, prepares run directories from base_input, and submits
-  the local run to the task-spooler queue associated with GPU 0 (via tsgpu0).
-
-run_local_gpu1
-- Prompts for a run name, prepares run directories from base_input, and submits
-  the local run to the task-spooler queue associated with GPU 1 (via tsgpu1).
-
 status
 - Prompts for a run name and prints status information for that run.
 
@@ -201,6 +205,18 @@ kill_job
 
 kill_local
 - Prompts for a run name and terminates the corresponding local run.
+
+run_job
+- Prompts for a run name, prepares run directories from base_input, and submits
+  the job to an HPC scheduler using qsub-based submission.
+
+run_local
+- Prompts for a run name, prepares run directories from base_input, and runs the
+  code immediately on the local machine.
+
+run_local_gpui
+- Prompts for a run name, prepares run directories from base_input, and submits
+  the local run to the task-spooler queue associated with GPU i (via tsgpui).
 
 # Script description
 
