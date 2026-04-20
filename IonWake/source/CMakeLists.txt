@@ -7,14 +7,11 @@
 # A CMake version 3.10 or higher is required 
 cmake_minimum_required(VERSION 3.10 FATAL_ERROR)
 
-# set the CUDA architectures for KODIAK
-set(CMAKE_CUDA_ARCHITECTURES 60 70 75)
+# set the CUDA architectures
+set(CMAKE_CUDA_ARCHITECTURES 60 70 75 80)
 
-# set the CUDA architectures for Ubuntu 20.04 in the local machine
-#set(CMAKE_CUDA_ARCHITECTURES 60 70 75 80)
-
-# path to the compiler in KODIAK
-set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.8/toolkit/12.8.0/bin/nvcc")
+# path to a specific nvcc compiler
+#set(CMAKE_CUDA_COMPILER "/cm/shared/apps/cuda12.8/toolkit/12.8.0/bin/nvcc")
 
 # set the project language to C++
 project(IonWake LANGUAGES CUDA CXX)
@@ -64,9 +61,3 @@ target_compile_options(IonWake.exe PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:
 
 # allow separate compilation. it is neccessary for multiple .cu files
 set_target_properties(IonWake.exe PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
-
-# Link GSL to the executable
-#target_link_libraries(IonWake.exe PUBLIC GSL::gsl GSL::gslcblas)
-
-# Include GSL headers
-#target_include_directories(IonWake.exe PUBLIC ${GSL_INCLUDE_DIRS})
