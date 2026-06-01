@@ -2409,14 +2409,6 @@ int main(int argc, char *argv[])
                     d_EXTERN_ELC_MULT.hostToDev();
                     d_TEMP_ELC.hostToDev();
                     d_MACH.hostToDev();
-
-                    // update the super ion charge
-                    d_posIon.devToHost();
-                    for (int q = 0; q < NUM_ION; q++)
-                    {
-                        posIon[q].w = CHARGE_ION;
-                    }
-                    d_posIon.hostToDev();
                 }
             } //*** end if TIME_EVOL *** //
 
